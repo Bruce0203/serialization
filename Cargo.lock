@@ -3,6 +3,12 @@
 version = 4
 
 [[package]]
+name = "autocfg"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
+
+[[package]]
 name = "convert_case"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -49,6 +55,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "fastvarint"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cef9d53914a63d9e1ec88471007cbe69d424a16030e255b106116c9b5d3a8d24"
+dependencies = [
+ "derive_more",
+ "nonmax",
+ "num-traits",
+ "serde",
+]
+
+[[package]]
+name = "nonmax"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "610a5acd306ec67f907abe5567859a3c693fb9886eb1f012ab8f2a47bef3db51"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "num-traits"
+version = "0.2.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
+dependencies = [
+ "autocfg",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.89"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -67,11 +103,41 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustx-serialization"
-version = "0.1.0"
+name = "serde"
+version = "1.0.215"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6513c1ad0b11a9376da888e3e0baa0077f1aed55c17f50e7b2397136129fb88f"
+dependencies = [
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.215"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad1e866f866923f252f05c889987993144fb74e722403468a4ebd70c3cd756c0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "serialization"
+version = "0.97.0"
 dependencies = [
  "derive_more",
  "fastbuf",
+ "fastvarint",
+]
+
+[[package]]
+name = "serialization_derive"
+version = "0.97.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
