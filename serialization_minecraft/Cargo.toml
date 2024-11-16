@@ -1,5 +1,5 @@
 [package]
-name = "serialization_derive"
+name = "serialization_minecraft"
 version.workspace = true  
 edition.workspace = true
 author.workspace = true 
@@ -12,10 +12,9 @@ include = [
     "Cargo.toml",
 ]
 
-[lib]
-proc-macro = true
-
 [dependencies]
-quote = "1.0.36"
-syn = { version = "2.0.68", features = ["full"] }
-proc-macro2 = "1.0.86"
+derive_more = { version = "1.0.0", features = ["full"] }
+fastbuf = "0.26.0"
+fastvarint = "0.21.0"
+serialization = { path = "../" }
+
