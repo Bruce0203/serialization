@@ -40,6 +40,7 @@ pub trait Encoder: Sized {
     fn encode_enum_variant(
         &mut self,
         name: &'static str,
+        variant_name: &'static str,
         variant_index: usize,
     ) -> Result<(), Self::Error>;
 
