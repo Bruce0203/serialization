@@ -1,6 +1,33 @@
-use serialization::{Encode, Encoder};
+use fastbuf::{Buf, Buffer};
+use serialization::{
+    CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder, Encode, Encoder,
+    EnumIdentifier,
+};
+use serialization_minecraft::PacketDecoder;
 
 pub struct TeestA {}
+
+#[derive(Debug, Clone, Copy, Encode, Decode)]
+#[repr(u8)]
+pub enum TestEnum {
+    A(usize, usize) = 100,
+    B = 102,
+    C { value: i32 } = 105,
+    D = 108,
+    E = 134,
+}
+
+#[test]
+fn testasdf() {
+    let value = TestEnum::C { value: 123 };
+    let mut buf = Buffer::<123>::new();
+    let ref mut enc = serialization_minecraft::PacketEncoder::new(&mut buf);
+    Encode::encode(&value, enc).unwrap();
+    println!("{:?}", buf);
+    let mut dec = PacketDecoder::new(&mut buf);
+    let v: TestEnum = Decode::decode(&mut dec).unwrap();
+    println!("{v:?}");
+}
 
 pub struct TestStruct {
     v1: u8,
@@ -18,10 +45,10 @@ impl Encode for TestStruct {
     where
         E: Encoder,
     {
-        let mut enc = encoder.begin_struct()?;
+        let mut enc = encoder.encode_struct()?;
         enc.encode_element(&self.v1)?;
         enc.encode_element(&self.v2)?;
-        enc.end_struct()?;
+        enc.end()?;
         Ok(())
     }
 }
@@ -31,11 +58,11 @@ impl Encode for TestStruct2 {
     where
         E: Encoder,
     {
-        let mut enc = encoder.begin_struct()?;
+        let mut enc = encoder.encode_struct()?;
         enc.encode_element(&self.v1)?;
         enc.encode_element(&self.v2)?;
         enc.encode_element(&self.vec)?;
-        enc.end_struct()?;
+        enc.end()?;
         Ok(())
     }
 }
@@ -63,3 +90,15 @@ mod test {
         assert_eq!(encoder.get_continuous(data.len()), data);
     }
 }
+
+#[derive(Encode, Decode)]
+struct A {
+    v1: u8,
+    v2: u16,
+}
+
+#[derive(Encode, Decode)]
+struct B();
+
+#[derive(Encode, Decode)]
+struct C(i32);

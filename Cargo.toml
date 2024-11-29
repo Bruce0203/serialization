@@ -30,6 +30,7 @@ derive_more = { version = "1.0.0", features = ["full"] }
 fastbuf = "0.26.0"
 fastvarint = "0.21.0"
 seq-macro = "0.3"
+concat-idents = "1.1.5"
 
 [dev-dependencies]
 serialization_minecraft = { path = "./serialization_minecraft" }
