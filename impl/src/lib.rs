@@ -69,17 +69,21 @@ fn impl_encode_enum(
     let enum_name = &item_enum.ident;
     let variant_names_match_branches = &variant_state.variant_names_match_branches;
     let variant_indexes_match_branches = &variant_state.variant_indexes_match_branches;
+    let generic_params_without_bounds = generic_params_without_bounds(&item_enum.generics);
+    let generic_params = &item_enum.generics.params.iter().collect::<Vec<_>>();
+    let generic_where_clause = &item_enum.generics.where_clause;
     quote! {
-    impl serialization::Encode for #enum_name {
-        fn encode<E: serialization::Encoder>(&self, mut encoder: E) -> Result<(), E::Error> {
-            serialization::Encoder::encode_enum_variant_key(
-                &mut encoder,
-                std::any::type_name::<Self>(),
-                match self { #(#variant_names_match_branches),* },
-                match self { #(#variant_indexes_match_branches),* },
-            )?;
-            match self { #(#match_branches),* }
-        }
+        impl<#(#generic_params),*> serialization::Encode
+            for #enum_name<#(#generic_params_without_bounds),*> #generic_where_clause {
+            fn encode<E: serialization::Encoder>(&self, mut encoder: E) -> Result<(), E::Error> {
+                serialization::Encoder::encode_enum_variant_key(
+                    &mut encoder,
+                    std::any::type_name::<Self>(),
+                    match self { #(#variant_names_match_branches),* },
+                    match self { #(#variant_indexes_match_branches),* },
+                )?;
+                match self { #(#match_branches),* }
+            }
     }
     }
 }
@@ -166,8 +170,13 @@ fn impl_decode_enum(
 
     let variant_names = &variant_state.variant_names;
     let variant_indexes = &variant_state.variant_indexes;
+    let generic_params_without_bounds = generic_params_without_bounds(&item_enum.generics);
+    let generic_params = &item_enum.generics.params.iter().collect::<Vec<_>>();
+    let generic_where_clause = &item_enum.generics.where_clause;
+
     quote! {
-        impl serialization::Decode for #enum_name {
+        impl<#(#generic_params),*> serialization::Decode
+            for #enum_name<#(#generic_params_without_bounds),*> #generic_where_clause {
             fn decode<D: serialization::Decoder>(mut decoder: D) -> Result<Self, D::Error> {
                 match serialization::Decoder::decode_enum(&mut decoder, std::any::type_name::<Self>())? {
                     serialization::EnumIdentifier::Name(name) => match name {

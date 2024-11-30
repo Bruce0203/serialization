@@ -140,7 +140,7 @@ dependencies = [
 
 [[package]]
 name = "serialization"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "concat-idents",
  "fastbuf",
@@ -151,7 +151,7 @@ dependencies = [
 
 [[package]]
 name = "serialization_derive"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -160,7 +160,7 @@ dependencies = [
 
 [[package]]
 name = "serialization_minecraft"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "concat-idents",
  "derive_more",

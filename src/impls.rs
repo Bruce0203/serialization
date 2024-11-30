@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use concat_idents::concat_idents;
 use seq_macro::seq;
 
@@ -76,5 +78,17 @@ impl<T: Encode> Encode for Vec<T> {
 impl<T: Encode> Encode for &T {
     fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
         (*self).encode(encoder)
+    }
+}
+
+impl<T> Encode for PhantomData<T> {
+    fn encode<E: Encoder>(&self, _encoder: E) -> Result<(), E::Error> {
+        Ok(())
+    }
+}
+
+impl<T> Decode for PhantomData<T> {
+    fn decode<D: crate::Decoder>(_decoder: D) -> Result<Self, D::Error> {
+        Ok(Self)
     }
 }
