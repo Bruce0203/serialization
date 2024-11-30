@@ -1,9 +1,11 @@
 use std::mem::MaybeUninit;
 
+use concat_idents::concat_idents;
 use fastbuf::{ReadBuf, WriteBuf};
 use fastvarint::{DecodeVarInt, EncodeVarInt, VarInt};
 use serialization::{
     CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder, Encode, Encoder,
+    EnumIdentifier,
 };
 
 #[derive(derive_more::Deref, derive_more::DerefMut)]
@@ -23,24 +25,33 @@ pub enum PacketEncodingError {
     Custom,
 }
 
-macro_rules! serialize_bytes {
-    ($buffer:expr, $v:expr) => {
-        $buffer
-            .try_write($v)
-            .map_err(|()| PacketEncodingError::NotEnoughBuffer)
-    };
-}
-
 macro_rules! serialize_num {
-    ($buffer:expr, $v:expr) => {
-        serialize_bytes!($buffer, &$v.to_be_bytes())
-    };
+    ($($type:ty),*) => {$(
+        concat_idents!(fn_name = encode_, $type, {
+            fn fn_name(&mut self, v: $type) -> Result<(), Self::Error> {
+                self
+                    .try_write(&v.to_be_bytes())
+                    .map_err(|()| PacketEncodingError::NotEnoughBuffer)
+            }
+        });
+    )*};
 }
 
-macro_rules! deserialize_num2 {
-    ($buffer:expr, $type:ident) => {
-        concat_idents!(fn_name = decode_, $type, { decoder.fn_name() })
-    };
+macro_rules! deserialize_num {
+    ($($type:ty),*) => {$(
+        concat_idents!(fn_name = decode_, $type, {
+            fn fn_name(&mut self) -> Result<$type, Self::Error> {
+                let buf = self.read(size_of::<$type>());
+                if buf.len() != size_of::<$type>() {
+                    Err(PacketDecodingError::NotEnoughBytesInTheBuffer)?;
+                }
+                #[allow(invalid_value)]
+                let mut slice = [unsafe { MaybeUninit::<u8>::uninit().assume_init() }; size_of::<$type>()];
+                slice.copy_from_slice(buf);
+                Ok(<$type>::from_be_bytes(slice))
+            }
+        });
+    )*};
 }
 
 impl<'a, S: WriteBuf> Encoder for &'a mut PacketEncoder<S> {
@@ -48,6 +59,8 @@ impl<'a, S: WriteBuf> Encoder for &'a mut PacketEncoder<S> {
     type TupleEncoder = Self;
     type StructEncoder = Self;
     type SequenceEncoder = Self;
+
+    serialize_num!(u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, usize, isize, i128, u128);
 
     fn encode_struct(self) -> Result<Self, Self::Error> {
         Ok(self)
@@ -86,62 +99,6 @@ impl<'a, S: WriteBuf> Encoder for &'a mut PacketEncoder<S> {
         self.try_write(&[v as u8])
             .map_err(|()| PacketEncodingError::NotEnoughBuffer)
     }
-
-    fn encode_u8(&mut self, v: u8) -> Result<(), Self::Error> {
-        serialize_num!(self, v)
-    }
-
-    fn encode_i8(&mut self, v: i8) -> Result<(), Self::Error> {
-        serialize_num!(self, v)
-    }
-
-    fn encode_u16(&mut self, v: u16) -> Result<(), Self::Error> {
-        serialize_num!(self, v)
-    }
-
-    fn encode_i16(&mut self, v: i16) -> Result<(), Self::Error> {
-        serialize_num!(self, v)
-    }
-
-    fn encode_u32(&mut self, v: u32) -> Result<(), Self::Error> {
-        serialize_num!(self, v)
-    }
-
-    fn encode_i32(&mut self, v: i32) -> Result<(), Self::Error> {
-        serialize_num!(self, v)
-    }
-
-    fn encode_u64(&mut self, v: u64) -> Result<(), Self::Error> {
-        serialize_num!(self, v)
-    }
-
-    fn encode_i64(&mut self, v: i64) -> Result<(), Self::Error> {
-        serialize_num!(self, v)
-    }
-
-    fn encode_u128(&mut self, v: u128) -> Result<(), Self::Error> {
-        serialize_num!(self, v)
-    }
-
-    fn encode_i128(&mut self, v: i128) -> Result<(), Self::Error> {
-        serialize_num!(self, v)
-    }
-
-    fn encode_usize(&mut self, v: usize) -> Result<(), Self::Error> {
-        serialize_num!(self, v)
-    }
-
-    fn encode_isize(&mut self, v: isize) -> Result<(), Self::Error> {
-        serialize_num!(self, v)
-    }
-
-    fn encode_f32(&mut self, v: f32) -> Result<(), Self::Error> {
-        serialize_num!(self, v)
-    }
-
-    fn encode_f64(&mut self, v: f64) -> Result<(), Self::Error> {
-        serialize_num!(self, v)
-    }
 }
 
 impl<'a, S: WriteBuf> CompositeEncoder for &'a mut PacketEncoder<S> {
@@ -176,19 +133,6 @@ pub enum PacketDecodingError {
     TooLarge,
 }
 
-macro_rules! deserialize_num {
-    ($buffer:expr, $type:ty) => {{
-        let buf = $buffer.read(size_of::<$type>());
-        if buf.len() != size_of::<$type>() {
-            Err(PacketDecodingError::NotEnoughBytesInTheBuffer)?;
-        }
-        #[allow(invalid_value)]
-        let mut slice = [unsafe { MaybeUninit::<u8>::uninit().assume_init() }; size_of::<$type>()];
-        slice.copy_from_slice(buf);
-        Ok(<$type>::from_be_bytes(slice))
-    }};
-}
-
 impl DecodeError for PacketDecodingError {
     fn invalid_enum_variant_name(name: &'static str) -> Self {
         Self::InvalidEnumKeyName(name)
@@ -214,6 +158,8 @@ impl<T: ReadBuf> Decoder for &mut PacketDecoder<T> {
     type StructDecoder = Self;
     type SequenceDecoder = Self;
 
+    deserialize_num!(u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, usize, isize, i128, u128);
+
     fn decode_tuple(self) -> Result<Self::TupleDecoder, Self::Error> {
         Ok(self)
     }
@@ -230,11 +176,8 @@ impl<T: ReadBuf> Decoder for &mut PacketDecoder<T> {
         self.decode_varint()
     }
 
-    fn decode_enum(
-        &mut self,
-        _enum_name: &'static str,
-    ) -> Result<serialization::EnumIdentifier, Self::Error> {
-        Ok(serialization::EnumIdentifier::Index(self.decode_varint()?))
+    fn decode_enum(&mut self, _enum_name: &'static str) -> Result<EnumIdentifier, Self::Error> {
+        Ok(EnumIdentifier::Index(self.decode_varint()?))
     }
 
     fn decode_is_some(&mut self) -> Result<bool, Self::Error> {
@@ -243,62 +186,6 @@ impl<T: ReadBuf> Decoder for &mut PacketDecoder<T> {
 
     fn decode_bool(&mut self) -> Result<bool, Self::Error> {
         Ok(if self.decode_u8()? == 0 { false } else { true })
-    }
-
-    fn decode_u8(&mut self) -> Result<u8, Self::Error> {
-        deserialize_num!(self, u8)
-    }
-
-    fn decode_i8(&mut self) -> Result<i8, Self::Error> {
-        deserialize_num!(self, i8)
-    }
-
-    fn decode_u16(&mut self) -> Result<u16, Self::Error> {
-        deserialize_num!(self, u16)
-    }
-
-    fn decode_i16(&mut self) -> Result<i16, Self::Error> {
-        deserialize_num!(self, i16)
-    }
-
-    fn decode_u32(&mut self) -> Result<u32, Self::Error> {
-        deserialize_num!(self, u32)
-    }
-
-    fn decode_i32(&mut self) -> Result<i32, Self::Error> {
-        deserialize_num!(self, i32)
-    }
-
-    fn decode_u64(&mut self) -> Result<u64, Self::Error> {
-        deserialize_num!(self, u64)
-    }
-
-    fn decode_i64(&mut self) -> Result<i64, Self::Error> {
-        deserialize_num!(self, i64)
-    }
-
-    fn decode_u128(&mut self) -> Result<u128, Self::Error> {
-        deserialize_num!(self, u128)
-    }
-
-    fn decode_i128(&mut self) -> Result<i128, Self::Error> {
-        deserialize_num!(self, i128)
-    }
-
-    fn decode_usize(&mut self) -> Result<usize, Self::Error> {
-        deserialize_num!(self, usize)
-    }
-
-    fn decode_isize(&mut self) -> Result<isize, Self::Error> {
-        deserialize_num!(self, isize)
-    }
-
-    fn decode_f32(&mut self) -> Result<f32, Self::Error> {
-        deserialize_num!(self, f32)
-    }
-
-    fn decode_f64(&mut self) -> Result<f64, Self::Error> {
-        deserialize_num!(self, f64)
     }
 }
 

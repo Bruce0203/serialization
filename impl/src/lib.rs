@@ -1,290 +1,252 @@
-use std::{any::type_name_of_val, iter::repeat_n};
+use std::iter::repeat_n;
 
 use proc_macro::TokenStream;
+use proc_macro2::Span;
 use quote::{format_ident, quote, ToTokens};
 use syn::{
-    parse_macro_input, spanned::Spanned, Error, Fields, Generics, Ident, Index, Item, ItemEnum,
+    parse_macro_input, spanned::Spanned, Error, Fields, GenericParam, Generics, Ident, Index, Item,
+    ItemEnum, ItemStruct,
 };
 
-#[proc_macro_derive(Encode)]
-pub fn encode(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(Serializable)]
+pub fn serializable(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as Item);
     match input {
-        Item::Enum(item_enum) => {
-            let enum_name = &item_enum.ident;
-            let match_branches = item_enum
-                .variants
-                .iter()
-                .map(|variant| {
-                    let variant_name = &variant.ident;
-                    let branch_suffix = match &variant.fields {
-                        Fields::Named(fields_named) => {
-                            let field_names = fields_named
-                                .named
-                                .iter()
-                                .map(|field| &field.ident)
-                                .collect::<Vec<_>>();
-                            let value = quote! {
-                                { #(#field_names),* } => {
-                                    let mut struc = E::encode_struct(encoder)?;
-                                    #(<E::StructEncoder as serialization::CompositeEncoder>::encode_element(&mut struc, &#field_names)?;)*
-                                    <E::StructEncoder as serialization::CompositeEncoder>::end(struc)?
-                                }
-                            };
-                            value
-                        }
-                        Fields::Unnamed(fields_unnamed) => {
-                            let indexes = (0..fields_unnamed.unnamed.len())
-                                .map(|index| format_ident!("v{index}"))
-                                .collect::<Vec<_>>();
-                            quote! {
-                                (#(#indexes),*) => {
-                                    let mut tup = E::encode_tuple(encoder)?;
-                                    #(<E::TupleEncoder as serialization::CompositeEncoder>::encode_element(&mut tup, #indexes)?;)*
-                                    <E::TupleEncoder as serialization::CompositeEncoder>::end(tup)?
-                                }
-                            }
-                        }
-                        Fields::Unit => quote! { => () },
-                    };
-                    quote! { #enum_name::#variant_name #branch_suffix }
-                })
-                .collect::<Vec<_>>();
+        Item::Enum(ref item_enum) => {
+            let ref variant_state = variant_state(&item_enum);
+            let encode = impl_encode_enum(item_enum, variant_state);
+            let decode = impl_decode_enum(item_enum, variant_state);
             quote! {
-            impl serialization::Encode for #enum_name {
-                fn encode<E: serialization::Encoder>(&self, mut encoder: E) -> Result<(), E::Error> {
-                    serialization::Encoder::encode_enum_variant_key(
-                        &mut encoder,
-                        std::any::type_name::<Self>(),
-                        self.__variant_name(),
-                        self.__variant_index(),
-                    )?;
-                    Ok(match self { #(#match_branches),* })
-                }
+                #encode
+                #decode
             }
-            }.into()
         }
-        Item::Struct(item_struct) => {
-            let struct_name = &item_struct.ident;
-            let generic_params_without_bounds =
-                generic_params_without_bounds(&item_struct.generics);
-            let generic_params = &item_struct.generics.params.iter().collect::<Vec<_>>();
-            let generic_where_clause = &item_struct.generics.where_clause;
-            let fields = match item_struct.fields {
-                Fields::Named(fields_named) => fields_named
-                    .named
-                    .iter()
-                    .map(|field| field.ident.to_token_stream())
-                    .collect::<Vec<_>>(),
-                Fields::Unnamed(fields_unnamed) => (0..fields_unnamed.unnamed.len())
-                    .map(|index| {
-                        Index {
-                            index: index as u32,
-                            span: fields_unnamed.span(),
-                        }
-                        .to_token_stream()
-                    })
-                    .collect::<Vec<_>>(),
-                Fields::Unit => {
-                    vec![]
-                }
-            };
+        Item::Struct(ref item_struct) => {
+            let encode = impl_encode_struct(item_struct);
+            let decode = impl_decode_struct(item_struct);
             quote! {
-                impl<#(#generic_params),*> serialization::Encode
-                    for #struct_name<#(#generic_params_without_bounds),*> #generic_where_clause {
-                        fn encode<E: serialization::Encoder>(&self, encoder: E) -> Result<(), E::Error> {
-                            let mut struc = serialization::Encoder::encode_struct(encoder)?;
-                            #(<E::StructEncoder as serialization::CompositeEncoder>::encode_element(&mut struc, &self.#fields)?;)*
-                            Ok(<E::StructEncoder as serialization::CompositeEncoder>::end(struc)?)
-                        }
-                }
+                #encode
+                #decode
             }
-            .into()
         }
-
-        _ => unimplemented!("not a valid item keyword {}", type_name_of_val(&input)), // TODO Test
+        item => Error::new(item.span(), "only enum and struct supported").to_compile_error(),
     }
+    .into()
 }
 
-#[proc_macro_derive(Decode)]
-pub fn decode(input: TokenStream) -> TokenStream {
-    let item_enum = parse_macro_input!(input as Item);
-    match item_enum {
-        Item::Enum(item_enum) => {
-            let enum_name = &item_enum.ident;
-            let decoding_body = item_enum
-                .variants
-                .iter()
-                .map(|variant| {
-                    let variant_name = &variant.ident;
-                    match &variant.fields {
-                        Fields::Named(fields_named) => {
-                            let field_names = fields_named
-                                .named
-                                .iter()
-                                .map(|field| &field.ident)
-                                .collect::<Vec<_>>();
-
-                            quote! {{
-                                let mut struc = serialization::Decoder::decode_struct(decoder)?;
-                                let result = Self::#variant_name {
-                                    #(#field_names: <D::StructDecoder as serialization::CompositeDecoder>::decode_element(&mut struc)?),*
-                                };
-                                <D::StructDecoder as serialization::CompositeDecoder>::end(struc)?;
-                                result
-                            }}
-                        }
-                        Fields::Unnamed(fields_unnamed) => {
-                            let indexes = repeat_n(
-                                quote! { <D::TupleDecoder as serialization::CompositeDecoder>::decode_element(&mut tup)? },
-                                fields_unnamed.unnamed.len(),
-                            );
-                            quote! {{
-                                let mut tup = serialization::Decoder::decode_tuple(decoder)?;
-                                let result = Self::#variant_name(#(#indexes),*);
-                                <D::TupleDecoder as serialization::CompositeDecoder>::end(tup)?;
-                                result
-                            }}
-                        }
-                        Fields::Unit => {
-                            quote! { {Self::#variant_name} }
-                        }
-                    }
-                })
-                .collect::<Vec<_>>();
-
-            let VariantNames {
-                variant_names,
-                generated_impl_block: generated_variant_names,
-            } = variant_names(&item_enum);
-            let VariantIndexes {
-                variant_indexes,
-                generated_impl_block: generated_variant_indexes,
-            } = variant_indexes(&item_enum);
-            quote! {
-                #generated_variant_names
-                #generated_variant_indexes
-                impl serialization::Decode for #enum_name {
-                    fn decode<D: serialization::Decoder>(mut decoder: D) -> Result<Self, D::Error> {
-                        Ok(match serialization::Decoder::decode_enum(&mut decoder, std::any::type_name::<Self>())? {
-                            serialization::EnumIdentifier::Name(name) => match name {
-                                #(stringify!(#variant_names) => #decoding_body),*
-                                name => Err(serialization::DecodeError::invalid_enum_variant_name(name))?,
-                            },
-                            serialization::EnumIdentifier::Index(index) => { 
-                                #(const #variant_names: usize = #variant_indexes;)*
-                                match index {
-                                    #(#variant_names => #decoding_body),*
-                                    index => Err(serialization::DecodeError::invalid_enum_variant_index(index))?,
-                                }
-                            },
-                        })
-                    }
-                }
-            }.into()
-        }
-        Item::Struct(item_struct) => {
-            let struct_name = &item_struct.ident;
-            let generic_params_without_bounds =
-                generic_params_without_bounds(&item_struct.generics);
-            let generic_params = &item_struct.generics.params.iter().collect::<Vec<_>>();
-            let generic_where_clause = &item_struct.generics.where_clause;
-            let fields = match item_struct.fields {
-                Fields::Named(fields_named) => fields_named
-                    .named
-                    .iter()
-                    .map(|field| field.ident.to_token_stream())
-                    .collect::<Vec<_>>(),
-                Fields::Unnamed(fields_unnamed) => (0..fields_unnamed.unnamed.len())
-                    .map(|index| {
-                        Index {
-                            index: index as u32,
-                            span: fields_unnamed.span(),
-                        }
-                        .to_token_stream()
-                    })
-                    .collect::<Vec<_>>(),
-                Fields::Unit => {
-                    vec![]
-                }
-            };
-            quote! {
-            impl<#(#generic_params),*> serialization::Decode
-                for #struct_name<#(#generic_params_without_bounds),*> #generic_where_clause {
-                    fn decode<D: serialization::Decoder>(decoder: D) -> Result<Self, D::Error> {
-                        let mut struc = serialization::Decoder::decode_struct(decoder)?;
-                        let result = Self {
-                            #(#fields: <D::StructDecoder as serialization::CompositeDecoder>::decode_element(&mut struc)?),*
-                        };
-                        <D::StructDecoder as serialization::CompositeDecoder>::end(struc)?;
-                        Ok(result)
-                    }
-                }
-            }
-            .into()
-        }
-        item => Error::new(item.span(), "only enum and struct supported")
-            .to_compile_error()
-            .into(),
-    }
-}
-
-struct VariantNames<'a> {
-    variant_names: Vec<&'a Ident>,
-    generated_impl_block: proc_macro2::TokenStream,
-}
-
-fn variant_names(item_enum: &ItemEnum) -> VariantNames {
+fn impl_encode_enum(
+    item_enum: &ItemEnum,
+    variant_state: &VariantState<'_>,
+) -> proc_macro2::TokenStream {
     let enum_name = &item_enum.ident;
     let match_branches = item_enum
         .variants
         .iter()
         .map(|variant| {
             let variant_name = &variant.ident;
-            let fields = match variant.fields {
-                syn::Fields::Named(_) => quote! { {..} },
-                syn::Fields::Unnamed(_) => quote! { (..) },
-                syn::Fields::Unit => quote! {},
-            };
-            quote! { #enum_name::#variant_name #fields => stringify!(#variant_name) }
-        })
-        .collect::<Vec<_>>();
-    let enum_generic_params_without_bounds = &item_enum
-        .generics
-        .params
-        .iter()
-        .map(|param| match param {
-            syn::GenericParam::Lifetime(lifetime_param) => &lifetime_param.lifetime.ident,
-            syn::GenericParam::Type(type_param) => &type_param.ident,
-            syn::GenericParam::Const(const_param) => &const_param.ident,
-        })
-        .collect::<Vec<_>>();
-    let enum_generic_params = &item_enum.generics.params.iter().collect::<Vec<_>>();
-    let enum_generic_where_clause = &item_enum.generics.where_clause;
-    let variant_names = item_enum
-        .variants
-        .iter()
-        .map(|variant| &variant.ident)
-        .collect::<Vec<_>>();
-    VariantNames {
-        variant_names,
-        generated_impl_block: quote! {
-        impl<#(#enum_generic_params),*>
-            #enum_name<#(#enum_generic_params_without_bounds),*> #enum_generic_where_clause {
-
-                fn __variant_name(&self) -> &'static str {
-                    match self {
-                        #(#match_branches),*
-                    }
+            let branch_suffix = match &variant.fields {
+                Fields::Named(fields_named) => {
+                    let field_names = fields_named
+                        .named
+                        .iter()
+                        .map(|field| field.ident.clone().unwrap().to_token_stream())
+                        .collect::<Vec<_>>();
+                    let encode_struct = encode_struct(&field_names);
+                    quote! { { #(#field_names),* } => #encode_struct }
                 }
-            }
-        },
+                Fields::Unnamed(fields_unnamed) => {
+                    let indexes = (0..fields_unnamed.unnamed.len())
+                        .map(|index| format_ident!("v{index}"))
+                        .collect::<Vec<_>>();
+                    let encode_tuple = encode_tuple(&indexes);
+                    quote! { (#(#indexes),*) => #encode_tuple }
+                }
+                Fields::Unit => quote! { => Ok(()) },
+            };
+            quote! { #enum_name::#variant_name #branch_suffix }
+        })
+        .collect::<Vec<_>>();
+    let enum_name = &item_enum.ident;
+    let variant_names_match_branches = &variant_state.variant_names_match_branches;
+    let variant_indexes_match_branches = &variant_state.variant_indexes_match_branches;
+    quote! {
+    impl serialization::Encode for #enum_name {
+        fn encode<E: serialization::Encoder>(&self, mut encoder: E) -> Result<(), E::Error> {
+            serialization::Encoder::encode_enum_variant_key(
+                &mut encoder,
+                std::any::type_name::<Self>(),
+                match self { #(#variant_names_match_branches),* },
+                match self { #(#variant_indexes_match_branches),* },
+            )?;
+            match self { #(#match_branches),* }
+        }
+    }
     }
 }
 
-struct VariantIndexes {
-    variant_indexes: Vec<proc_macro2::TokenStream>,
-    generated_impl_block: proc_macro2::TokenStream,
+fn impl_encode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
+    let struct_name = &item_struct.ident;
+    let generic_params = &item_struct.generics.params.iter().collect::<Vec<_>>();
+    let generic_where_clause = &item_struct.generics.where_clause;
+    let generic_params_without_bounds = generic_params_without_bounds(&item_struct.generics);
+    let fields = match &item_struct.fields {
+        Fields::Named(fields_named) => fields_named
+            .named
+            .iter()
+            .map(|field| {
+                let field_name = &field.ident;
+                quote! { self.#field_name }
+            })
+            .collect::<Vec<_>>(),
+        Fields::Unnamed(fields_unnamed) => (0..fields_unnamed.unnamed.len())
+            .map(|index| {
+                let index = Index {
+                    index: index as u32,
+                    span: fields_unnamed.span(),
+                };
+                quote! { self.#index }
+            })
+            .collect::<Vec<_>>(),
+        Fields::Unit => {
+            vec![]
+        }
+    };
+    let encode_struct = encode_struct(&fields);
+    quote! {
+        impl<#(#generic_params),*> serialization::Encode
+            for #struct_name<#(#generic_params_without_bounds),*> #generic_where_clause {
+                fn encode<E: serialization::Encoder>(&self, encoder: E) -> Result<(), E::Error> {
+                    #encode_struct
+                }
+        }
+    }
+}
+
+fn encode_struct(fields: &Vec<proc_macro2::TokenStream>) -> proc_macro2::TokenStream {
+    quote! {{
+        let mut struc = E::encode_struct(encoder)?;
+        #(<E::StructEncoder as serialization::CompositeEncoder>::encode_element(&mut struc, &#fields)?;)*
+        Ok(<E::StructEncoder as serialization::CompositeEncoder>::end(struc)?)
+    }}
+}
+fn encode_tuple(fields: &Vec<Ident>) -> proc_macro2::TokenStream {
+    quote! {{
+        let mut tup = E::encode_tuple(encoder)?;
+        #(<E::TupleEncoder as serialization::CompositeEncoder>::encode_element(&mut tup, #fields)?;)*
+        Ok(<E::TupleEncoder as serialization::CompositeEncoder>::end(tup)?)
+    }}
+}
+
+fn impl_decode_enum(
+    item_enum: &ItemEnum,
+    variant_state: &VariantState<'_>,
+) -> proc_macro2::TokenStream {
+    let enum_name = &item_enum.ident;
+    let decode = item_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            match &variant.fields {
+                Fields::Named(fields_named) => {
+                    let field_names = fields_named
+                        .named
+                        .iter()
+                        .map(|field| field.ident.clone().unwrap().to_token_stream())
+                        .collect::<Vec<_>>();
+                    decode_struct(quote! { Self::#variant_name }, &field_names)
+                }
+                Fields::Unnamed(fields_unnamed) => {
+                    decode_tuple(quote! { Self::#variant_name }, fields_unnamed.unnamed.len())
+                }
+                Fields::Unit => quote! { Ok(Self::#variant_name) },
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let variant_names = &variant_state.variant_names;
+    let variant_indexes = &variant_state.variant_indexes;
+    quote! {
+        impl serialization::Decode for #enum_name {
+            fn decode<D: serialization::Decoder>(mut decoder: D) -> Result<Self, D::Error> {
+                match serialization::Decoder::decode_enum(&mut decoder, std::any::type_name::<Self>())? {
+                    serialization::EnumIdentifier::Name(name) => match name {
+                        #(stringify!(#variant_names) => #decode,)*
+                        name => Err(serialization::DecodeError::invalid_enum_variant_name(name))?,
+                    },
+                    serialization::EnumIdentifier::Index(index) => {
+                        #(const #variant_names: usize = #variant_indexes;)*
+                        match index {
+                            #(#variant_names => #decode,)*
+                            index => Err(serialization::DecodeError::invalid_enum_variant_index(index))?,
+                        }
+                    },
+                }
+            }
+        }
+    }
+}
+
+fn impl_decode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
+    let struct_name = &item_struct.ident;
+    let fields = match &item_struct.fields {
+        Fields::Named(fields_named) => fields_named
+            .named
+            .iter()
+            .map(|field| field.ident.to_token_stream())
+            .collect::<Vec<_>>(),
+        Fields::Unnamed(fields_unnamed) => (0..fields_unnamed.unnamed.len())
+            .map(|index| {
+                Index {
+                    index: index as u32,
+                    span: Span::call_site(),
+                }
+                .to_token_stream()
+            })
+            .collect::<Vec<_>>(),
+        Fields::Unit => {
+            vec![]
+        }
+    };
+    let generic_params_without_bounds = generic_params_without_bounds(&item_struct.generics);
+    let generic_params = &item_struct.generics.params.iter().collect::<Vec<_>>();
+    let generic_where_clause = &item_struct.generics.where_clause;
+    let decode_struct = decode_struct(quote! { Self }, &fields);
+    quote! {
+    impl<#(#generic_params),*> serialization::Decode
+        for #struct_name<#(#generic_params_without_bounds),*> #generic_where_clause {
+            fn decode<D: serialization::Decoder>(decoder: D) -> Result<Self, D::Error> {
+                #decode_struct
+            }
+        }
+    }
+}
+
+fn decode_struct(
+    struct_name: proc_macro2::TokenStream,
+    fields: &Vec<proc_macro2::TokenStream>,
+) -> proc_macro2::TokenStream {
+    quote! {{
+        let mut struc = serialization::Decoder::decode_struct(decoder)?;
+        let result = #struct_name {
+            #(#fields: <D::StructDecoder as serialization::CompositeDecoder>::decode_element(&mut struc)?),*
+        };
+        <D::StructDecoder as serialization::CompositeDecoder>::end(struc)?;
+        Ok(result)
+    }}
+}
+
+fn decode_tuple(tuple_name: proc_macro2::TokenStream, size: usize) -> proc_macro2::TokenStream {
+    let indexes = repeat_n(
+        quote! { <D::TupleDecoder as serialization::CompositeDecoder>::decode_element(&mut tup)? },
+        size,
+    );
+    quote! {{
+        let mut tup = serialization::Decoder::decode_tuple(decoder)?;
+        let result = #tuple_name(#(#indexes),*);
+        <D::TupleDecoder as serialization::CompositeDecoder>::end(tup)?;
+        Ok(result)
+    }}
 }
 
 fn generic_params_without_bounds(generics: &Generics) -> Vec<&Ident> {
@@ -292,21 +254,45 @@ fn generic_params_without_bounds(generics: &Generics) -> Vec<&Ident> {
         .params
         .iter()
         .map(|param| match param {
-            syn::GenericParam::Lifetime(lifetime_param) => &lifetime_param.lifetime.ident,
-            syn::GenericParam::Type(type_param) => &type_param.ident,
-            syn::GenericParam::Const(const_param) => &const_param.ident,
+            GenericParam::Lifetime(lifetime_param) => &lifetime_param.lifetime.ident,
+            GenericParam::Type(type_param) => &type_param.ident,
+            GenericParam::Const(const_param) => &const_param.ident,
         })
         .collect::<Vec<_>>()
 }
 
-fn variant_indexes(item_enum: &ItemEnum) -> VariantIndexes {
+struct VariantState<'a> {
+    variant_names: Vec<&'a Ident>,
+    variant_names_match_branches: Vec<proc_macro2::TokenStream>,
+    variant_indexes: Vec<proc_macro2::TokenStream>,
+    variant_indexes_match_branches: Vec<proc_macro2::TokenStream>,
+}
+
+fn variant_state<'a>(item_enum: &'a ItemEnum) -> VariantState<'a> {
     let enum_name = &item_enum.ident;
-    let enum_generic_params = &item_enum.generics.params.iter().collect::<Vec<_>>();
-    let enum_generic_params_without_bounds = generic_params_without_bounds(&item_enum.generics);
-    let enum_generic_where_clause = &item_enum.generics.where_clause;
+    let variant_names_match_branches = item_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            let fields = match variant.fields {
+                Fields::Named(_) => quote! { {..} },
+                Fields::Unnamed(_) => quote! { (..) },
+                Fields::Unit => quote! {},
+            };
+            quote! { #enum_name::#variant_name #fields => stringify!(#variant_name) }
+        })
+        .collect::<Vec<_>>();
+
+    let variant_names = item_enum
+        .variants
+        .iter()
+        .map(|variant| &variant.ident)
+        .collect::<Vec<_>>();
+
     let mut last_index: proc_macro2::TokenStream = quote! {0};
     let mut variant_indexes = Vec::with_capacity(item_enum.variants.len());
-    let match_branches = item_enum
+    let variant_indexes_match = item_enum
         .variants
         .iter()
         .map(|variant| {
@@ -321,9 +307,9 @@ fn variant_indexes(item_enum: &ItemEnum) -> VariantIndexes {
 
             let variant_name = &variant.ident;
             let fields = match variant.fields {
-                syn::Fields::Named(_) => quote! { {..} },
-                syn::Fields::Unnamed(_) => quote! { (..) },
-                syn::Fields::Unit => quote! {},
+                Fields::Named(_) => quote! { {..} },
+                Fields::Unnamed(_) => quote! { (..) },
+                Fields::Unit => quote! {},
             };
             let result = quote! {
                 #enum_name::#variant_name #fields => #index
@@ -332,18 +318,10 @@ fn variant_indexes(item_enum: &ItemEnum) -> VariantIndexes {
             result
         })
         .collect::<Vec<_>>();
-    VariantIndexes {
+    VariantState {
+        variant_names,
+        variant_names_match_branches,
         variant_indexes,
-        generated_impl_block: quote! {
-        impl<#(#enum_generic_params),*>
-            #enum_name<#(#enum_generic_params_without_bounds),*> #enum_generic_where_clause {
-
-                fn __variant_index(&self) -> usize {
-                    match self {
-                        #(#match_branches),*
-                    }
-                }
-            }
-        },
+        variant_indexes_match_branches: variant_indexes_match,
     }
 }

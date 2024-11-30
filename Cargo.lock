@@ -164,6 +164,7 @@ dependencies = [
 name = "serialization_minecraft"
 version = "0.1.0"
 dependencies = [
+ "concat-idents",
  "derive_more",
  "fastbuf",
  "fastvarint",

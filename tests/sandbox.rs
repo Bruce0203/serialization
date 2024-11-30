@@ -1,13 +1,10 @@
-use fastbuf::{Buf, Buffer};
-use serialization::{
-    CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder, Encode, Encoder,
-    EnumIdentifier,
-};
+use fastbuf::Buffer;
+use serialization::{CompositeEncoder, Decode, Encode, Encoder, Serializable};
 use serialization_minecraft::PacketDecoder;
 
 pub struct TeestA {}
 
-#[derive(Debug, Clone, Copy, Encode, Decode)]
+#[derive(Debug, Clone, Copy, Serializable)]
 #[repr(u8)]
 pub enum TestEnum {
     A(usize, usize) = 100,
@@ -91,14 +88,14 @@ mod test {
     }
 }
 
-#[derive(Encode, Decode)]
+#[derive(Serializable)]
 struct A {
     v1: u8,
     v2: u16,
 }
 
-#[derive(Encode, Decode)]
+#[derive(Serializable)]
 struct B();
 
-#[derive(Encode, Decode)]
+#[derive(Serializable)]
 struct C(i32);
