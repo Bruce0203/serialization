@@ -143,9 +143,7 @@ name = "serialization"
 version = "0.1.0"
 dependencies = [
  "concat-idents",
- "derive_more",
  "fastbuf",
- "fastvarint",
  "seq-macro",
  "serialization_derive",
  "serialization_minecraft",
