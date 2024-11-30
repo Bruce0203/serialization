@@ -234,24 +234,28 @@ impl<'de, 'a, T: Decode<'de> + Clone> Decode<'de> for std::borrow::Cow<'a, T> {
     }
 }
 
+#[cfg(feature = "fastvarint")]
 impl<'de> Decode<'de> for fastvarint::VarInt {
     fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
         Ok(decoder.decode_var_i32()?.into())
     }
 }
 
+#[cfg(feature = "fastvarint")]
 impl Encode for fastvarint::VarInt {
     fn encode<E: Encoder>(&self, mut encoder: E) -> Result<(), E::Error> {
         encoder.encode_var_i32(**self)
     }
 }
 
+#[cfg(feature = "fastvarint")]
 impl Encode for fastvarint::NonMaxI32VarInt {
     fn encode<E: Encoder>(&self, mut encoder: E) -> Result<(), E::Error> {
         encoder.encode_var_i32(self.get())
     }
 }
 
+#[cfg(feature = "fastvarint")]
 impl<'de> Decode<'de> for fastvarint::NonMaxI32VarInt {
     fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
         Ok(fastvarint::NonMaxI32VarInt::new(decoder.decode_var_i32()?))
