@@ -338,7 +338,7 @@ fn variant_state<'a>(item_enum: &'a ItemEnum) -> VariantState<'a> {
         .map(|variant| &variant.ident)
         .collect::<Vec<_>>();
 
-    let mut last_index: proc_macro2::TokenStream = quote! {-1};
+    let mut last_index: proc_macro2::TokenStream = quote! {0};
     let mut variant_indexes = Vec::with_capacity(item_enum.variants.len());
     let variant_indexes_match = item_enum
         .variants
@@ -347,10 +347,13 @@ fn variant_state<'a>(item_enum: &'a ItemEnum) -> VariantState<'a> {
             let index = if let Some(discriminant) = &variant.discriminant {
                 let index = &discriminant.1;
                 last_index = quote! { #index };
-                last_index.clone()
-            } else {
+                let result = last_index.clone();
                 last_index = quote! {#last_index + 1};
-                last_index.clone()
+                result
+            } else {
+                let result = last_index.clone();
+                last_index = quote! {#last_index + 1};
+                result
             };
 
             let variant_name = &variant.ident;
