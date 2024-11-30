@@ -1,4 +1,4 @@
-use concat_idents::concat_idents;
+use concat_idents_bruce0203::concat_idents;
 
 pub trait Encode {
     fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error>;

@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use concat_idents::concat_idents;
+use concat_idents_bruce0203::concat_idents;
 use seq_macro::seq;
 
 use crate::{CompositeDecoder, CompositeEncoder, Decode, Decoder, Encode, Encoder};
