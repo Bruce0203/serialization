@@ -4,8 +4,8 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{format_ident, quote, ToTokens};
 use syn::{
-    parse_macro_input, spanned::Spanned, Error, Fields, GenericParam, Generics, Ident, Index, Item,
-    ItemEnum, ItemStruct,
+    parse_macro_input, parse_quote, spanned::Spanned, Error, Fields, GenericParam, Generics, Ident,
+    Index, Item, ItemEnum, ItemStruct, TypeParamBound,
 };
 
 #[proc_macro_derive(Serializable)]
@@ -70,7 +70,9 @@ fn impl_encode_enum(
     let variant_names_match_branches = &variant_state.variant_names_match_branches;
     let variant_indexes_match_branches = &variant_state.variant_indexes_match_branches;
     let generic_params_without_bounds = generic_params_without_bounds(&item_enum.generics);
-    let generic_params = &item_enum.generics.params.iter().collect::<Vec<_>>();
+    let generic_params = generic_params_with_bounds(&item_enum.generics, || {
+        parse_quote! { serialization::Encode }
+    });
     let generic_where_clause = &item_enum.generics.where_clause;
     quote! {
         impl<#(#generic_params),*> serialization::Encode
@@ -90,7 +92,10 @@ fn impl_encode_enum(
 
 fn impl_encode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
     let struct_name = &item_struct.ident;
-    let generic_params = &item_struct.generics.params.iter().collect::<Vec<_>>();
+    let generic_params = generic_params_with_bounds(&item_struct.generics, || {
+        parse_quote! { serialization::Encode }
+    });
+
     let generic_where_clause = &item_struct.generics.where_clause;
     let generic_params_without_bounds = generic_params_without_bounds(&item_struct.generics);
     let fields = match &item_struct.fields {
@@ -171,14 +176,17 @@ fn impl_decode_enum(
     let variant_names = &variant_state.variant_names;
     let variant_indexes = &variant_state.variant_indexes;
     let generic_params_without_bounds = generic_params_without_bounds(&item_enum.generics);
-    let generic_params = &item_enum.generics.params.iter().collect::<Vec<_>>();
+    let generic_params = generic_params_with_bounds(&item_enum.generics, || {
+        parse_quote! { serialization::Decode<'de> }
+    });
+
     let generic_where_clause = &item_enum.generics.where_clause;
 
     quote! {
-        impl<#(#generic_params),*> serialization::Decode
+        impl<#(#generic_params),*> serialization::Decode<'de>
             for #enum_name<#(#generic_params_without_bounds),*> #generic_where_clause {
-            fn decode<D: serialization::Decoder>(mut decoder: D) -> Result<Self, D::Error> {
-                match serialization::Decoder::decode_enum(&mut decoder, std::any::type_name::<Self>())? {
+            fn decode<D: serialization::Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
+                match serialization::Decoder::<'de>::decode_enum(&mut decoder, std::any::type_name::<Self>())? {
                     serialization::EnumIdentifier::Name(name) => match name {
                         #(stringify!(#variant_names) => #decode,)*
                         name => Err(serialization::DecodeError::invalid_enum_variant_name(name))?,
@@ -218,13 +226,15 @@ fn impl_decode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
         }
     };
     let generic_params_without_bounds = generic_params_without_bounds(&item_struct.generics);
-    let generic_params = &item_struct.generics.params.iter().collect::<Vec<_>>();
+    let generic_params = generic_params_with_bounds(&item_struct.generics, || {
+        parse_quote! { serialization::Decode<'de> }
+    });
     let generic_where_clause = &item_struct.generics.where_clause;
     let decode_struct = decode_struct(quote! { Self }, &fields);
     quote! {
-    impl<#(#generic_params),*> serialization::Decode
+    impl<#(#generic_params),*> serialization::Decode<'de>
         for #struct_name<#(#generic_params_without_bounds),*> #generic_where_clause {
-            fn decode<D: serialization::Decoder>(decoder: D) -> Result<Self, D::Error> {
+            fn decode<D: serialization::Decoder<'de>>(decoder: D) -> Result<Self, D::Error> {
                 #decode_struct
             }
         }
@@ -236,38 +246,67 @@ fn decode_struct(
     fields: &Vec<proc_macro2::TokenStream>,
 ) -> proc_macro2::TokenStream {
     quote! {{
-        let mut struc = serialization::Decoder::decode_struct(decoder)?;
+        let mut struc = serialization::Decoder::<'de>::decode_struct(decoder)?;
         let result = #struct_name {
-            #(#fields: <D::StructDecoder as serialization::CompositeDecoder>::decode_element(&mut struc)?),*
+            #(#fields: <D::StructDecoder as serialization::CompositeDecoder::<'de>>::decode_element(&mut struc)?),*
         };
-        <D::StructDecoder as serialization::CompositeDecoder>::end(struc)?;
+        <D::StructDecoder as serialization::CompositeDecoder::<'de>>::end(struc)?;
         Ok(result)
     }}
 }
 
 fn decode_tuple(tuple_name: proc_macro2::TokenStream, size: usize) -> proc_macro2::TokenStream {
     let indexes = repeat_n(
-        quote! { <D::TupleDecoder as serialization::CompositeDecoder>::decode_element(&mut tup)? },
+        quote! { <D::TupleDecoder as serialization::CompositeDecoder::<'de>>::decode_element(&mut tup)? },
         size,
     );
     quote! {{
-        let mut tup = serialization::Decoder::decode_tuple(decoder)?;
+        let mut tup = serialization::Decoder::<'de>::decode_tuple(decoder)?;
         let result = #tuple_name(#(#indexes),*);
-        <D::TupleDecoder as serialization::CompositeDecoder>::end(tup)?;
+        <D::TupleDecoder as serialization::CompositeDecoder::<'de>>::end(tup)?;
         Ok(result)
     }}
 }
 
-fn generic_params_without_bounds(generics: &Generics) -> Vec<&Ident> {
+fn generic_params_without_bounds(generics: &Generics) -> Vec<proc_macro2::TokenStream> {
     generics
         .params
         .iter()
         .map(|param| match param {
-            GenericParam::Lifetime(lifetime_param) => &lifetime_param.lifetime.ident,
-            GenericParam::Type(type_param) => &type_param.ident,
-            GenericParam::Const(const_param) => &const_param.ident,
+            GenericParam::Lifetime(lifetime_param) => lifetime_param.lifetime.to_token_stream(),
+            GenericParam::Type(type_param) => type_param.ident.to_token_stream(),
+            GenericParam::Const(const_param) => const_param.ident.to_token_stream(),
         })
         .collect::<Vec<_>>()
+}
+
+fn generic_params_with_bounds<F: Fn() -> TypeParamBound>(
+    generics: &Generics,
+    bound: F,
+) -> Vec<GenericParam> {
+    let mut generic_params: Vec<GenericParam> = vec![parse_quote!('de)];
+    for param in generics.params.iter() {
+        let param = match param {
+            GenericParam::Type(type_param) => {
+                let mut param = type_param.clone();
+                param.bounds.push(bound());
+                param.into()
+            }
+            GenericParam::Lifetime(lifetime) => {
+                let param = lifetime.clone();
+                match &mut generic_params[0] {
+                    GenericParam::Lifetime(ref mut lifetime_param) => {
+                        lifetime_param.bounds.push(lifetime.lifetime.clone());
+                    }
+                    _ => unreachable!(),
+                };
+                param.into()
+            }
+            v => v.clone(),
+        };
+        generic_params.push(param);
+    }
+    generic_params
 }
 
 struct VariantState<'a> {

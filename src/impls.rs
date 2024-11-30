@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use concat_idents::concat_idents;
 use seq_macro::seq;
 
-use crate::{CompositeDecoder, CompositeEncoder, Decode, Encode, Encoder};
+use crate::{CompositeDecoder, CompositeEncoder, Decode, Decoder, Encode, Encoder};
 
 macro_rules! serialize_num {
     ($($type:ident),*) => {$(
@@ -13,8 +13,8 @@ macro_rules! serialize_num {
             }
         }
 
-        impl Decode for $type {
-            fn decode<D: crate::Decoder>(mut decoder: D) -> Result<Self, D::Error> {
+        impl<'de> Decode<'de> for $type {
+            fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
                 concat_idents!(fn_name = decode_, $type, {decoder.fn_name()})
             }
         }
@@ -34,8 +34,8 @@ seq!(A in 2..21 {#(
                 Ok(())
             }
         }
-        impl<#(T~N: Decode, )*> Decode for (#(T~N, )*) {
-            fn decode<D: crate::Decoder>(decoder: D) -> Result<Self, D::Error> {
+        impl<'de, #(T~N: Decode<'de>, )*> Decode<'de> for (#(T~N, )*) {
+            fn decode<D: Decoder<'de> >(decoder: D) -> Result<Self, D::Error> {
                 #[allow(unused_mut)]
                 let mut tup = decoder.decode_tuple()?;
                 let v = (#(tup.decode_element()?, )*);
@@ -87,8 +87,20 @@ impl<T> Encode for PhantomData<T> {
     }
 }
 
-impl<T> Decode for PhantomData<T> {
-    fn decode<D: crate::Decoder>(_decoder: D) -> Result<Self, D::Error> {
+impl<'de, T> Decode<'de> for PhantomData<T> {
+    fn decode<D: Decoder<'de>>(_decoder: D) -> Result<Self, D::Error> {
         Ok(Self)
+    }
+}
+
+impl<'de> Decode<'de> for &'de str {
+    fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
+        decoder.decode_str()
+    }
+}
+
+impl Encode for &str {
+    fn encode<E: Encoder>(&self, mut encoder: E) -> Result<(), E::Error> {
+        encoder.encode_str(self)
     }
 }

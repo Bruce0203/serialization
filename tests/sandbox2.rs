@@ -1,6 +1,4 @@
-use std::{fmt::Debug, marker::PhantomData};
-
-use serialization::{Decode, Encode};
+use std::marker::PhantomData;
 
 #[derive(serialization::Serializable)]
 struct A;
@@ -58,18 +56,23 @@ struct N<T> {
     vaule: PhantomData<T>,
 }
 #[derive(serialization::Serializable)]
-struct O<T: Decode + Encode + Debug> {
+struct O<T> {
     value: T,
 }
+
 #[derive(serialization::Serializable)]
-enum P<T: Decode + Encode, T2> {
+enum P<T, T2> {
     A(T),
     B(PhantomData<T2>),
 }
 #[derive(serialization::Serializable)]
-struct Q {}
+struct Q<'a> {
+    value: &'a str,
+}
 #[derive(serialization::Serializable)]
-struct R {}
+struct R<'a> {
+    value: &'a str,
+}
 #[derive(serialization::Serializable)]
 struct S {}
 #[derive(serialization::Serializable)]

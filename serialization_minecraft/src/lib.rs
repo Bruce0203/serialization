@@ -1,3 +1,6 @@
+#![feature(str_from_raw_parts)]
+
+use core::str;
 use std::mem::MaybeUninit;
 
 use concat_idents::concat_idents;
@@ -99,6 +102,16 @@ impl<'a, S: WriteBuf> Encoder for &'a mut PacketEncoder<S> {
         self.try_write(&[v as u8])
             .map_err(|()| PacketEncodingError::NotEnoughBuffer)
     }
+
+    fn encode_str(&mut self, v: &str) -> Result<(), Self::Error> {
+        self.encode_bytes(v.as_bytes())
+    }
+
+    fn encode_bytes(&mut self, v: &[u8]) -> Result<(), Self::Error> {
+        self.encode_seq(v.len())?;
+        self.try_write(v)
+            .map_err(|()| PacketEncodingError::NotEnoughBuffer)
+    }
 }
 
 impl<'a, S: WriteBuf> CompositeEncoder for &'a mut PacketEncoder<S> {
@@ -151,7 +164,7 @@ impl DecodeError for PacketDecodingError {
     }
 }
 
-impl<T: ReadBuf> Decoder for &mut PacketDecoder<T> {
+impl<'de, T: ReadBuf> Decoder<'de> for &mut PacketDecoder<T> {
     type Error = PacketDecodingError;
 
     type TupleDecoder = Self;
@@ -187,12 +200,30 @@ impl<T: ReadBuf> Decoder for &mut PacketDecoder<T> {
     fn decode_bool(&mut self) -> Result<bool, Self::Error> {
         Ok(if self.decode_u8()? == 0 { false } else { true })
     }
+
+    fn decode_str(&mut self) -> Result<&'de str, Self::Error> {
+        let len = self.decode_seq_len()?;
+        let read = self.buffer.read(len);
+        if read.len() != len {
+            Err(DecodeError::not_enough_bytes_in_the_buffer())?;
+        }
+        Ok(unsafe { std::str::from_raw_parts(read.as_ptr(), len) })
+    }
+
+    fn decode_bytes(&mut self) -> Result<&[u8], Self::Error> {
+        let len = self.decode_seq_len()?;
+        let read = self.read(len);
+        if read.len() != len {
+            Err(DecodeError::not_enough_bytes_in_the_buffer())?
+        }
+        Ok(read)
+    }
 }
 
-impl<S: ReadBuf> CompositeDecoder for &mut PacketDecoder<S> {
-    type Error = <Self as Decoder>::Error;
+impl<'de, S: ReadBuf> CompositeDecoder<'de> for &mut PacketDecoder<S> {
+    type Error = PacketDecodingError;
 
-    fn decode_element<D: Decode>(&mut self) -> Result<D, Self::Error> {
+    fn decode_element<D: Decode<'de>>(&mut self) -> Result<D, Self::Error> {
         D::decode(&mut **self)
     }
 
@@ -201,8 +232,8 @@ impl<S: ReadBuf> CompositeDecoder for &mut PacketDecoder<S> {
     }
 }
 
-impl<'a, S: ReadBuf> PacketDecoder<S> {
-    fn decode_varint(&mut self) -> Result<usize, <&'a mut Self as Decoder>::Error> {
+impl<S: ReadBuf> PacketDecoder<S> {
+    fn decode_varint(&mut self) -> Result<usize, <&mut Self as Decoder>::Error> {
         let buf = self.buffer.get_continuous(self.buffer.remaining());
         let (len, read_len) = fastvarint::VarInt::decode_var_int::<_, &'static str>(|index| {
             Ok(buf.get(index).map(|v| *v))
