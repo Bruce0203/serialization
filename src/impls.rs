@@ -189,9 +189,7 @@ impl<T: Encode, const CAP: usize> Encode for arrayvec::ArrayVec<T, CAP> {
 #[cfg(feature = "arrayvec")]
 impl<const CAP: usize> Encode for arrayvec::ArrayVec<u8, CAP> {
     fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
-        let mut seq = encoder.encode_seq(self.len())?;
-        seq.encode_element(&self.as_slice())?;
-        Ok(())
+        self.as_slice().encode(encoder)
     }
 }
 
