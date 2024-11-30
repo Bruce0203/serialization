@@ -72,7 +72,7 @@ impl<'de, T: Decode<'de>> Decode<'de> for Option<T> {
 }
 
 impl<T: Encode, Error: Encode> Encode for Result<T, Error> {
-    fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
+    fn encode<E: Encoder>(&self, mut encoder: E) -> Result<(), E::Error> {
         match self {
             Ok(value) => {
                 encoder.encode_some()?;
