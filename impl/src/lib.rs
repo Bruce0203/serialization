@@ -81,10 +81,10 @@ fn impl_encode_enum(
                 serialization::Encoder::encode_enum_variant_key(
                     &mut encoder,
                     std::any::type_name::<Self>(),
-                    match self { #(#variant_names_match_branches),* },
-                    match self { #(#variant_indexes_match_branches),* },
+                    match self { #(#variant_names_match_branches,)* _ => unreachable!() },
+                    match self { #(#variant_indexes_match_branches,)* _ => unreachable!() },
                 )?;
-                match self { #(#match_branches),* }
+                match self { #(#match_branches,)* _ => unreachable!() }
             }
     }
     }

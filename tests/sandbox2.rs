@@ -74,7 +74,7 @@ struct R<'a> {
     value: &'a str,
 }
 #[derive(serialization::Serializable)]
-struct S {}
+enum S {}
 #[derive(serialization::Serializable)]
 struct T {}
 #[derive(serialization::Serializable)]
