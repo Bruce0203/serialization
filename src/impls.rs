@@ -175,3 +175,18 @@ impl<'de, T: Decode<'de>, const CAP: usize> Decode<'de> for arrayvec::ArrayVec<T
         Ok(result)
     }
 }
+
+impl<'de, const CAP: usize> Decode<'de> for arrayvec::ArrayString<CAP> {
+    fn decode<D: Decoder<'de>>(decoder: D) -> Result<Self, D::Error> {
+        let vec = arrayvec::ArrayVec::<u8, CAP>::decode(decoder)?;
+        let s = unsafe { std::str::from_utf8_unchecked(vec.as_slice()) };
+        Ok(arrayvec::ArrayString::from(s).unwrap())
+    }
+}
+
+impl<const CAP: usize> Encode for arrayvec::ArrayString<CAP> {
+    fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
+        let vec = arrayvec::ArrayVec::<u8, CAP>::try_from(self.as_bytes()).unwrap();
+        vec.encode(encoder)
+    }
+}
