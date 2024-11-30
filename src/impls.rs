@@ -61,6 +61,16 @@ impl<T: Encode> Encode for Option<T> {
     }
 }
 
+impl<'de, T: Decode<'de>> Decode<'de> for Option<T> {
+    fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
+        if decoder.decode_is_some()? {
+            Ok(Some(Decode::decode(decoder)?))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
 impl<T: Encode> Encode for Vec<T> {
     fn encode<E>(&self, encoder: E) -> Result<(), E::Error>
     where
@@ -72,6 +82,20 @@ impl<T: Encode> Encode for Vec<T> {
         }
         col.end()?;
         Ok(())
+    }
+}
+
+impl<'de, T: Decode<'de>> Decode<'de> for Vec<T> {
+    fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
+        let len = decoder.decode_seq_len()?;
+        let mut seq = decoder.decode_seq()?;
+        let mut result = Vec::with_capacity(len);
+        unsafe { result.set_len(len) };
+        for i in 0..len {
+            result.insert(i, seq.decode_element()?);
+        }
+        seq.end()?;
+        Ok(result)
     }
 }
 
