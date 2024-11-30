@@ -31,12 +31,14 @@ seq-macro = "0.3"
 concat-idents-bruce0203 = "1.1.6"
 arrayvec = { version = "0.7.6", optional = true }
 uuid = { version = "1.11.0", optional = true }
+fastvarint = { version = "0.21.0", optional = true }
 
 [dev-dependencies]
 serialization_minecraft = { path = "./serialization_minecraft" }
 
 [features]
-default = ["uuid", "arrayvec", "std"]
+default = ["uuid", "arrayvec", "std", "fastvarint"]
 std = []
 uuid = ["dep:uuid"]
 arrayvec = ["dep:arrayvec"]
+fastvarint = ["dep:fastvarint"]

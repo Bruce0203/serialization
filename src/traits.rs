@@ -1,4 +1,5 @@
 use concat_idents_bruce0203::concat_idents;
+use fastvarint::VarInt;
 
 pub trait Encode {
     fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error>;
@@ -54,6 +55,7 @@ pub trait Encoder: Sized {
 
     fn encode_str(&mut self, v: &str) -> Result<(), Self::Error>;
     fn encode_bytes(&mut self, v: &[u8]) -> Result<(), Self::Error>;
+    fn encode_var_i32(&mut self, v: i32) -> Result<(), Self::Error>;
 }
 
 pub trait CompositeDecoder<'de> {
@@ -84,6 +86,7 @@ pub trait Decoder<'de>: Sized {
 
     fn decode_str(&mut self) -> Result<&'de str, Self::Error>;
     fn decode_bytes(&mut self) -> Result<&[u8], Self::Error>;
+    fn decode_var_i32(&mut self) -> Result<i32, Self::Error>;
 
     fn decode_tuple(self) -> Result<Self::TupleDecoder, Self::Error>;
     fn decode_struct(self) -> Result<Self::StructDecoder, Self::Error>;

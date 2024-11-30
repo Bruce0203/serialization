@@ -162,6 +162,7 @@ dependencies = [
  "arrayvec",
  "concat-idents-bruce0203",
  "fastbuf",
+ "fastvarint",
  "seq-macro",
  "serialization_derive",
  "serialization_minecraft",
