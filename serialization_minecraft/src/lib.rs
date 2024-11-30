@@ -88,9 +88,7 @@ impl<'a, S: WriteBuf> Encoder for &'a mut PacketEncoder<S> {
     }
 
     fn encode_seq(self, len: usize) -> Result<Self, Self::Error> {
-        VarInt::from(len)
-            .encode_var_int(|v| self.buffer.try_write(v))
-            .map_err(|()| PacketEncodingError::NotEnoughBuffer)?;
+        self.encode_varint(len as i32)?;
         Ok(self)
     }
 
@@ -111,6 +109,10 @@ impl<'a, S: WriteBuf> Encoder for &'a mut PacketEncoder<S> {
         self.encode_seq(v.len())?;
         self.try_write(v)
             .map_err(|()| PacketEncodingError::NotEnoughBuffer)
+    }
+
+    fn encode_var_i32(&mut self, v: i32) -> Result<(), Self::Error> {
+        self.encode_varint(v)
     }
 }
 
@@ -218,6 +220,10 @@ impl<'de, T: ReadBuf> Decoder<'de> for &mut PacketDecoder<T> {
         }
         Ok(read)
     }
+
+    fn decode_var_i32(&mut self) -> Result<i32, Self::Error> {
+        Ok(self.decode_varint()? as i32)
+    }
 }
 
 impl<'de, S: ReadBuf> CompositeDecoder<'de> for &mut PacketDecoder<S> {
@@ -249,5 +255,14 @@ impl<S: ReadBuf> PacketDecoder<S> {
         })?;
         self.buffer.advance(read_len + 1);
         Ok(*len as usize)
+    }
+}
+
+impl<S: WriteBuf> PacketEncoder<S> {
+    fn encode_varint(&mut self, v: i32) -> Result<(), <&mut Self as Encoder>::Error> {
+        VarInt::from(v)
+            .encode_var_int(|v| self.buffer.try_write(v))
+            .map_err(|()| PacketEncodingError::NotEnoughBuffer)?;
+        Ok(())
     }
 }
