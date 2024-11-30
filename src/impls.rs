@@ -200,6 +200,7 @@ impl<'de, T: Decode<'de>, const CAP: usize> Decode<'de> for arrayvec::ArrayVec<T
     }
 }
 
+#[cfg(feature = "arrayvec")]
 impl<'de, const CAP: usize> Decode<'de> for arrayvec::ArrayString<CAP> {
     fn decode<D: Decoder<'de>>(decoder: D) -> Result<Self, D::Error> {
         let vec = arrayvec::ArrayVec::<u8, CAP>::decode(decoder)?;
@@ -208,9 +209,27 @@ impl<'de, const CAP: usize> Decode<'de> for arrayvec::ArrayString<CAP> {
     }
 }
 
+#[cfg(feature = "arrayvec")]
 impl<const CAP: usize> Encode for arrayvec::ArrayString<CAP> {
     fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
         let vec = arrayvec::ArrayVec::<u8, CAP>::try_from(self.as_bytes()).unwrap();
         vec.encode(encoder)
+    }
+}
+
+#[cfg(feature = "std")]
+impl<'a, T: Encode + Clone> Encode for std::borrow::Cow<'a, T> {
+    fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
+        match self {
+            std::borrow::Cow::Borrowed(value) => value.encode(encoder),
+            std::borrow::Cow::Owned(value) => value.encode(encoder),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl<'de, 'a, T: Decode<'de> + Clone> Decode<'de> for std::borrow::Cow<'a, T> {
+    fn decode<D: Decoder<'de>>(decoder: D) -> Result<Self, D::Error> {
+        Ok(std::borrow::Cow::Owned(T::decode(decoder)?))
     }
 }

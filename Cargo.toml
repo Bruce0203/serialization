@@ -17,7 +17,7 @@ include = [
 members = ["impl", "serialization_minecraft"]
 
 [workspace.package]
-version = "0.1.5"
+version = "0.1.6"
 description = "encode and decode your struct"
 edition = "2021"
 author = "Bruce0203 <brucefreedy@gmail.com>"
@@ -25,7 +25,7 @@ repository = "https://github.com/Bruce0203/serialization"
 license = "MIT"
 
 [dependencies]
-serialization_derive = { path = "./impl", version = "0.1.5" }
+serialization_derive = { path = "./impl", version = "0.1.6" }
 fastbuf = "0.26.0"
 seq-macro = "0.3"
 concat-idents-bruce0203 = "1.1.6"
@@ -36,6 +36,7 @@ uuid = { version = "1.11.0", optional = true }
 serialization_minecraft = { path = "./serialization_minecraft" }
 
 [features]
-default = ["uuid", "arrayvec"]
+default = ["uuid", "arrayvec", "std"]
+std = []
 uuid = ["dep:uuid"]
 arrayvec = ["dep:arrayvec"]
