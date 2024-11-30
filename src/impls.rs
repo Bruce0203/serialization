@@ -125,6 +125,7 @@ impl<'de> Decode<'de> for uuid::Uuid {
     }
 }
 
+#[cfg(feature = "arrayvec")]
 impl<T: Encode, const CAP: usize> Encode for arrayvec::ArrayVec<T, CAP> {
     default fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
         let mut seq = encoder.encode_seq(self.len())?;
@@ -136,6 +137,7 @@ impl<T: Encode, const CAP: usize> Encode for arrayvec::ArrayVec<T, CAP> {
     }
 }
 
+#[cfg(feature = "arrayvec")]
 impl<const CAP: usize> Encode for arrayvec::ArrayVec<u8, CAP> {
     fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
         let mut seq = encoder.encode_seq(self.len())?;
@@ -144,6 +146,7 @@ impl<const CAP: usize> Encode for arrayvec::ArrayVec<u8, CAP> {
     }
 }
 
+#[cfg(feature = "arrayvec")]
 impl<'de, const CAP: usize> Decode<'de> for arrayvec::ArrayVec<u8, CAP> {
     fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
         let bytes: &[u8] = decoder.decode_bytes()?;
@@ -158,6 +161,7 @@ impl<'de, const CAP: usize> Decode<'de> for arrayvec::ArrayVec<u8, CAP> {
     }
 }
 
+#[cfg(feature = "arrayvec")]
 impl<'de, T: Decode<'de>, const CAP: usize> Decode<'de> for arrayvec::ArrayVec<T, CAP> {
     default fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
         let len = decoder.decode_seq_len()?;
