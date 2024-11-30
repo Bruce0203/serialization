@@ -71,6 +71,31 @@ impl<'de, T: Decode<'de>> Decode<'de> for Option<T> {
     }
 }
 
+impl<T: Encode, Error: Encode> Encode for Result<T, Error> {
+    fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
+        match self {
+            Ok(value) => {
+                encoder.encode_some()?;
+                value.encode(encoder)
+            }
+            Err(value) => {
+                encoder.encode_none()?;
+                value.encode(encoder)
+            }
+        }
+    }
+}
+
+impl<'de, T: Decode<'de>, Error: Decode<'de>> Decode<'de> for Result<T, Error> {
+    fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
+        if decoder.decode_is_some()? {
+            Ok(Ok(T::decode(decoder)?))
+        } else {
+            Ok(Err(Error::decode(decoder)?))
+        }
+    }
+}
+
 impl<T: Encode> Encode for Vec<T> {
     fn encode<E>(&self, encoder: E) -> Result<(), E::Error>
     where
