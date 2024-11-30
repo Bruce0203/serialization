@@ -197,12 +197,8 @@ impl<const CAP: usize> Encode for arrayvec::ArrayVec<u8, CAP> {
 impl<'de, const CAP: usize> Decode<'de> for arrayvec::ArrayVec<u8, CAP> {
     fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
         let bytes: &[u8] = decoder.decode_bytes()?;
-        if bytes.len() != CAP {
-            if bytes.len() > CAP {
-                Err(DecodeError::too_large())?
-            } else {
-                Err(DecodeError::not_enough_bytes_in_the_buffer())?
-            }
+        if bytes.len() > CAP {
+            Err(DecodeError::too_large())?
         }
         Ok(arrayvec::ArrayVec::try_from(bytes).unwrap())
     }
