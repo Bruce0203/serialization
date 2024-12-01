@@ -83,9 +83,9 @@ dependencies = [
 
 [[package]]
 name = "fastvarint"
-version = "0.21.0"
+version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cef9d53914a63d9e1ec88471007cbe69d424a16030e255b106116c9b5d3a8d24"
+checksum = "75a347ee3d8007b7ab2176900e4d7aafffd0c733e77eddbe91b25fd155e5bc95"
 dependencies = [
  "derive_more",
  "nonmax",

@@ -37,7 +37,7 @@ fastvarint = { version = "0.22.0", optional = true }
 serialization_minecraft = { path = "./serialization_minecraft" }
 
 [features]
-default = ["std", "arrayvec"]
+default = ["std", "arrayvec", "fastvarint"]
 std = []
 uuid = ["dep:uuid"]
 arrayvec = ["dep:arrayvec"]
