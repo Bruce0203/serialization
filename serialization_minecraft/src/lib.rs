@@ -24,7 +24,7 @@ impl<T> PacketEncoder<T> {
 
 #[derive(Debug, Serializable)]
 pub enum PacketEncodingError {
-    NotEnoughBuffer,
+    FullOfCapacityInBuffer,
     Custom,
 }
 
@@ -34,7 +34,7 @@ macro_rules! serialize_num {
             fn fn_name(&mut self, v: $type) -> Result<(), Self::Error> {
                 self
                     .try_write(&v.to_be_bytes())
-                    .map_err(|()| PacketEncodingError::NotEnoughBuffer)
+                    .map_err(|()| PacketEncodingError::FullOfCapacityInBuffer)
             }
         });
     )*};
@@ -98,7 +98,7 @@ impl<'a, S: WriteBuf> Encoder for &'a mut PacketEncoder<S> {
 
     fn encode_bool(&mut self, v: bool) -> Result<(), Self::Error> {
         self.try_write(&[v as u8])
-            .map_err(|()| PacketEncodingError::NotEnoughBuffer)
+            .map_err(|()| PacketEncodingError::FullOfCapacityInBuffer)
     }
 
     fn encode_str(&mut self, v: &str) -> Result<(), Self::Error> {
@@ -108,7 +108,7 @@ impl<'a, S: WriteBuf> Encoder for &'a mut PacketEncoder<S> {
     fn encode_bytes(&mut self, v: &[u8]) -> Result<(), Self::Error> {
         self.encode_seq(v.len())?;
         self.try_write(v)
-            .map_err(|()| PacketEncodingError::NotEnoughBuffer)
+            .map_err(|()| PacketEncodingError::FullOfCapacityInBuffer)
     }
 
     fn encode_var_i32(&mut self, v: i32) -> Result<(), Self::Error> {
@@ -266,7 +266,7 @@ impl<S: WriteBuf> PacketEncoder<S> {
     fn encode_varint(&mut self, v: i32) -> Result<(), <&mut Self as Encoder>::Error> {
         VarInt::from(v)
             .encode_var_int(|v| self.buffer.try_write(v))
-            .map_err(|()| PacketEncodingError::NotEnoughBuffer)?;
+            .map_err(|()| PacketEncodingError::FullOfCapacityInBuffer)?;
         Ok(())
     }
 }
