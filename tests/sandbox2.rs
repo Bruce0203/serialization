@@ -93,8 +93,10 @@ fn test_enum_T() {
     let value2: T = unsafe { transmute(value) };
     assert_eq!(value2, T::E);
 }
-#[derive(serialization::Serializable)]
-struct U {}
+#[derive(serialization::Encode)]
+struct U {
+    value: &'static str,
+}
 #[derive(serialization::Serializable)]
 struct V {}
 #[derive(serialization::Serializable)]

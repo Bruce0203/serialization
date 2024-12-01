@@ -34,6 +34,34 @@ pub fn serializable(input: TokenStream) -> TokenStream {
     .into()
 }
 
+#[proc_macro_derive(Encode)]
+pub fn encode(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as Item);
+    match input {
+        Item::Enum(ref item_enum) => {
+            let ref variant_state = variant_state(&item_enum);
+            impl_encode_enum(item_enum, variant_state)
+        }
+        Item::Struct(ref item_struct) => impl_encode_struct(item_struct),
+        item => Error::new(item.span(), "only enum and struct supported").to_compile_error(),
+    }
+    .into()
+}
+
+#[proc_macro_derive(Decode)]
+pub fn decode(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as Item);
+    match input {
+        Item::Enum(ref item_enum) => {
+            let ref variant_state = variant_state(&item_enum);
+            impl_decode_enum(item_enum, variant_state)
+        }
+        Item::Struct(ref item_struct) => impl_decode_struct(item_struct),
+        item => Error::new(item.span(), "only enum and struct supported").to_compile_error(),
+    }
+    .into()
+}
+
 fn impl_encode_enum(
     item_enum: &ItemEnum,
     variant_state: &VariantState<'_>,
@@ -294,12 +322,20 @@ fn generic_params_with_bounds<F: Fn() -> TypeParamBound>(
             }
             GenericParam::Lifetime(lifetime) => {
                 let param = lifetime.clone();
-                match &mut generic_params[0] {
-                    GenericParam::Lifetime(ref mut lifetime_param) => {
-                        lifetime_param.bounds.push(lifetime.lifetime.clone());
-                    }
-                    _ => unreachable!(),
-                };
+                println!(
+                    "{:?}",
+                    lifetime.lifetime.ident.to_token_stream().to_string()
+                );
+                if lifetime.lifetime.ident != format_ident!("static") {
+                    match &mut generic_params[0] {
+                        GenericParam::Lifetime(ref mut lifetime_param) => {
+                            lifetime_param.bounds.push(lifetime.lifetime.clone());
+                        }
+                        _ => unreachable!(),
+                    };
+                } else {
+                    panic!("AAAAAWRQWRKJEQHFJ");
+                }
                 param.into()
             }
             v => v.clone(),

@@ -8,7 +8,7 @@ use fastbuf::{ReadBuf, WriteBuf};
 use fastvarint::{DecodeVarInt, EncodeVarInt, VarInt};
 use serialization::{
     CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder, Encode, Encoder,
-    EnumIdentifier,
+    EnumIdentifier, Serializable,
 };
 
 #[derive(derive_more::Deref, derive_more::DerefMut)]
@@ -22,7 +22,7 @@ impl<T> PacketEncoder<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serializable)]
 pub enum PacketEncodingError {
     NotEnoughBuffer,
     Custom,
@@ -139,7 +139,7 @@ impl<T> PacketDecoder<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, )]
 pub enum PacketDecodingError {
     InvalidEnumKeyName(&'static str),
     InvalidEnumKeyIndex(usize),
