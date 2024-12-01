@@ -217,13 +217,13 @@ fn impl_decode_enum(
                 match serialization::Decoder::<'de>::decode_enum(&mut decoder, std::any::type_name::<Self>())? {
                     serialization::EnumIdentifier::Name(name) => match name {
                         #(stringify!(#variant_names) => #decode,)*
-                        name => Err(serialization::DecodeError::invalid_enum_variant_name(name))?,
+                        name => Err(serialization::DecodeError::invalid_enum_variant_name())?,
                     },
                     serialization::EnumIdentifier::Index(index) => {
                         #(const #variant_names: usize = #variant_indexes;)*
                         match index {
                             #(#variant_names => #decode,)*
-                            index => Err(serialization::DecodeError::invalid_enum_variant_index(index))?,
+                            index => Err(serialization::DecodeError::invalid_enum_variant_index())?,
                         }
                     },
                 }

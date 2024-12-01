@@ -71,9 +71,9 @@ pub enum EnumIdentifier {
 pub trait DecodeError {
     fn not_enough_bytes_in_the_buffer() -> Self;
     fn too_large() -> Self;
-    fn invalid_enum_variant_name(name: &'static str) -> Self;
-    fn invalid_enum_variant_index(index: usize) -> Self;
-    fn custom(msg: &'static str) -> Self;
+    fn invalid_enum_variant_name() -> Self;
+    fn invalid_enum_variant_index() -> Self;
+    fn custom() -> Self;
 }
 
 pub trait Decoder<'de>: Sized {

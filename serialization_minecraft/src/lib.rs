@@ -139,22 +139,22 @@ impl<T> PacketDecoder<T> {
     }
 }
 
-#[derive(Debug, )]
+#[derive(Debug, Serializable)]
 pub enum PacketDecodingError {
-    InvalidEnumKeyName(&'static str),
-    InvalidEnumKeyIndex(usize),
+    InvalidEnumKeyName,
+    InvalidEnumKeyIndex,
     NotEnoughBytesInTheBuffer,
     TooLarge,
-    Custom(&'static str),
+    Custom,
 }
 
 impl DecodeError for PacketDecodingError {
-    fn invalid_enum_variant_name(name: &'static str) -> Self {
-        Self::InvalidEnumKeyName(name)
+    fn invalid_enum_variant_name() -> Self {
+        Self::InvalidEnumKeyName
     }
 
-    fn invalid_enum_variant_index(index: usize) -> Self {
-        Self::InvalidEnumKeyIndex(index)
+    fn invalid_enum_variant_index() -> Self {
+        Self::InvalidEnumKeyIndex
     }
 
     fn not_enough_bytes_in_the_buffer() -> Self {
@@ -165,8 +165,8 @@ impl DecodeError for PacketDecodingError {
         Self::TooLarge
     }
 
-    fn custom(msg: &'static str) -> Self {
-        Self::Custom(msg)
+    fn custom() -> Self {
+        Self::Custom
     }
 }
 
