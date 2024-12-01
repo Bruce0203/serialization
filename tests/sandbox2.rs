@@ -1,4 +1,7 @@
-use std::marker::PhantomData;
+use std::{
+    marker::PhantomData,
+    mem::{transmute, MaybeUninit},
+};
 
 #[derive(serialization::Serializable)]
 struct A;
@@ -75,8 +78,21 @@ struct R<'a> {
 }
 #[derive(serialization::Serializable)]
 enum S {}
-#[derive(serialization::Serializable)]
-struct T {}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, serialization::Serializable)]
+enum T {
+    A = 2,
+    B = 4,
+    C = 6,
+    D = 8,
+    E = 10,
+}
+#[test]
+fn test_enum_T() {
+    let value = 10_u8;
+    let value2: T = unsafe { transmute(value) };
+    assert_eq!(value2, T::E);
+}
 #[derive(serialization::Serializable)]
 struct U {}
 #[derive(serialization::Serializable)]

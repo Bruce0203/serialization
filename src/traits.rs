@@ -73,6 +73,7 @@ pub trait DecodeError {
     fn too_large() -> Self;
     fn invalid_enum_variant_name(name: &'static str) -> Self;
     fn invalid_enum_variant_index(index: usize) -> Self;
+    fn custom(msg: &'static str) -> Self;
 }
 
 pub trait Decoder<'de>: Sized {

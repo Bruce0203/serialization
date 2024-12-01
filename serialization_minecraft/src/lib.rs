@@ -141,11 +141,11 @@ impl<T> PacketDecoder<T> {
 
 #[derive(Debug)]
 pub enum PacketDecodingError {
-    Custom,
     InvalidEnumKeyName(&'static str),
     InvalidEnumKeyIndex(usize),
     NotEnoughBytesInTheBuffer,
     TooLarge,
+    Custom(&'static str),
 }
 
 impl DecodeError for PacketDecodingError {
@@ -163,6 +163,10 @@ impl DecodeError for PacketDecodingError {
 
     fn too_large() -> Self {
         Self::TooLarge
+    }
+
+    fn custom(msg: &'static str) -> Self {
+        Self::Custom(msg)
     }
 }
 
