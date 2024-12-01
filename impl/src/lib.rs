@@ -322,10 +322,6 @@ fn generic_params_with_bounds<F: Fn() -> TypeParamBound>(
             }
             GenericParam::Lifetime(lifetime) => {
                 let param = lifetime.clone();
-                println!(
-                    "{:?}",
-                    lifetime.lifetime.ident.to_token_stream().to_string()
-                );
                 if lifetime.lifetime.ident != format_ident!("static") {
                     match &mut generic_params[0] {
                         GenericParam::Lifetime(ref mut lifetime_param) => {
