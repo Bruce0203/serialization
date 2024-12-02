@@ -220,8 +220,7 @@ fn impl_decode_enum(
                         name => Err(serialization::DecodeError::invalid_enum_variant_name())?,
                     },
                     serialization::EnumIdentifier::Index(index) => {
-                        #[allow(non_upper_case_globals)]
-                        #(const #variant_names: usize = #variant_indexes;)*
+                        #(#[allow(non_upper_case_globals)] const #variant_names: usize = #variant_indexes;)*
                         match index {
                             #(#variant_names => #decode,)*
                             index => Err(serialization::DecodeError::invalid_enum_variant_index())?,
