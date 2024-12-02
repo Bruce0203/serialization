@@ -109,10 +109,10 @@ fn impl_encode_enum(
                 serialization::Encoder::encode_enum_variant_key(
                     &mut encoder,
                     std::any::type_name::<Self>(),
-                    match self { #(#variant_names_match_branches,)* _ => unreachable!() },
-                    match self { #(#variant_indexes_match_branches,)* _ => unreachable!() },
+                    match self { #(#variant_names_match_branches,)* #[allow(unreachable_patterns)] _ => unreachable!() },
+                    match self { #(#variant_indexes_match_branches,)* #[allow(unreachable_patterns)] _ => unreachable!() },
                 )?;
-                match self { #(#match_branches,)* _ => unreachable!() }
+                match self { #(#match_branches,)* #[allow(unreachable_patterns)] _ => unreachable!() }
             }
     }
     }
@@ -217,14 +217,16 @@ fn impl_decode_enum(
                 match serialization::Decoder::<'de>::decode_enum(&mut decoder, std::any::type_name::<Self>())? {
                     serialization::EnumIdentifier::Name(name) => match name {
                         #(stringify!(#variant_names) => #decode,)*
-                        name => Err(serialization::DecodeError::invalid_enum_variant_name())?,
+                            #[allow(unreachable_patterns)]
+                        _ => Err(serialization::DecodeError::invalid_enum_variant_name())?,
                     },
                     serialization::EnumIdentifier::Index(index) => {
                         #(#[allow(non_upper_case_globals)] const #variant_names: usize = #variant_indexes;)*
                         #[allow(non_upper_case_globals)]
                         match index {
                             #(#variant_names => #decode,)*
-                            index => Err(serialization::DecodeError::invalid_enum_variant_index())?,
+                            #[allow(unreachable_patterns)]
+                            _ => Err(serialization::DecodeError::invalid_enum_variant_index())?,
                         }
                     },
                 }
