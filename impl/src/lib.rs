@@ -110,6 +110,7 @@ fn impl_encode_enum(
                     &mut encoder,
                     std::any::type_name::<Self>(),
                     match self { #(#variant_names_match_branches,)* #[allow(unreachable_patterns)] _ => unreachable!() },
+                    #[allow(unreachable_code)]
                     match self { #(#variant_indexes_match_branches,)* #[allow(unreachable_patterns)] _ => unreachable!() },
                 )?;
                 match self { #(#match_branches,)* #[allow(unreachable_patterns)] _ => unreachable!() }
