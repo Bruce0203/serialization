@@ -117,7 +117,7 @@ impl<'de, T: Decode<'de>> Decode<'de> for Vec<T> {
         let mut result = Vec::with_capacity(len);
         unsafe { result.set_len(len) };
         for i in 0..len {
-            result.insert(i, seq.decode_element()?);
+            *unsafe { result.get_unchecked_mut(i) } = seq.decode_element()?;
         }
         seq.end()?;
         Ok(result)
@@ -212,7 +212,7 @@ impl<'de, T: Decode<'de>, const CAP: usize> Decode<'de> for arrayvec::ArrayVec<T
         let mut result = arrayvec::ArrayVec::new();
         unsafe { result.set_len(len) };
         for i in 0..len {
-            result.insert(i, seq.decode_element()?);
+            *unsafe { result.get_unchecked_mut(i) } = seq.decode_element()?;
         }
         seq.end()?;
         Ok(result)
