@@ -13,7 +13,6 @@ pub fn serializable(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as Item);
     match input {
         Item::Enum(ref item_enum) => {
-            let name = &item_enum.ident;
             let ref variant_state = variant_state(&item_enum);
             let encode = impl_encode_enum(item_enum, variant_state);
             let decode = impl_decode_enum(item_enum, variant_state);
