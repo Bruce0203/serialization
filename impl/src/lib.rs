@@ -20,8 +20,6 @@ pub fn serializable(input: TokenStream) -> TokenStream {
             quote! {
                 #encode
                 #decode
-                #[doc = r"something happened"]
-                impl #name {}
             }
         }
         Item::Struct(ref item_struct) => {
