@@ -280,3 +280,29 @@ impl<'de> Decode<'de> for fastvarint::NonMaxI32VarInt {
         Ok(fastvarint::NonMaxI32VarInt::new(decoder.decode_var_i32()?))
     }
 }
+
+impl Encode for String {
+    fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
+        let bytes = self.as_bytes();
+        let mut col = encoder.encode_seq(bytes.len())?;
+        for v in bytes {
+            col.encode_element(v)?;
+        }
+        col.end()?;
+        Ok(())
+    }
+}
+
+impl<'de> Decode<'de> for String {
+    fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
+        let len = decoder.decode_seq_len()?;
+        let mut seq = decoder.decode_seq()?;
+        let mut result = Vec::with_capacity(len);
+        unsafe { result.set_len(len) };
+        for i in 0..len {
+            *unsafe { result.get_unchecked_mut(i) } = seq.decode_element()?;
+        }
+        seq.end()?;
+        Ok(unsafe { String::from_utf8_unchecked(result) })
+    }
+}
