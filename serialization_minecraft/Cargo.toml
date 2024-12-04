@@ -16,5 +16,5 @@ include = [
 derive_more = { version = "1.0.0", features = ["full"] }
 fastbuf = "0.26.0"
 fastvarint = "0.22.0"
-serialization = { path = "../", version = "0.1.8" }
+serialization = { path = "../", version = "0.1.9" }
 concat-idents = "1.1.5"
