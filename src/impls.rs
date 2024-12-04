@@ -320,7 +320,7 @@ impl<T: Encode, const CAP: usize> Encode for [T; CAP] {
 impl<'de, T: Decode<'de>, const CAP: usize> Decode<'de> for [T; CAP] {
     fn decode<D: Decoder<'de>>(decoder: D) -> Result<Self, D::Error> {
         let mut tup = decoder.decode_tuple()?;
-        let mut result = [const { unsafe { MaybeUninit::uninit().assume_init() } }; CAP];
+        let mut result: [T; CAP] = unsafe { MaybeUninit::uninit().assume_init() };
         for i in 0..CAP {
             result[i] = tup.decode_element()?;
         }
