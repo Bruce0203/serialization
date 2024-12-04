@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, mem::MaybeUninit};
 
 use concat_idents_bruce0203::concat_idents;
 use seq_macro::seq;
@@ -304,5 +304,27 @@ impl<'de> Decode<'de> for String {
         }
         seq.end()?;
         Ok(unsafe { String::from_utf8_unchecked(result) })
+    }
+}
+
+impl<T: Encode, const CAP: usize> Encode for [T; CAP] {
+    fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
+        let mut tup = encoder.encode_tuple()?;
+        for v in self.iter() {
+            tup.encode_element(v)?;
+        }
+        tup.end()
+    }
+}
+
+impl<'de, T: Decode<'de>, const CAP: usize> Decode<'de> for [T; CAP] {
+    fn decode<D: Decoder<'de>>(decoder: D) -> Result<Self, D::Error> {
+        let mut tup = decoder.decode_tuple()?;
+        let mut result = [const { unsafe { MaybeUninit::uninit().assume_init() } }; CAP];
+        for i in 0..CAP {
+            result[i] = tup.decode_element()?;
+        }
+        tup.end()?;
+        Ok(result)
     }
 }
