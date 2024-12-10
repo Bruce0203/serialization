@@ -1,5 +1,20 @@
 use concat_idents_bruce0203::concat_idents;
 
+#[const_trait]
+pub trait CheckPrimitiveTypeSize {
+    fn is_sized(type_id: u128) -> bool;
+}
+
+pub trait BinaryEncoder: CheckPrimitiveTypeSize {
+    fn skip_bytes(&mut self, len: usize);
+    fn write_bytes(&mut self, data: &[u8]) -> Result<(), ()>;
+}
+
+pub trait BinaryDecoder: CheckPrimitiveTypeSize {
+    fn skip_bytes(&mut self, len: usize);
+    fn read_bytes(&mut self, len: usize) -> Result<&[u8], ()>;
+}
+
 pub trait Encode {
     fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error>;
 }
@@ -8,7 +23,7 @@ pub trait Decode<'de>: Sized {
     fn decode<D: Decoder<'de>>(decoder: D) -> Result<Self, D::Error>;
 }
 
-pub trait CompositeEncoder {
+pub trait CompositeEncoder: BinaryEncoder {
     type Error;
     fn encode_element<E: Encode>(&mut self, v: &E) -> Result<(), Self::Error>;
     fn end(self) -> Result<(), Self::Error>;
@@ -30,8 +45,8 @@ macro_rules! decode_value {
     )*};
 }
 
-pub trait Encoder: Sized {
-    type Error;
+pub trait Encoder: Sized + BinaryEncoder {
+    type Error: EncodeError;
     type TupleEncoder: CompositeEncoder<Error = Self::Error>;
     type StructEncoder: CompositeEncoder<Error = Self::Error>;
     type SequenceEncoder: CompositeEncoder<Error = Self::Error>;
@@ -57,7 +72,7 @@ pub trait Encoder: Sized {
     fn encode_var_i32(&mut self, v: i32) -> Result<(), Self::Error>;
 }
 
-pub trait CompositeDecoder<'de> {
+pub trait CompositeDecoder<'de>: BinaryDecoder {
     type Error;
     fn decode_element<D: Decode<'de>>(&mut self) -> Result<D, Self::Error>;
     fn end(self) -> Result<(), Self::Error>;
@@ -68,6 +83,12 @@ pub enum EnumIdentifier {
     Index(usize),
 }
 
+pub trait EncodeError {
+    fn not_enough_bytes_in_the_buffer() -> Self;
+    fn too_large() -> Self;
+    fn custom() -> Self;
+}
+
 pub trait DecodeError {
     fn not_enough_bytes_in_the_buffer() -> Self;
     fn too_large() -> Self;
@@ -76,7 +97,7 @@ pub trait DecodeError {
     fn custom() -> Self;
 }
 
-pub trait Decoder<'de>: Sized {
+pub trait Decoder<'de>: Sized + BinaryDecoder {
     type Error: DecodeError;
     type TupleDecoder: CompositeDecoder<'de, Error = Self::Error>;
     type StructDecoder: CompositeDecoder<'de, Error = Self::Error>;

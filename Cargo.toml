@@ -26,19 +26,27 @@ license = "MIT"
 
 [dependencies]
 serialization_derive = { path = "./impl", version = "0.1.9" }
-fastbuf = "0.26.0"
+fastbuf = "0.28.0"
 seq-macro = "0.3"
 concat-idents-bruce0203 = "1.1.6"
 arrayvec = { version = "0.7.6", optional = true }
 uuid = { version = "1.11.0", optional = true }
 fastvarint = { version = "0.22.0", optional = true }
+nonmax = { version = "0.5.5", optional = true }
 
 [dev-dependencies]
+divan = "0.1.17"
 serialization_minecraft = { path = "./serialization_minecraft" }
 
 [features]
-default = ["std", "arrayvec", "fastvarint"]
+default = ["std", "arrayvec", "fastvarint", "uuid", "nonmax"]
 std = []
 uuid = ["dep:uuid", "serialization_derive/uuid"]
 arrayvec = ["dep:arrayvec", "serialization_derive/arrayvec"]
 fastvarint = ["dep:fastvarint", "serialization_derive/fastvarint"]
+nonmax = ["dep:nonmax"]
+
+
+[[bench]]
+name = "sandbox"
+harness = false

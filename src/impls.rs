@@ -1,6 +1,7 @@
 use std::{marker::PhantomData, mem::MaybeUninit};
 
 use concat_idents_bruce0203::concat_idents;
+use nonmax::*;
 use seq_macro::seq;
 
 use crate::{CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder, Encode, Encoder};
@@ -328,3 +329,39 @@ impl<'de, T: Decode<'de>, const CAP: usize> Decode<'de> for [T; CAP] {
         Ok(result)
     }
 }
+
+macro_rules! nonmax {
+    ($($type:ty: $inner:ty),*) => {$(
+        impl Encode for $type {
+            fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
+                self.get().encode(encoder)
+            }
+        }
+
+        impl<'de> Decode<'de> for $type {
+            fn decode<D: Decoder<'de>>(decoder: D) -> Result<Self, D::Error> {
+                Ok(unsafe { Self::new_unchecked(<$inner>::decode(decoder)?) })
+            }
+        }
+    )*};
+}
+
+nonmax!(
+    NonMaxI8: i8,
+    NonMaxU8: u8,
+
+    NonMaxU16: u16,
+    NonMaxI16: i16,
+
+    NonMaxU32: u32,
+    NonMaxI32: i32,
+
+    NonMaxU64: u64,
+    NonMaxI64: i64,
+
+    NonMaxU128: u128,
+    NonMaxI128: i128,
+
+    NonMaxUsize: usize,
+    NonMaxIsize: isize
+);

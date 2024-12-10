@@ -1,3 +1,4 @@
+#![feature(const_trait_impl)]
 #![feature(min_specialization)]
 
 pub use serialization_derive::*;

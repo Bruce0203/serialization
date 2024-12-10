@@ -4,8 +4,8 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{format_ident, quote, ToTokens};
 use syn::{
-    parse_macro_input, parse_quote, spanned::Spanned, Error, Fields, GenericParam, Generics, Ident,
-    Index, Item, ItemEnum, ItemStruct, TypeParamBound,
+    parse_macro_input, parse_quote, spanned::Spanned, DeriveInput, Error, Fields, GenericParam,
+    Generics, Ident, Index, Item, ItemEnum, ItemStruct, TypeParamBound,
 };
 
 #[proc_macro_derive(Serializable)]
