@@ -86,6 +86,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf0a07a401f374238ab8e2f11a104d2851bf9ce711ec69804834de8af45c7af"
 
 [[package]]
+name = "constvec"
+version = "0.1.0"
+source = "git+https://github.com/Bruce0203/constvec#3205e11f3f07e0243df6a1b9b7e427d444098fd1"
+
+[[package]]
 name = "convert_case"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -268,6 +273,7 @@ version = "0.1.9"
 dependencies = [
  "arrayvec",
  "concat-idents-bruce0203",
+ "constvec",
  "divan",
  "fastbuf",
  "fastvarint",

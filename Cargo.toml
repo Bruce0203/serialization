@@ -33,6 +33,7 @@ arrayvec = { version = "0.7.6", optional = true }
 uuid = { version = "1.11.0", optional = true }
 fastvarint = { version = "0.22.0", optional = true }
 nonmax = { version = "0.5.5", optional = true }
+constvec = { git = "https://github.com/Bruce0203/constvec" }
 
 [dev-dependencies]
 divan = "0.1.17"
