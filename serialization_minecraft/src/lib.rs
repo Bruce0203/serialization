@@ -1,3 +1,4 @@
+#![feature(specialization)]
 #![feature(core_intrinsics)]
 #![feature(const_trait_impl)]
 #![feature(inline_const_pat)]
@@ -5,7 +6,7 @@
 #![feature(str_from_raw_parts)]
 
 use core::str;
-use std::mem::MaybeUninit;
+use std::{intrinsics::type_id, mem::MaybeUninit};
 
 use concat_idents::concat_idents;
 use fastbuf::Buf;
@@ -290,22 +291,27 @@ impl<S: Buf> PacketEncoder<S> {
     }
 }
 
-const fn is_sized(type_id: u128) -> bool {
-    match type_id {
-        const { std::intrinsics::type_id::<u8>() } => true,
-        _ => false,
+const fn is_sized<T: 'static>() -> bool {
+    macro_rules! types {
+        ($($type:ty),*) => {
+            match type_id::<T>() {
+                $(const { type_id::<$type>() } => true,)*
+                _ => false,
+            }
+        };
     }
+    types!(u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, usize, isize, i128, u128)
 }
 
 impl<S> const CheckPrimitiveTypeSize for &mut PacketEncoder<S> {
-    fn is_sized(type_id: u128) -> bool {
-        is_sized(type_id)
+    fn is_sized<T: 'static>() -> bool {
+        is_sized::<T>()
     }
 }
 
 impl<S> const CheckPrimitiveTypeSize for &mut PacketDecoder<S> {
-    fn is_sized(type_id: u128) -> bool {
-        is_sized(type_id)
+    fn is_sized<T: 'static>() -> bool {
+        is_sized::<T>()
     }
 }
 

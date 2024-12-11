@@ -4,14 +4,18 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{format_ident, quote, ToTokens};
 use syn::{
-    parse_macro_input, parse_quote, spanned::Spanned, DeriveInput, Error, Fields, GenericParam,
-    Generics, Ident, Index, Item, ItemEnum, ItemStruct, TypeParamBound,
+    parse_macro_input, parse_quote,
+    punctuated::Punctuated,
+    spanned::Spanned,
+    token::{Comma, Plus},
+    Error, Fields, GenericParam, Generics, Ident, Index, Item, ItemEnum, ItemStruct,
+    TypeParamBound,
 };
 
 #[proc_macro_derive(Serializable)]
 pub fn serializable(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as Item);
-    match input {
+    let result = match input {
         Item::Enum(ref item_enum) => {
             let ref variant_state = variant_state(&item_enum);
             let encode = impl_encode_enum(item_enum, variant_state);
@@ -22,16 +26,22 @@ pub fn serializable(input: TokenStream) -> TokenStream {
             }
         }
         Item::Struct(ref item_struct) => {
+            #[cfg(feature = "fast_binary_format")]
+            let serial_descriptor = impl_serial_descriptor(item_struct);
+            #[cfg(not(feature = "fast_binary_format"))]
+            let serial_descriptor = quote! {};
             let encode = impl_encode_struct(item_struct);
             let decode = impl_decode_struct(item_struct);
             quote! {
+                #serial_descriptor
                 #encode
                 #decode
             }
         }
         item => Error::new(item.span(), "only enum and struct supported").to_compile_error(),
-    }
-    .into()
+    };
+    println!("{:#}", result.to_string());
+    result.into()
 }
 
 #[proc_macro_derive(Encode)]
@@ -62,11 +72,117 @@ pub fn decode(input: TokenStream) -> TokenStream {
     .into()
 }
 
+#[cfg(feature = "fast_binary_format")]
+fn impl_serial_descriptor(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
+    let struct_name = &item_struct.ident;
+    let field_types = item_struct
+        .fields
+        .iter()
+        .map(|field| {
+            match &field.ty {
+                syn::Type::Reference(type_reference) => {
+                    syn::Type::Reference(if let Some(_lifetime) = &type_reference.lifetime {
+                        let mut type_reference = type_reference.clone();
+                        type_reference.lifetime = Some(parse_quote!('static));
+                        type_reference
+                    } else {
+                        type_reference.clone()
+                    })
+                }
+                v => v.clone(),
+            }
+            .clone()
+        })
+        .collect::<Vec<_>>();
+    let field_names = match &item_struct.fields {
+        Fields::Named(fields_named) => fields_named
+            .named
+            .iter()
+            .map(|field| {
+                let field_name = &field.ident;
+                quote! { #field_name }
+            })
+            .collect::<Vec<_>>(),
+        Fields::Unnamed(fields_unnamed) => (0..fields_unnamed.unnamed.len())
+            .map(|index| {
+                let index = Index {
+                    index: index as u32,
+                    span: fields_unnamed.span(),
+                };
+                quote! { #index }
+            })
+            .collect::<Vec<_>>(),
+        Fields::Unit => {
+            vec![]
+        }
+    };
+
+    let field_count = item_struct.fields.len();
+
+    let mut generic_params = generic_params_with_bounds(&item_struct.generics, || parse_quote! {});
+    for param in generic_params.iter_mut() {
+        match param {
+            GenericParam::Type(type_param) => {
+                type_param
+                    .bounds
+                    .push(TypeParamBound::Lifetime(parse_quote!('static)));
+            }
+            _ => {}
+        }
+    }
+    let mut generic_where_clause = item_struct
+        .generics
+        .where_clause
+        .clone()
+        .map(|v| v.predicates)
+        .unwrap_or_else(|| Punctuated::new());
+    for field_type in &field_types {
+        generic_where_clause.push(parse_quote!([(); core::mem::size_of::<#field_type>()]:));
+        generic_where_clause.push(
+            parse_quote!([(); <#field_type as serialization::binary_format::SerialDescriptor>::N]:),
+        );
+    }
+    let generic_where_clause = generic_where_clause.iter().collect::<Vec<_>>();
+    let generic_params_without_bounds_and_lifetimes = generic_params_without_bounds(
+        &generic_params_without_lifetimes(&item_struct.generics.params),
+    );
+
+    let generic_params_without_bounds = generic_params_without_bounds(&item_struct.generics.params);
+    quote! {
+        impl <#(#generic_params),*> const serialization::binary_format::SerialDescriptor
+            for #struct_name<#(#generic_params_without_bounds),*> where #(#generic_where_clause),* {
+            const N: usize = #(<#field_types as serialization::binary_format::SerialDescriptor>::N +)* #field_count + 1;
+            fn fields<C: const serialization::CheckPrimitiveTypeSize>(
+            ) -> constvec::ConstVec<[serialization::binary_format::SerialSize; <Self as serialization::binary_format::SerialDescriptor>::N]> {
+                serialization::binary_format::compact_fields({
+                    #[allow(invalid_value)]
+                    let value: #struct_name<#(#generic_params_without_bounds_and_lifetimes),*>
+                        = unsafe { std::mem::MaybeUninit::uninit().assume_init() };
+                    let mut padding_calc = serialization::binary_format::SizeCalcState::new(&value);
+                    #(
+                    serialization::binary_format::SizeCalcState::next_field::<_, C>(
+                        &mut padding_calc,
+                        &value.#field_names,
+                    );
+                    )*
+                    serialization::binary_format::SizeCalcState::finish(padding_calc)
+                })
+            }
+        }
+    }
+}
+
 fn impl_encode_enum(
     item_enum: &ItemEnum,
     variant_state: &VariantState<'_>,
 ) -> proc_macro2::TokenStream {
     let enum_name = &item_enum.ident;
+
+    let generic_params_without_bounds = generic_params_without_bounds(&item_enum.generics.params);
+    let generic_params = generic_params_with_bounds(&item_enum.generics, || {
+        parse_quote! { serialization::Encode }
+    });
+    let generic_where_clause = &item_enum.generics.where_clause;
     let match_branches = item_enum
         .variants
         .iter()
@@ -79,14 +195,14 @@ fn impl_encode_enum(
                         .iter()
                         .map(|field| field.ident.clone().unwrap().to_token_stream())
                         .collect::<Vec<_>>();
-                    let encode_struct = encode_struct(&field_names);
+                    let encode_struct = encode_structed_enum(&field_names);
                     quote! { { #(#field_names),* } => #encode_struct }
                 }
                 Fields::Unnamed(fields_unnamed) => {
                     let indexes = (0..fields_unnamed.unnamed.len())
                         .map(|index| format_ident!("v{index}"))
                         .collect::<Vec<_>>();
-                    let encode_tuple = encode_tuple(&indexes);
+                    let encode_tuple = encode_enum_tuple(&indexes);
                     quote! { (#(#indexes),*) => #encode_tuple }
                 }
                 Fields::Unit => quote! { => Ok(()) },
@@ -97,11 +213,6 @@ fn impl_encode_enum(
     let enum_name = &item_enum.ident;
     let variant_names_match_branches = &variant_state.variant_names_match_branches;
     let variant_indexes_match_branches = &variant_state.variant_indexes_match_branches;
-    let generic_params_without_bounds = generic_params_without_bounds(&item_enum.generics);
-    let generic_params = generic_params_with_bounds(&item_enum.generics, || {
-        parse_quote! { serialization::Encode }
-    });
-    let generic_where_clause = &item_enum.generics.where_clause;
     quote! {
         impl<#(#generic_params),*> serialization::Encode
             for #enum_name<#(#generic_params_without_bounds),*> #generic_where_clause {
@@ -126,7 +237,10 @@ fn impl_encode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
     });
 
     let generic_where_clause = &item_struct.generics.where_clause;
-    let generic_params_without_bounds = generic_params_without_bounds(&item_struct.generics);
+    let generic_params_without_bounds_and_lifetimes = generic_params_without_bounds(
+        &generic_params_without_lifetimes(&item_struct.generics.params),
+    );
+    let generic_params_without_bounds = generic_params_without_bounds(&item_struct.generics.params);
     let fields = match &item_struct.fields {
         Fields::Named(fields_named) => fields_named
             .named
@@ -149,25 +263,114 @@ fn impl_encode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
             vec![]
         }
     };
-    let encode_struct = encode_struct(&fields);
-    quote! {
+    let encode_struct = encode_struct(
+        quote! {#struct_name::<#(#generic_params_without_bounds_and_lifetimes),*>},
+        &fields,
+    );
+    let part1 = quote! {
         impl<#(#generic_params),*> serialization::Encode
             for #struct_name<#(#generic_params_without_bounds),*> #generic_where_clause {
                 fn encode<E: serialization::Encoder>(&self, encoder: E) -> Result<(), E::Error> {
                     #encode_struct
                 }
         }
+    };
+    #[cfg(not(feature = "fast_binary_format"))]
+    let part2 = quote! {};
+    #[cfg(feature = "fast_binary_format")]
+    let part2 = {
+        let generic_params = generic_params_with_bounds(&item_struct.generics, || {
+            parse_quote! { serialization::binary_format::EncodeField + serialization::Encode }
+        });
+        let indexes = (0..fields.len()).collect::<Vec<_>>();
+        quote! {
+        impl<#(#generic_params),*> serialization::binary_format::EncodeField
+            for #struct_name<#(#generic_params_without_bounds),*> #generic_where_clause {
+            fn encode_field<E: serialization::Encoder>(
+                &self,
+                fields: &serialization::binary_format::Fields,
+                encoder: E,
+            ) -> Result<(), E::Error> {
+                if fields.len() == 0 {
+                    serialization::Encode::encode(&self, encoder)
+                } else {
+                    let mut fields = fields.clone();
+                    match *fields.pop_last() as usize {
+                        #(#indexes => #fields.encode_field(&fields, encoder),)*
+                        _ => unreachable!(),
+                    }
+                }
+            }
+        }
+        }
+    };
+    quote! {
+        #part1
+        #part2
     }
 }
 
-fn encode_struct(fields: &Vec<proc_macro2::TokenStream>) -> proc_macro2::TokenStream {
+fn encode_structed_enum(fields: &Vec<proc_macro2::TokenStream>) -> proc_macro2::TokenStream {
     quote! {{
         let mut struc = E::encode_struct(encoder)?;
         #(<E::StructEncoder as serialization::CompositeEncoder>::encode_element(&mut struc, &#fields)?;)*
         Ok(<E::StructEncoder as serialization::CompositeEncoder>::end(struc)?)
     }}
 }
-fn encode_tuple(fields: &Vec<Ident>) -> proc_macro2::TokenStream {
+
+fn encode_struct(
+    struct_name: proc_macro2::TokenStream,
+    fields: &Vec<proc_macro2::TokenStream>,
+) -> proc_macro2::TokenStream {
+    #[cfg(feature = "fast_binary_format")]
+    quote! {{
+        if <#struct_name as serialization::binary_format::SerialDescriptor>::fields::<E>().as_slice()[0]
+            == serialization::binary_format::SerialSize::unsized_of::<#struct_name>()
+        {
+            let mut struc = encoder.encode_struct()?;
+            #(serialization::CompositeEncoder::encode_element(&mut struc, &#fields)?;)*
+            serialization::CompositeEncoder::end(struc)?;
+            Ok(())
+        } else {
+            serialization::binary_format::encode2(self, encoder)
+        }
+    }}
+    #[cfg(not(feature = "fast_binary_format"))]
+    quote! {{
+        let mut struc = E::encode_struct(encoder)?;
+        #(<E::StructEncoder as serialization::CompositeEncoder>::encode_element(&mut struc, &#fields)?;)*
+        Ok(<E::StructEncoder as serialization::CompositeEncoder>::end(struc)?)
+    }}
+}
+
+fn encode_enum_tuple(fields: &Vec<Ident>) -> proc_macro2::TokenStream {
+    quote! {{
+        let mut tup = E::encode_tuple(encoder)?;
+        #(<E::TupleEncoder as serialization::CompositeEncoder>::encode_element(&mut tup, #fields)?;)*
+        Ok(<E::TupleEncoder as serialization::CompositeEncoder>::end(tup)?)
+    }}
+}
+
+fn encode_tuple(
+    struct_name: proc_macro2::TokenStream,
+    fields: &Vec<Ident>,
+) -> proc_macro2::TokenStream {
+    #[cfg(feature = "fast_binary_format")]
+    {
+        quote! {{
+            if <#struct_name as serialization::binary_format::SerialDescriptor>::fields::<E>().as_slice()[0]
+                == serialization::binary_format::SerialSize::unsized_of::<#struct_name>()
+            {
+                let mut struc = encoder.encode_tuple()?;
+                #(serialization::CompositeEncoder::encode_element(&mut struc, &#fields)?;)*
+                serialization::CompositeEncoder::end(struc)?;
+                Ok(())
+            } else {
+                serialization::binary_format::encode2(self, encoder)
+            }
+        }}
+    }
+    #[cfg(not(feature = "fast_binary_format"))]
     quote! {{
         let mut tup = E::encode_tuple(encoder)?;
         #(<E::TupleEncoder as serialization::CompositeEncoder>::encode_element(&mut tup, #fields)?;)*
@@ -192,10 +395,10 @@ fn impl_decode_enum(
                         .iter()
                         .map(|field| field.ident.clone().unwrap().to_token_stream())
                         .collect::<Vec<_>>();
-                    decode_struct(quote! { Self::#variant_name }, &field_names)
+                    decode_structed_enum(quote! { Self::#variant_name }, &field_names)
                 }
                 Fields::Unnamed(fields_unnamed) => {
-                    decode_tuple(quote! { Self::#variant_name }, fields_unnamed.unnamed.len())
+                    decode_enum_tuple(quote! { Self::#variant_name }, fields_unnamed.unnamed.len())
                 }
                 Fields::Unit => quote! { Ok(Self::#variant_name) },
             }
@@ -204,7 +407,7 @@ fn impl_decode_enum(
 
     let variant_names = &variant_state.variant_names;
     let variant_indexes = &variant_state.variant_indexes;
-    let generic_params_without_bounds = generic_params_without_bounds(&item_enum.generics);
+    let generic_params_without_bounds = generic_params_without_bounds(&item_enum.generics.params);
     let generic_params = generic_params_with_bounds(&item_enum.generics, || {
         parse_quote! { serialization::Decode<'de> }
     });
@@ -214,20 +417,20 @@ fn impl_decode_enum(
     quote! {
         impl<#(#generic_params),*> serialization::Decode<'de>
             for #enum_name<#(#generic_params_without_bounds),*> #generic_where_clause {
-            fn decode<D: serialization::Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
+            fn decode<_D: serialization::Decoder<'de>>(mut decoder: _D) -> Result<Self, _D::Error> {
                 match serialization::Decoder::<'de>::decode_enum(&mut decoder, std::any::type_name::<Self>())? {
                     serialization::EnumIdentifier::Name(name) => match name {
-                        #(stringify!(#variant_names) => #decode,)*
+                        #(stringify!(#variant_names) => {#decode})*
                             #[allow(unreachable_patterns)]
-                        _ => Err(serialization::DecodeError::invalid_enum_variant_name())?,
+                        _ => Err(serialization::DecodeError::invalid_enum_variant_name())?
                     },
                     serialization::EnumIdentifier::Index(index) => {
                         #(#[allow(non_upper_case_globals)] const #variant_names: usize = #variant_indexes;)*
                         #[allow(non_upper_case_globals)]
                         match index {
-                            #(#variant_names => #decode,)*
+                            #(#variant_names => {#decode})*
                             #[allow(unreachable_patterns)]
-                            _ => Err(serialization::DecodeError::invalid_enum_variant_index())?,
+                            _ => Err(serialization::DecodeError::invalid_enum_variant_index())?
                         }
                     },
                 }
@@ -257,52 +460,162 @@ fn impl_decode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
             vec![]
         }
     };
-    let generic_params_without_bounds = generic_params_without_bounds(&item_struct.generics);
+    let generic_params_without_bounds_and_lifetimes = generic_params_without_bounds(
+        &generic_params_without_lifetimes(&item_struct.generics.params),
+    );
+    let generic_params_without_bounds = generic_params_without_bounds(&item_struct.generics.params);
     let generic_params = generic_params_with_bounds(&item_struct.generics, || {
         parse_quote! { serialization::Decode<'de> }
     });
     let generic_where_clause = &item_struct.generics.where_clause;
-    let decode_struct = decode_struct(quote! { Self }, &fields);
-    quote! {
+
+    let decode_struct = decode_struct(
+        quote! { #struct_name::<#(#generic_params_without_bounds_and_lifetimes),*> },
+        &fields,
+    );
+    let part1 = quote! {
     impl<#(#generic_params),*> serialization::Decode<'de>
         for #struct_name<#(#generic_params_without_bounds),*> #generic_where_clause {
-            fn decode<D: serialization::Decoder<'de>>(decoder: D) -> Result<Self, D::Error> {
+            fn decode<_D: serialization::Decoder<'de>>(decoder: _D) -> Result<Self, _D::Error> {
                 #decode_struct
             }
         }
+    };
+    #[cfg(not(feature = "fast_binary_format"))]
+    let part2 = quote! {};
+    #[cfg(feature = "fast_binary_format")]
+    let part2 = {
+        let generic_params = generic_params_with_bounds(&item_struct.generics, || {
+            parse_quote! { serialization::binary_format::DecodeField<'de> + serialization::Decode<'de> }
+        });
+        let indexes = (0..fields.len()).collect::<Vec<_>>();
+        quote! {
+            impl<#(#generic_params),*> serialization::binary_format::DecodeField<'de>
+                for #struct_name<#(#generic_params_without_bounds),*> #generic_where_clause {
+            unsafe fn decode_field<_D: serialization::CompositeDecoder<'de>>(
+                fields: &serialization::binary_format::Fields,
+                decoder: &mut _D,
+            ) -> Result<serialization::binary_format::ReadableField<Self>, _D::Error> {
+                #[allow(invalid_value)]
+                let result: #struct_name<#(#generic_params_without_bounds_and_lifetimes),*>
+                    = unsafe { std::mem::MaybeUninit::uninit().assume_init() };
+                let mut state =
+                    serialization::binary_format::DecodeFieldState::new(&result, fields.clone());
+                match state.start(decoder) {
+                    Ok(value) => {
+                        return value;
+                    }
+                    Err(index) => Ok(match index as usize {
+                        #(#indexes => {state.decode_field(decoder, &result.#fields)?})*
+                        _ => unreachable!()
+                    })
+                }
+            }
+        }
+
+            }
+    };
+    quote! {
+        #part1
+        #part2
     }
+}
+
+fn decode_structed_enum(
+    struct_name: proc_macro2::TokenStream,
+    fields: &Vec<proc_macro2::TokenStream>,
+) -> proc_macro2::TokenStream {
+    return quote! {{
+        let mut struc = serialization::Decoder::<'de>::decode_struct(decoder)?;
+        let result = #struct_name {
+            #(#fields: <_D::StructDecoder as serialization::CompositeDecoder>::decode_element(&mut struc)?),*
+        };
+        <_D::StructDecoder as serialization::CompositeDecoder>::end(struc)?;
+        Ok(result)
+    }};
 }
 
 fn decode_struct(
     struct_name: proc_macro2::TokenStream,
     fields: &Vec<proc_macro2::TokenStream>,
 ) -> proc_macro2::TokenStream {
+    #[cfg(not(feature = "fast_binary_format"))]
+    return decode_structed_enum(struct_name, fields);
+    #[cfg(feature = "fast_binary_format")]
+    {
+        quote! {{
+            if <#struct_name as serialization::binary_format::SerialDescriptor>::fields::<_D>().as_slice()[0]
+                == serialization::binary_format::SerialSize::unsized_of::<#struct_name>()
+            {
+                let mut struc = decoder.decode_struct()?;
+                let result = #struct_name {
+                    #(#fields: serialization::CompositeDecoder::decode_element(&mut struc)?),*
+                };
+                serialization::CompositeDecoder::end(struc)?;
+                Ok(result)
+            } else {
+                serialization::binary_format::decode2(decoder)
+            }
+        }}
+    }
+}
+
+fn decode_enum_tuple(
+    tuple_name: proc_macro2::TokenStream,
+    size: usize,
+) -> proc_macro2::TokenStream {
+    let indexes = repeat_n(
+        quote! { <_D::TupleDecoder as serialization::CompositeDecoder>::decode_element(&mut tup)? },
+        size,
+    );
     quote! {{
-        let mut struc = serialization::Decoder::<'de>::decode_struct(decoder)?;
-        let result = #struct_name {
-            #(#fields: <D::StructDecoder as serialization::CompositeDecoder::<'de>>::decode_element(&mut struc)?),*
-        };
-        <D::StructDecoder as serialization::CompositeDecoder::<'de>>::end(struc)?;
+        let mut tup = serialization::Decoder::decode_tuple(decoder)?;
+        let result = #tuple_name(#(#indexes),*);
+        <_D::TupleDecoder as serialization::CompositeDecoder>::end(tup)?;
         Ok(result)
     }}
 }
 
 fn decode_tuple(tuple_name: proc_macro2::TokenStream, size: usize) -> proc_macro2::TokenStream {
-    let indexes = repeat_n(
-        quote! { <D::TupleDecoder as serialization::CompositeDecoder::<'de>>::decode_element(&mut tup)? },
-        size,
-    );
-    quote! {{
-        let mut tup = serialization::Decoder::<'de>::decode_tuple(decoder)?;
-        let result = #tuple_name(#(#indexes),*);
-        <D::TupleDecoder as serialization::CompositeDecoder::<'de>>::end(tup)?;
-        Ok(result)
-    }}
+    #[cfg(feature = "fast_binary_format")]
+    {
+        let indexes = repeat_n(
+            quote! { serialization::CompositeDecoder::decode_element(&mut struc)? },
+            size,
+        );
+        quote! {{
+            if <#tuple_name as serialization::binary_format::SerialDescriptor>::fields::<_D>().as_slice()[0]
+                == serialization::binary_format::SerialSize::unsized_of::<#tuple_name>()
+            {
+                let mut tup = decoder.decode_tuple()?;
+                let result = #tuple_name(#(#indexes),*);
+                serialization::CompositeDecoder::end(tup)?;
+                <_D::TupleDecoder as serialization::CompositeDecoder>::end(tup)?;
+                Ok(result)
+            } else {
+                serialization::binary_format::decode2(decoder)
+            }
+        }}
+    }
+    #[cfg(not(feature = "fast_binary_format"))]
+    {
+        let indexes = repeat_n(
+            quote! { <_D::TupleDecoder as serialization::CompositeDecoder>::decode_element(&mut tup)? },
+            size,
+        );
+        quote! {{
+            let mut tup = serialization::Decoder::decode_tuple(decoder)?;
+            let result = #tuple_name(#(#indexes),*);
+            <_D::TupleDecoder as serialization::CompositeDecoder>::end(tup)?;
+            Ok(result)
+        }}
+    }
 }
 
-fn generic_params_without_bounds(generics: &Generics) -> Vec<proc_macro2::TokenStream> {
-    generics
-        .params
+fn generic_params_without_bounds(
+    params: &Punctuated<GenericParam, Comma>,
+) -> Vec<proc_macro2::TokenStream> {
+    params
         .iter()
         .map(|param| match param {
             GenericParam::Lifetime(lifetime_param) => lifetime_param.lifetime.to_token_stream(),
@@ -312,7 +625,20 @@ fn generic_params_without_bounds(generics: &Generics) -> Vec<proc_macro2::TokenS
         .collect::<Vec<_>>()
 }
 
-fn generic_params_with_bounds<F: Fn() -> TypeParamBound>(
+fn generic_params_without_lifetimes(
+    generics: &Punctuated<GenericParam, Comma>,
+) -> Punctuated<GenericParam, Comma> {
+    let mut params = Punctuated::new();
+    for ele in generics.iter() {
+        match ele {
+            GenericParam::Lifetime(_) => {}
+            v => params.push(v.clone()),
+        }
+    }
+    params
+}
+
+fn generic_params_with_bounds<F: Fn() -> Punctuated<TypeParamBound, Plus>>(
     generics: &Generics,
     bound: F,
 ) -> Vec<GenericParam> {
@@ -321,7 +647,9 @@ fn generic_params_with_bounds<F: Fn() -> TypeParamBound>(
         let param = match param {
             GenericParam::Type(type_param) => {
                 let mut param = type_param.clone();
-                param.bounds.push(bound());
+                for elem in bound().into_iter() {
+                    param.bounds.push(elem);
+                }
                 param.into()
             }
             GenericParam::Lifetime(lifetime) => {
@@ -333,8 +661,6 @@ fn generic_params_with_bounds<F: Fn() -> TypeParamBound>(
                         }
                         _ => unreachable!(),
                     };
-                } else {
-                    panic!("AAAAAWRQWRKJEQHFJ");
                 }
                 param.into()
             }

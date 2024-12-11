@@ -2,15 +2,15 @@ use concat_idents_bruce0203::concat_idents;
 
 #[const_trait]
 pub trait CheckPrimitiveTypeSize {
-    fn is_sized(type_id: u128) -> bool;
+    fn is_sized<T: 'static>() -> bool;
 }
 
-pub trait BinaryEncoder: CheckPrimitiveTypeSize {
+pub trait BinaryEncoder {
     fn skip_bytes(&mut self, len: usize);
     fn write_bytes(&mut self, data: &[u8]) -> Result<(), ()>;
 }
 
-pub trait BinaryDecoder: CheckPrimitiveTypeSize {
+pub trait BinaryDecoder {
     fn skip_bytes(&mut self, len: usize);
     fn read_bytes(&mut self, len: usize) -> Result<&[u8], ()>;
 }
@@ -45,7 +45,8 @@ macro_rules! decode_value {
     )*};
 }
 
-pub trait Encoder: Sized + BinaryEncoder {
+#[const_trait]
+pub trait Encoder: Sized + BinaryEncoder + const CheckPrimitiveTypeSize {
     type Error: EncodeError;
     type TupleEncoder: CompositeEncoder<Error = Self::Error>;
     type StructEncoder: CompositeEncoder<Error = Self::Error>;
@@ -97,7 +98,7 @@ pub trait DecodeError {
     fn custom() -> Self;
 }
 
-pub trait Decoder<'de>: Sized + BinaryDecoder {
+pub trait Decoder<'de>: Sized + BinaryDecoder + const CheckPrimitiveTypeSize {
     type Error: DecodeError;
     type TupleDecoder: CompositeDecoder<'de, Error = Self::Error>;
     type StructDecoder: CompositeDecoder<'de, Error = Self::Error>;

@@ -14,10 +14,10 @@ use constvec::ConstVec;
 use fastbuf::Buffer;
 use serialization::{
     binary_format::{
-        compact_fields, const_transmute, decode2, encode2, DecodeField, DecodeFieldstate,
+        compact_fields, const_transmute, decode2, encode2, DecodeField, DecodeFieldState,
         EncodeField, Fields, ReadableField, SerialDescriptor, SerialSize, SizeCalcState,
     },
-    CompositeDecoder, CompositeEncoder, Decode, Decoder, Encode, Encoder,
+    CheckPrimitiveTypeSize, CompositeDecoder, CompositeEncoder, Decode, Decoder, Encode, Encoder,
 };
 use serialization_minecraft::{PacketDecoder, PacketEncoder};
 
@@ -25,52 +25,13 @@ use serialization_minecraft::{PacketDecoder, PacketEncoder};
 pub struct Foo {
     field1: u32,
     field2: u16,
-    field3: Bar,
+    field3: u8,
     field4: u32,
-}
-
-#[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
-pub struct Bar {
-    field1: u8,
-    field2: u16,
-    field3: u32,
-}
-
-impl Encode for Bar {
-    fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
-        if Self::fields().as_slice()[0] == SerialSize::unsized_of::<Self>() {
-            let mut struc = encoder.encode_struct()?;
-            struc.encode_element(&self.field1)?;
-            struc.encode_element(&self.field2)?;
-            struc.encode_element(&self.field3)?;
-            struc.end()?;
-            Ok(())
-        } else {
-            encode2(self, encoder)
-        }
-    }
-}
-
-impl<'de> Decode<'de> for Bar {
-    fn decode<D: Decoder<'de>>(decoder: D) -> Result<Self, D::Error> {
-        if Self::fields().as_slice()[0] == SerialSize::unsized_of::<Self>() {
-            let mut struc = decoder.decode_struct()?;
-            let result = Self {
-                field1: struc.decode_element()?,
-                field2: struc.decode_element()?,
-                field3: struc.decode_element()?,
-            };
-            struc.end()?;
-            Ok(result)
-        } else {
-            decode2(decoder)
-        }
-    }
 }
 
 impl Encode for Foo {
     fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
-        if Self::fields().as_slice()[0] == SerialSize::unsized_of::<Self>() {
+        if Self::fields::<E>().as_slice()[0] == SerialSize::unsized_of::<Self>() {
             let mut struc = encoder.encode_struct()?;
             struc.encode_element(&self.field1)?;
             struc.encode_element(&self.field2)?;
@@ -85,7 +46,7 @@ impl Encode for Foo {
 
 impl<'de> Decode<'de> for Foo {
     fn decode<D: Decoder<'de>>(decoder: D) -> Result<Self, D::Error> {
-        let fields = Self::fields();
+        let fields = Self::fields::<D>();
         if fields.as_slice()[0] == SerialSize::unsized_of::<Self>() {
             let mut struc = decoder.decode_struct()?;
             let result = Self {
@@ -98,22 +59,6 @@ impl<'de> Decode<'de> for Foo {
             return Ok(result);
         }
         decode2(decoder)
-    }
-}
-
-impl EncodeField for Bar {
-    fn encode_field<E: Encoder>(&self, fields: &Fields, encoder: E) -> Result<(), E::Error> {
-        if fields.len() == 0 {
-            self.encode(encoder)
-        } else {
-            let mut fields = fields.clone();
-            match fields.pop_last() {
-                0 => self.field1.encode_field(&fields, encoder),
-                1 => self.field2.encode_field(&fields, encoder),
-                2 => self.field3.encode_field(&fields, encoder),
-                _ => unreachable!(),
-            }
-        }
     }
 }
 
@@ -134,28 +79,6 @@ impl EncodeField for Foo {
     }
 }
 
-impl<'de> DecodeField<'de> for Bar {
-    unsafe fn decode_field<D: CompositeDecoder<'de>>(
-        fields: &Fields,
-        decoder: &mut D,
-    ) -> Result<ReadableField<Self>, D::Error> {
-        #[allow(invalid_value)]
-        let result: Self = unsafe { MaybeUninit::uninit().assume_init() };
-        let mut state = DecodeFieldstate::new(&result, fields.clone());
-        match state.start(decoder) {
-            Ok(value) => {
-                return value;
-            }
-            Err(index) => Ok(match index {
-                0 => state.decode_field(decoder, &result.field1)?,
-                1 => state.decode_field(decoder, &result.field2)?,
-                2 => state.decode_field(decoder, &result.field3)?,
-                _ => unreachable!(),
-            }),
-        }
-    }
-}
-
 impl<'de> DecodeField<'de> for Foo {
     unsafe fn decode_field<D: CompositeDecoder<'de>>(
         fields: &Fields,
@@ -163,7 +86,7 @@ impl<'de> DecodeField<'de> for Foo {
     ) -> Result<ReadableField<Self>, D::Error> {
         #[allow(invalid_value)]
         let result: Self = unsafe { MaybeUninit::uninit().assume_init() };
-        let mut state = DecodeFieldstate::new(&result, fields.clone());
+        let mut state = DecodeFieldState::new(&result, fields.clone());
         match state.start(decoder) {
             Ok(value) => {
                 return value;
@@ -182,38 +105,19 @@ impl<'de> DecodeField<'de> for Foo {
 impl const SerialDescriptor for Foo {
     const N: usize = <u32 as SerialDescriptor>::N
         + <u16 as SerialDescriptor>::N
-        + <Bar as SerialDescriptor>::N
+        + <u8 as SerialDescriptor>::N
         + <u32 as SerialDescriptor>::N
         + 4
         + 1;
-    fn fields() -> ConstVec<[SerialSize; Self::N]> {
+    fn fields<C: const CheckPrimitiveTypeSize>() -> ConstVec<[SerialSize; Self::N]> {
         compact_fields({
             #[allow(invalid_value)]
             let value: Self = unsafe { MaybeUninit::uninit().assume_init() };
             let mut padding_calc = SizeCalcState::new(&value);
-            padding_calc.next_field(&value.field1);
-            padding_calc.next_field(&value.field2);
-            padding_calc.next_field(&value.field3);
-            padding_calc.next_field(&value.field4);
-            padding_calc.finish()
-        })
-    }
-}
-
-impl const SerialDescriptor for Bar {
-    const N: usize = <u8 as SerialDescriptor>::N
-        + <u16 as SerialDescriptor>::N
-        + <u32 as SerialDescriptor>::N
-        + 3
-        + 1;
-    fn fields() -> ConstVec<[SerialSize; Self::N]> {
-        compact_fields({
-            #[allow(invalid_value)]
-            let value: Self = unsafe { MaybeUninit::uninit().assume_init() };
-            let mut padding_calc = SizeCalcState::new(&value);
-            padding_calc.next_field(&value.field1);
-            padding_calc.next_field(&value.field2);
-            padding_calc.next_field(&value.field3);
+            padding_calc.next_field::<_, C>(&value.field1);
+            padding_calc.next_field::<_, C>(&value.field2);
+            padding_calc.next_field::<_, C>(&value.field3);
+            padding_calc.next_field::<_, C>(&value.field4);
             padding_calc.finish()
         })
     }
@@ -256,15 +160,10 @@ fn cutoff_front_at() {
 
 #[test]
 fn test() {
-    println!("{:?}", Foo::fields());
     let foo = Foo {
         field1: 12,
         field2: 23,
-        field3: Bar {
-            field1: 11,
-            field2: 22,
-            field3: 33,
-        },
+        field3: 34,
         field4: 45,
     };
     {
@@ -288,14 +187,7 @@ fn test() {
     assert_eq!(decoded, foo);
 }
 
-#[test]
-fn temp() {
-    #[allow(invalid_value)]
-    let value: Bar = unsafe { MaybeUninit::uninit().assume_init() };
-    let mut padding_calc = SizeCalcState::new(&value);
-    padding_calc.next_field(&value.field1);
-    padding_calc.next_field(&value.field2);
-    padding_calc.next_field(&value.field3);
-    println!("{:?}", padding_calc.finish());
-    println!("{}", u8::to_be(11_u8));
+fn asdf2() {
+    struct A(i32, i32);
+    A { 0: 1, 1: 2 };
 }

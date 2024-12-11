@@ -40,13 +40,13 @@ divan = "0.1.17"
 serialization_minecraft = { path = "./serialization_minecraft" }
 
 [features]
-default = ["std", "arrayvec", "fastvarint", "uuid", "nonmax"]
+default = ["std", "arrayvec", "fastvarint", "uuid", "nonmax", "fast_binary_format"]
 std = []
 uuid = ["dep:uuid", "serialization_derive/uuid"]
 arrayvec = ["dep:arrayvec", "serialization_derive/arrayvec"]
 fastvarint = ["dep:fastvarint", "serialization_derive/fastvarint"]
 nonmax = ["dep:nonmax"]
-
+fast_binary_format = ["serialization_derive/fast_binary_format"]
 
 [[bench]]
 name = "sandbox"

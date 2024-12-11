@@ -5,8 +5,8 @@ use constvec::ConstVec;
 use fastbuf::{Buf, Buffer, WriteBuf};
 
 use crate::{
-    BinaryDecoder, BinaryEncoder, CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder,
-    Encode, EncodeError, Encoder,
+    BinaryDecoder, BinaryEncoder, CheckPrimitiveTypeSize, CompositeDecoder, CompositeEncoder,
+    Decode, DecodeError, Decoder, Encode, EncodeError, Encoder,
 };
 
 pub trait EncodeField: Encode {
@@ -23,7 +23,7 @@ pub trait DecodeField<'de>: Sized {
 #[const_trait]
 pub trait SerialDescriptor {
     const N: usize;
-    fn fields() -> ConstVec<[SerialSize; Self::N]>;
+    fn fields<C: const CheckPrimitiveTypeSize>() -> ConstVec<[SerialSize; Self::N]>;
 }
 
 pub type Fields = ConstVec<[u16; 128]>;
@@ -82,11 +82,20 @@ impl<'de, T: Decode<'de>> DecodeField<'de> for T {
 
 impl<T: 'static> const SerialDescriptor for T {
     default const N: usize = 1;
-    default fn fields() -> ConstVec<[SerialSize; Self::N]> {
-        ConstVec::new(
-            Self::N,
-            [const { SerialSize::unsized_of::<Self>() }; Self::N],
-        )
+    default fn fields<C: const CheckPrimitiveTypeSize>() -> ConstVec<[SerialSize; Self::N]> {
+        if C::is_sized::<Self>() {
+            ConstVec::new(Self::N, unsafe {
+                const_transmute([SerialSize::Sized {
+                    start: 0,
+                    len: size_of::<Self>(),
+                }])
+            })
+        } else {
+            ConstVec::new(
+                Self::N,
+                [const { SerialSize::unsized_of::<Self>() }; Self::N],
+            )
+        }
     }
 }
 
@@ -118,8 +127,10 @@ where
         }
     }
 
-    pub const fn next_field<E: const SerialDescriptor>(&mut self, field_ptr: &E)
-    where
+    pub const fn next_field<E: const SerialDescriptor, C: const CheckPrimitiveTypeSize>(
+        &mut self,
+        field_ptr: &E,
+    ) where
         [(); T::N]:,
         [(); <E as SerialDescriptor>::N]:,
     {
@@ -130,7 +141,7 @@ where
             self.board[i] = self.counter;
             i += 1;
         }
-        let mut slice = <E as SerialDescriptor>::fields().clone();
+        let mut slice = <E as SerialDescriptor>::fields::<C>().clone();
         let mut i = 0;
 
         while i < slice.len() {
@@ -255,7 +266,7 @@ where
 {
     let mut i = 0;
     let mut tup = encoder.encode_tuple()?;
-    let fields = T::fields();
+    let fields = T::fields::<E>();
     while i < fields.len() {
         match &fields.as_slice()[i] {
             SerialSize::Unsized { fields } => {
@@ -291,7 +302,7 @@ where
     let mut result = Buffer::<{ size_of::<T>() }>::new();
     let mut i = 0;
     let mut tup = decoder.decode_tuple()?;
-    let fields = T::fields();
+    let fields = T::fields::<D>();
     while i < fields.len() {
         match &fields.as_slice()[i] {
             SerialSize::Unsized { fields } => {
@@ -403,12 +414,12 @@ pub const fn compact_fields<const N: usize>(
     ConstVec::new(result_i, result)
 }
 
-pub struct DecodeFieldstate<'a, T> {
+pub struct DecodeFieldState<'a, T> {
     result: &'a T,
     fields: Fields,
 }
 
-impl<'de, 'a, T: Decode<'de>> DecodeFieldstate<'a, T> {
+impl<'de, 'a, T: Decode<'de>> DecodeFieldState<'a, T> {
     pub fn new(result: &'a T, fields: Fields) -> Self {
         Self { result, fields }
     }
@@ -459,44 +470,5 @@ impl<'de, 'a, T: Decode<'de>> DecodeFieldstate<'a, T> {
             len,
             value: unsafe { const_transmute(result) },
         })
-    }
-}
-
-impl const SerialDescriptor for u32 {
-    const N: usize = 1;
-    fn fields() -> ConstVec<[SerialSize; Self::N]> {
-        ConstVec::new(
-            Self::N,
-            [SerialSize::Sized {
-                start: 0,
-                len: size_of::<Self>(),
-            }],
-        )
-    }
-}
-
-impl const SerialDescriptor for u16 {
-    const N: usize = 1;
-    fn fields() -> ConstVec<[SerialSize; Self::N]> {
-        ConstVec::new(
-            Self::N,
-            [SerialSize::Sized {
-                start: 0,
-                len: size_of::<Self>(),
-            }],
-        )
-    }
-}
-
-impl const SerialDescriptor for u64 {
-    const N: usize = 1;
-    fn fields() -> ConstVec<[SerialSize; Self::N]> {
-        ConstVec::new(
-            Self::N,
-            [SerialSize::Sized {
-                start: 0,
-                len: size_of::<Self>(),
-            }],
-        )
     }
 }

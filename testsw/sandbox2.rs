@@ -1,3 +1,6 @@
+#![feature(const_trait_impl)]
+#![feature(generic_const_exprs)]
+#![feature(specialization)]
 #![allow(warnings)]
 
 use std::{
