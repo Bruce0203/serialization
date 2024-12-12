@@ -1,19 +1,10 @@
-#![feature(const_copy_from_slice)]
-#![feature(const_ptr_sub_ptr)]
-#![feature(ptr_sub_ptr)]
-#![feature(generic_arg_infer)]
-#![feature(const_try)]
-#![feature(const_type_id)]
-#![feature(const_trait_impl)]
-#![feature(generic_const_items)]
-#![feature(generic_const_exprs)]
-#![feature(const_for)]
-#![feature(inline_const_pat)]
-#![feature(negative_impls)]
+#![cfg_attr(feature = "fast_binary_format", feature(generic_arg_infer))]
+#![cfg_attr(feature = "fast_binary_format", feature(ptr_sub_ptr))]
+#![cfg_attr(feature = "fast_binary_format", feature(const_ptr_sub_ptr))]
+
+#![cfg_attr(feature = "fast_binary_format", feature(generic_const_exprs))]
+#![cfg_attr(feature = "fast_binary_format", feature(const_trait_impl))]
 #![feature(specialization)]
-#![feature(trivial_bounds)]
-#![feature(auto_traits)]
-#![feature(min_specialization)]
 
 pub use serialization_derive::*;
 

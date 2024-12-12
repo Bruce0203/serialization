@@ -1,8 +1,10 @@
 use concat_idents_bruce0203::concat_idents;
 
-#[const_trait]
+#[cfg_attr(feature = "fast_binary_format", const_trait)]
 pub trait CheckPrimitiveTypeSize {
-    fn is_sized<T: 'static>() -> bool;
+    fn is_sized<T: 'static>() -> bool {
+        false
+    }
 }
 
 pub trait BinaryEncoder {
@@ -45,33 +47,43 @@ macro_rules! decode_value {
     )*};
 }
 
-#[const_trait]
-pub trait Encoder: Sized + BinaryEncoder + const CheckPrimitiveTypeSize {
-    type Error: EncodeError;
-    type TupleEncoder: CompositeEncoder<Error = Self::Error>;
-    type StructEncoder: CompositeEncoder<Error = Self::Error>;
-    type SequenceEncoder: CompositeEncoder<Error = Self::Error>;
+macro_rules! declare_encoder_supertrait {
+    ($($value:ident),*) => {
+        #[cfg_attr(feature = "fast_binary_format", const_trait)]
+        pub trait Encoder: Sized + BinaryEncoder $(+ const $value)* {
+            type Error: EncodeError;
+            type TupleEncoder: CompositeEncoder<Error = Self::Error>;
+            type StructEncoder: CompositeEncoder<Error = Self::Error>;
+            type SequenceEncoder: CompositeEncoder<Error = Self::Error>;
 
-    encode_value!(bool, u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, usize, isize, f32, f64);
+            encode_value!(
+                bool, u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, usize, isize, f32, f64
+            );
 
-    fn encode_tuple(self) -> Result<Self::TupleEncoder, Self::Error>;
-    fn encode_struct(self) -> Result<Self::StructEncoder, Self::Error>;
-    fn encode_seq(self, len: usize) -> Result<Self::SequenceEncoder, Self::Error>;
+            fn encode_tuple(self) -> Result<Self::TupleEncoder, Self::Error>;
+            fn encode_struct(self) -> Result<Self::StructEncoder, Self::Error>;
+            fn encode_seq(self, len: usize) -> Result<Self::SequenceEncoder, Self::Error>;
 
-    fn encode_enum_variant_key(
-        &mut self,
-        enum_name: &'static str,
-        variant_name: &'static str,
-        variant_index: usize,
-    ) -> Result<(), Self::Error>;
+            fn encode_enum_variant_key(
+                &mut self,
+                enum_name: &'static str,
+                variant_name: &'static str,
+                variant_index: usize,
+            ) -> Result<(), Self::Error>;
 
-    fn encode_some(&mut self) -> Result<(), Self::Error>;
-    fn encode_none(&mut self) -> Result<(), Self::Error>;
+            fn encode_some(&mut self) -> Result<(), Self::Error>;
+            fn encode_none(&mut self) -> Result<(), Self::Error>;
 
-    fn encode_str(&mut self, v: &str) -> Result<(), Self::Error>;
-    fn encode_bytes(&mut self, v: &[u8]) -> Result<(), Self::Error>;
-    fn encode_var_i32(&mut self, v: i32) -> Result<(), Self::Error>;
+            fn encode_str(&mut self, v: &str) -> Result<(), Self::Error>;
+            fn encode_bytes(&mut self, v: &[u8]) -> Result<(), Self::Error>;
+            fn encode_var_i32(&mut self, v: i32) -> Result<(), Self::Error>;
+        }
+    };
 }
+#[cfg(feature = "fast_binary_format")]
+declare_encoder_supertrait!(CheckPrimitiveTypeSize);
+#[cfg(not(feature = "fast_binary_format"))]
+declare_encoder_supertrait!();
 
 pub trait CompositeDecoder<'de>: BinaryDecoder {
     type Error;
@@ -98,24 +110,34 @@ pub trait DecodeError {
     fn custom() -> Self;
 }
 
-pub trait Decoder<'de>: Sized + BinaryDecoder + const CheckPrimitiveTypeSize {
-    type Error: DecodeError;
-    type TupleDecoder: CompositeDecoder<'de, Error = Self::Error>;
-    type StructDecoder: CompositeDecoder<'de, Error = Self::Error>;
-    type SequenceDecoder: CompositeDecoder<'de, Error = Self::Error>;
+macro_rules! declare_decoder_supertrait {
+    ($($value:ident),*) => {
+        #[cfg_attr(feature = "fast_binary_format", const_trait)]
+        pub trait Decoder<'de>: Sized + BinaryDecoder $(+ const $value)* {
+            type Error: DecodeError;
+            type TupleDecoder: CompositeDecoder<'de, Error = Self::Error>;
+            type StructDecoder: CompositeDecoder<'de, Error = Self::Error>;
+            type SequenceDecoder: CompositeDecoder<'de, Error = Self::Error>;
 
-    decode_value!(bool, u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, usize, isize, f32, f64);
+            decode_value!(bool, u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, usize, isize, f32, f64);
 
-    fn decode_str(&mut self) -> Result<&'de str, Self::Error>;
-    fn decode_bytes(&mut self) -> Result<&[u8], Self::Error>;
-    fn decode_var_i32(&mut self) -> Result<i32, Self::Error>;
+            fn decode_str(&mut self) -> Result<&'de str, Self::Error>;
+            fn decode_bytes(&mut self) -> Result<&[u8], Self::Error>;
+            fn decode_var_i32(&mut self) -> Result<i32, Self::Error>;
 
-    fn decode_tuple(self) -> Result<Self::TupleDecoder, Self::Error>;
-    fn decode_struct(self) -> Result<Self::StructDecoder, Self::Error>;
-    fn decode_seq(self) -> Result<Self::SequenceDecoder, Self::Error>;
+            fn decode_tuple(self) -> Result<Self::TupleDecoder, Self::Error>;
+            fn decode_struct(self) -> Result<Self::StructDecoder, Self::Error>;
+            fn decode_seq(self) -> Result<Self::SequenceDecoder, Self::Error>;
 
-    fn decode_seq_len(&mut self) -> Result<usize, Self::Error>;
-    fn decode_enum(&mut self, enum_name: &'static str) -> Result<EnumIdentifier, Self::Error>;
+            fn decode_seq_len(&mut self) -> Result<usize, Self::Error>;
+            fn decode_enum(&mut self, enum_name: &'static str) -> Result<EnumIdentifier, Self::Error>;
 
-    fn decode_is_some(&mut self) -> Result<bool, Self::Error>;
+            fn decode_is_some(&mut self) -> Result<bool, Self::Error>;
+        }
+    }
 }
+
+#[cfg(feature = "fast_binary_format")]
+declare_decoder_supertrait!(CheckPrimitiveTypeSize);
+#[cfg(not(feature = "fast_binary_format"))]
+declare_decoder_supertrait!();
