@@ -80,6 +80,8 @@ pub fn decode(input: TokenStream) -> TokenStream {
 
 #[cfg(feature = "fast_binary_format")]
 fn impl_serial_descriptor(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
+    use syn::parse_str;
+
     let struct_name = &item_struct.ident;
     let field_types = item_struct
         .fields
@@ -148,25 +150,40 @@ fn impl_serial_descriptor(item_struct: &ItemStruct) -> proc_macro2::TokenStream 
     );
 
     let generic_params_without_bounds = generic_params_without_bounds(&item_struct.generics.params);
+    let field_index = (0..field_names.len())
+        .map(|i| {
+            let s = format!("{}_u16", i);
+            parse_str::<proc_macro2::TokenStream>(&s).unwrap()
+        })
+        .collect::<Vec<_>>();
     quote! {
         impl <#(#generic_params),*> const serialization::binary_format::SerialDescriptor
             for #struct_name<#(#generic_params_without_bounds),*> where #(#generic_where_clause),* {
             const N: usize = #(<#field_types as serialization::binary_format::SerialDescriptor>::N +)* #field_count + 1;
-            fn fields<C: const serialization::CheckPrimitiveTypeSize>(
+            fn fields<_C: const serialization::CheckPrimitiveTypeSize>(
             ) -> constvec::ConstVec<[serialization::binary_format::SerialSize; <Self as serialization::binary_format::SerialDescriptor>::N]> {
                 serialization::binary_format::compact_fields({
                     #[allow(invalid_value)]
                     let value: #struct_name<#(#generic_params_without_bounds_and_lifetimes),*>
-                        = unsafe { std::mem::MaybeUninit::uninit().assume_init() };
+                        = unsafe { std::mem::MaybeUninit::zeroed().assume_init() };
                     let mut padding_calc = serialization::binary_format::SizeCalcState::new(&value);
                     #(
-                    serialization::binary_format::SizeCalcState::next_field::<_, C>(
+                    serialization::binary_format::SizeCalcState::next_field::<_, _C, #field_index>(
                         &mut padding_calc,
                         &value.#field_names,
                     );
                     )*
                     serialization::binary_format::SizeCalcState::finish(padding_calc)
-                })
+                },
+                constvec::ConstVec::new(Self::N, unsafe {
+                serialization::binary_format::const_transmute(
+                    [const {
+                        serialization::binary_format::SerialSize::Sized {
+                            start: 0,
+                            len: size_of::<Self>(),
+                        }
+                    }; Self::N],
+                )}))
             }
         }
     }
@@ -216,7 +233,7 @@ fn impl_encode_enum(
     quote! {
         impl<#(#generic_params),*> serialization::Encode
             for #enum_name<#(#generic_params_without_bounds),*> #generic_where_clause {
-            fn encode<E: serialization::Encoder>(&self, mut encoder: E) -> Result<(), E::Error> {
+            fn encode<_E: serialization::Encoder>(&self, mut encoder: _E) -> Result<(), _E::Error> {
                 serialization::Encoder::encode_enum_variant_key(
                     &mut encoder,
                     std::any::type_name::<Self>(),
@@ -274,7 +291,7 @@ fn impl_encode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
     let part1 = quote! {
         impl<#(#generic_params),*> serialization::Encode
             for #struct_name<#(#generic_params_without_bounds),*> #generic_where_clause {
-                fn encode<E: serialization::Encoder>(&self, encoder: E) -> Result<(), E::Error> {
+                fn encode<_E: serialization::Encoder>(&self, encoder: _E) -> Result<(), _E::Error> {
                     #encode_struct
                 }
         }
@@ -293,11 +310,11 @@ fn impl_encode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
         quote! {
         impl<#(#generic_params),*> serialization::binary_format::EncodeField
             for #struct_name<#(#generic_params_without_bounds),*> #generic_where_clause {
-            fn encode_field<E: serialization::Encoder>(
+            fn encode_field<_E: serialization::Encoder>(
                 &self,
                 fields: &serialization::binary_format::Fields,
-                encoder: E,
-            ) -> Result<(), E::Error> {
+                encoder: _E,
+            ) -> Result<(), _E::Error> {
                 if fields.len() == 0 {
                     serialization::Encode::encode(&self, encoder)
                 } else {
@@ -319,9 +336,9 @@ fn impl_encode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
 
 fn encode_struct(fields: &Vec<proc_macro2::TokenStream>) -> proc_macro2::TokenStream {
     quote! {{
-        let mut struc = E::encode_struct(encoder)?;
-        #(<E::StructEncoder as serialization::CompositeEncoder>::encode_element(&mut struc, &#fields)?;)*
-        Ok(<E::StructEncoder as serialization::CompositeEncoder>::end(struc)?)
+        let mut struc = _E::encode_struct(encoder)?;
+        #(<_E::StructEncoder as serialization::CompositeEncoder>::encode_element(&mut struc, &#fields)?;)*
+        Ok(<_E::StructEncoder as serialization::CompositeEncoder>::end(struc)?)
     }}
 }
 
@@ -332,9 +349,7 @@ fn encode_struct_fast(
     #[cfg(feature = "fast_binary_format")]
     {
         quote! {{
-            if <#struct_name as serialization::binary_format::SerialDescriptor>::fields::<E>().as_slice()[0]
-                == serialization::binary_format::SerialSize::unsized_of::<#struct_name>()
-            {
+            if const { serialization::binary_format::is_not_fast_binary::<#struct_name, _E>() } {
                 let mut struc = encoder.encode_struct()?;
                 #(serialization::CompositeEncoder::encode_element(&mut struc, &#fields)?;)*
                 serialization::CompositeEncoder::end(struc)?;
@@ -346,17 +361,17 @@ fn encode_struct_fast(
     }
     #[cfg(not(feature = "fast_binary_format"))]
     quote! {{
-        let mut struc = E::encode_struct(encoder)?;
-        #(<E::StructEncoder as serialization::CompositeEncoder>::encode_element(&mut struc, &#fields)?;)*
-        Ok(<E::StructEncoder as serialization::CompositeEncoder>::end(struc)?)
+        let mut struc = _E::encode_struct(encoder)?;
+        #(<_E::StructEncoder as serialization::CompositeEncoder>::encode_element(&mut struc, &#fields)?;)*
+        Ok(<_E::StructEncoder as serialization::CompositeEncoder>::end(struc)?)
     }}
 }
 
 fn encode_enum_tuple(fields: &Vec<Ident>) -> proc_macro2::TokenStream {
     quote! {{
-        let mut tup = E::encode_tuple(encoder)?;
-        #(<E::TupleEncoder as serialization::CompositeEncoder>::encode_element(&mut tup, #fields)?;)*
-        Ok(<E::TupleEncoder as serialization::CompositeEncoder>::end(tup)?)
+        let mut tup = _E::encode_tuple(encoder)?;
+        #(<_E::TupleEncoder as serialization::CompositeEncoder>::encode_element(&mut tup, #fields)?;)*
+        Ok(<_E::TupleEncoder as serialization::CompositeEncoder>::end(tup)?)
     }}
 }
 
@@ -367,9 +382,7 @@ fn encode_tuple(
     #[cfg(feature = "fast_binary_format")]
     {
         quote! {{
-            if <#struct_name as serialization::binary_format::SerialDescriptor>::fields::<E>().as_slice()[0]
-                == serialization::binary_format::SerialSize::unsized_of::<#struct_name>()
-            {
+            if const { serialization::binary_format::is_not_fast_binary::<#struct_name, _E>() } {
                 let mut struc = encoder.encode_tuple()?;
                 #(serialization::CompositeEncoder::encode_element(&mut struc, &#fields)?;)*
                 serialization::CompositeEncoder::end(struc)?;
@@ -381,9 +394,9 @@ fn encode_tuple(
     }
     #[cfg(not(feature = "fast_binary_format"))]
     quote! {{
-        let mut tup = E::encode_tuple(encoder)?;
-        #(<E::TupleEncoder as serialization::CompositeEncoder>::encode_element(&mut tup, #fields)?;)*
-        Ok(<E::TupleEncoder as serialization::CompositeEncoder>::end(tup)?)
+        let mut tup = _E::encode_tuple(encoder)?;
+        #(<_E::TupleEncoder as serialization::CompositeEncoder>::encode_element(&mut tup, #fields)?;)*
+        Ok(<_E::TupleEncoder as serialization::CompositeEncoder>::end(tup)?)
     }}
 }
 
@@ -514,10 +527,10 @@ fn impl_decode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
             ) -> Result<serialization::binary_format::ReadableField<Self>, _D::Error> {
                 #[allow(invalid_value)]
                 let result: #struct_name<#(#generic_params_without_bounds_and_lifetimes),*>
-                    = unsafe { std::mem::MaybeUninit::uninit().assume_init() };
+                    = unsafe { std::mem::MaybeUninit::zeroed().assume_init() };
                 let mut state =
                     serialization::binary_format::DecodeFieldState::new(&result, fields.clone());
-                match state.start(decoder) {
+                match state.start::<_D>() {
                     Ok(value) => {
                         return value;
                     }
@@ -560,9 +573,7 @@ fn decode_struct_fast(
     #[cfg(feature = "fast_binary_format")]
     {
         quote! {{
-            if <#struct_name as serialization::binary_format::SerialDescriptor>::fields::<_D>().as_slice()[0]
-                == serialization::binary_format::SerialSize::unsized_of::<#struct_name>()
-            {
+            if const { serialization::binary_format::is_not_fast_binary::<#struct_name, _D>() } {
                 let mut struc = decoder.decode_struct()?;
                 let result = #struct_name {
                     #(#fields: serialization::CompositeDecoder::decode_element(&mut struc)?),*
@@ -600,9 +611,7 @@ fn decode_tuple(tuple_name: proc_macro2::TokenStream, size: usize) -> proc_macro
             size,
         );
         quote! {{
-            if <#tuple_name as serialization::binary_format::SerialDescriptor>::fields::<_D>().as_slice()[0]
-                == serialization::binary_format::SerialSize::unsized_of::<#tuple_name>()
-            {
+            if const { serialization::binary_format::is_not_fast_binary::<#tuple_name, _D>() } {
                 let mut tup = decoder.decode_tuple()?;
                 let result = #tuple_name(#(#indexes),*);
                 serialization::CompositeDecoder::end(tup)?;

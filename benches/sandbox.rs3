@@ -1,0 +1,259 @@
+#![feature(const_trait_impl)]
+#![feature(generic_const_exprs)]
+#![feature(specialization)]
+use std::{hint::black_box, mem::MaybeUninit, time::Instant};
+
+use constvec::ConstVec;
+use divan::{bench, Bencher};
+use fastbuf::{Buf, Buffer};
+use serialization::{
+    binary_format::{is_not_fast_binary, sized_field_of, DecodeField, Fields, SerialDescriptor},
+    CompositeDecoder, Decode, Decoder, Encode, Serializable,
+};
+use serialization_minecraft::{PacketDecoder, PacketEncoder};
+
+#[derive(Debug)]
+pub struct A {
+    v1: i32,
+    v2: u8,
+    v3: Bar,
+}
+impl<'de> const serialization::binary_format::SerialDescriptor for A {
+    const N: usize = <i32 as serialization::binary_format::SerialDescriptor>::N
+        + <u8 as serialization::binary_format::SerialDescriptor>::N
+        + <Bar as serialization::binary_format::SerialDescriptor>::N
+        + 3usize
+        + 1;
+    fn fields<_C: const serialization::CheckPrimitiveTypeSize>() -> constvec::ConstVec<
+        [serialization::binary_format::SerialSize;
+            <Self as serialization::binary_format::SerialDescriptor>::N],
+    > {
+        serialization::binary_format::compact_fields(aaa::<_C>(), sized_field_of::<A>())
+    }
+}
+const fn aaa<_C: const serialization::CheckPrimitiveTypeSize>() -> ConstVec<
+    [serialization::binary_format::SerialSize;
+        <A as serialization::binary_format::SerialDescriptor>::N],
+> {
+    #[allow(invalid_value)]
+    let value: A = unsafe { std::mem::MaybeUninit::zeroed().assume_init() };
+    let mut padding_calc = serialization::binary_format::SizeCalcState::new(&value);
+    serialization::binary_format::SizeCalcState::next_field::<_, _C, 0>(
+        &mut padding_calc,
+        &value.v1,
+    );
+    serialization::binary_format::SizeCalcState::next_field::<_, _C, 1>(
+        &mut padding_calc,
+        &value.v2,
+    );
+    serialization::binary_format::SizeCalcState::next_field::<_, _C, 2>(
+        &mut padding_calc,
+        &value.v3,
+    );
+    serialization::binary_format::SizeCalcState::finish(padding_calc)
+}
+impl<'de> serialization::Encode for A {
+    fn encode<_E: serialization::Encoder>(&self, encoder: _E) -> Result<(), _E::Error> {
+        serialization::binary_format::encode2(self, encoder)
+    }
+}
+impl<'de> serialization::binary_format::EncodeField for A {
+    fn encode_field<_E: serialization::Encoder>(
+        &self,
+        fields: &serialization::binary_format::Fields,
+        encoder: _E,
+    ) -> Result<(), _E::Error> {
+        if fields.len() == 0 {
+            serialization::Encode::encode(&self, encoder)
+        } else {
+            let mut fields = fields.clone();
+            match *fields.pop_last() as usize {
+                0usize => self.v1.encode_field(&fields, encoder),
+                1usize => self.v2.encode_field(&fields, encoder),
+                2usize => self.v3.encode_field(&fields, encoder),
+                _ => panic!("internal error: entered unreachable code"),
+            }
+        }
+    }
+}
+impl<'de> serialization::Decode<'de> for A {
+    fn decode<_D: serialization::Decoder<'de>>(decoder: _D) -> Result<Self, _D::Error> {
+        {
+            if const { is_not_fast_binary::<Self, _D>() } {
+                let mut struc = decoder.decode_struct()?;
+                let result = A {
+                    v1: serialization::CompositeDecoder::decode_element(&mut struc)?,
+                    v2: serialization::CompositeDecoder::decode_element(&mut struc)?,
+                    v3: serialization::CompositeDecoder::decode_element(&mut struc)?,
+                };
+                serialization::CompositeDecoder::end(struc)?;
+                Ok(result)
+            } else {
+                serialization::binary_format::decode2(decoder)
+            }
+        }
+    }
+}
+impl<'de> serialization::binary_format::DecodeField<'de> for A {
+    unsafe fn decode_field<_D: serialization::CompositeDecoder<'de>>(
+        fields: &serialization::binary_format::Fields,
+        decoder: &mut _D,
+    ) -> Result<serialization::binary_format::ReadableField<Self>, _D::Error> {
+        #[allow(invalid_value)]
+        let result: A = unsafe { std::mem::MaybeUninit::zeroed().assume_init() };
+        let mut state =
+            serialization::binary_format::DecodeFieldState::new(&result, fields.clone());
+        match state.start::<_D>() {
+            Ok(value) => {
+                return value;
+            }
+            Err(index) => Ok(match index as usize {
+                0usize => state.decode_field(decoder, &result.v1)?,
+                1usize => state.decode_field(decoder, &result.v2)?,
+                2usize => state.decode_field(decoder, &result.v3)?,
+                _ => panic!("internal error: entered unreachable code"),
+            }),
+        }
+    }
+}
+#[derive(Debug)]
+pub struct Bar {
+    v1: i32,
+}
+impl<'de> const serialization::binary_format::SerialDescriptor for Bar {
+    const N: usize = <i32 as serialization::binary_format::SerialDescriptor>::N + 1usize + 1;
+    fn fields<_C: const serialization::CheckPrimitiveTypeSize>() -> constvec::ConstVec<
+        [serialization::binary_format::SerialSize;
+            <Self as serialization::binary_format::SerialDescriptor>::N],
+    > {
+        serialization::binary_format::compact_fields(
+            {
+                #[allow(invalid_value)]
+                let value: Bar = unsafe { std::mem::MaybeUninit::zeroed().assume_init() };
+                let mut padding_calc = serialization::binary_format::SizeCalcState::new(&value);
+                serialization::binary_format::SizeCalcState::next_field::<_, _C, 0>(
+                    &mut padding_calc,
+                    &value.v1,
+                );
+                serialization::binary_format::SizeCalcState::finish(padding_calc)
+            },
+            sized_field_of::<Self>(),
+        )
+    }
+}
+impl<'de> serialization::Encode for Bar {
+    fn encode<_E: serialization::Encoder>(&self, encoder: _E) -> Result<(), _E::Error> {
+        {
+            if const { is_not_fast_binary::<Self, _E>() } {
+                let mut struc = encoder.encode_struct()?;
+                serialization::CompositeEncoder::encode_element(&mut struc, &self.v1)?;
+                serialization::CompositeEncoder::end(struc)?;
+                Ok(())
+            } else {
+                serialization::binary_format::encode2(self, encoder)
+            }
+        }
+    }
+}
+impl<'de> serialization::binary_format::EncodeField for Bar {
+    fn encode_field<_E: serialization::Encoder>(
+        &self,
+        fields: &serialization::binary_format::Fields,
+        encoder: _E,
+    ) -> Result<(), _E::Error> {
+        if fields.len() == 0 {
+            serialization::Encode::encode(&self, encoder)
+        } else {
+            let mut fields = fields.clone();
+            match *fields.pop_last() as usize {
+                0usize => self.v1.encode_field(&fields, encoder),
+                _ => panic!("internal error: entered unreachable code"),
+            }
+        }
+    }
+}
+impl<'de> serialization::Decode<'de> for Bar {
+    fn decode<_D: serialization::Decoder<'de>>(decoder: _D) -> Result<Self, _D::Error> {
+        {
+            if const { is_not_fast_binary::<Self, _D>() } {
+                let mut struc = decoder.decode_struct()?;
+                let result = Bar {
+                    v1: serialization::CompositeDecoder::decode_element(&mut struc)?,
+                };
+                serialization::CompositeDecoder::end(struc)?;
+                Ok(result)
+            } else {
+                serialization::binary_format::decode2(decoder)
+            }
+        }
+    }
+}
+impl<'de> serialization::binary_format::DecodeField<'de> for Bar {
+    unsafe fn decode_field<_D: serialization::CompositeDecoder<'de>>(
+        fields: &serialization::binary_format::Fields,
+        decoder: &mut _D,
+    ) -> Result<serialization::binary_format::ReadableField<Self>, _D::Error> {
+        #[allow(invalid_value)]
+        let result: Bar = unsafe { std::mem::MaybeUninit::zeroed().assume_init() };
+        let mut state =
+            serialization::binary_format::DecodeFieldState::new(&result, fields.clone());
+        match state.start::<_D>() {
+            Ok(value) => {
+                return value;
+            }
+            Err(index) => Ok(match index as usize {
+                0usize => state.decode_field(decoder, &result.v1)?,
+                _ => panic!("internal error: entered unreachable code"),
+            }),
+        }
+    }
+}
+
+// #[bench(sample_count = 1000, sample_size = 1000)]
+fn sandbox(bencher: Bencher) {
+    let mut buf = Buffer::<100>::new();
+    let bar = Bar { v1: 123 };
+    bencher.bench_local(|| {
+        type C = &'static mut PacketEncoder<Buffer<10>>;
+        {
+            const { Bar::fields::<C>() };
+        }
+    });
+}
+
+// #[bench(sample_count = 1000, sample_size = 1000)]
+fn encode_bench(bencher: Bencher) {
+    let mut buf = Buffer::<100>::new();
+    let bar = Bar { v1: 123 };
+    bencher.bench_local(|| {
+        type C = &'static mut PacketEncoder<Buffer<10>>;
+        {
+            let mut enc = PacketEncoder::new(&mut buf);
+            black_box(bar.encode(&mut enc)).unwrap();
+            unsafe { buf.set_filled_pos(0) };
+        }
+    });
+}
+
+#[bench(sample_count = 1000, sample_size = 1000)]
+fn decode_bench(bencher: Bencher) {
+    let mut buf = Buffer::<100>::new();
+    let a = A {
+        v1: 123,
+        v2: 234,
+        v3: Bar { v1: 33 },
+    };
+    let mut enc = PacketEncoder::new(&mut buf);
+    black_box(a.encode(&mut enc)).unwrap();
+    type C<'a> = &'a mut PacketEncoder<Buffer<10>>;
+    type D<'a> = &'a mut PacketDecoder<Buffer<10>>;
+    println!("{buf:?}");
+    bencher.bench_local(|| {
+        let ref mut dec = PacketDecoder::new(&mut buf);
+        black_box(A::decode(dec));
+    });
+}
+
+fn main() {
+    divan::main()
+}

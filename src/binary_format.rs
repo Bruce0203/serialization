@@ -1,7 +1,10 @@
 use core::slice;
-use std::mem::{transmute, MaybeUninit};
+use std::{
+    mem::{transmute, MaybeUninit},
+    time::Instant,
+};
 
-use constvec::ConstVec;
+use constvec::{ConstEq, ConstVec};
 use fastbuf::{Buf, Buffer, WriteBuf};
 
 use crate::{
@@ -57,6 +60,50 @@ impl SerialSize {
     }
 }
 
+impl const ConstEq for SerialSize {
+    fn eq(&self, rhs: &Self) -> bool {
+        match self {
+            SerialSize::Unsized { fields } => {
+                if let SerialSize::Unsized { fields: rhs_fields } = rhs {
+                    if ConstEq::eq(fields, &rhs_fields) {
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            }
+            SerialSize::Padding(padding) => {
+                if let SerialSize::Padding(rhs_padding) = rhs {
+                    if *padding == *rhs_padding {
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            }
+            SerialSize::Sized { start, len } => {
+                if let SerialSize::Sized {
+                    start: rhs_start,
+                    len: rhs_len,
+                } = rhs
+                {
+                    if *start == *rhs_start && *len == *rhs_len {
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            }
+        }
+    }
+}
+
 impl<T: Encode> EncodeField for T {
     default fn encode_field<E: Encoder>(
         &self,
@@ -91,15 +138,12 @@ impl<T: 'static> const SerialDescriptor for T {
                 }])
             })
         } else {
-            ConstVec::new(
-                Self::N,
-                [const { SerialSize::unsized_of::<Self>() }; Self::N],
-            )
+            sized_field_of::<T>()
         }
     }
 }
 
-pub struct SizeCalcState<'a, T: SerialDescriptor>
+pub struct SizeCalcState<'a, T: const SerialDescriptor>
 where
     [(); T::N]:,
     [(); size_of::<T>()]:,
@@ -111,7 +155,7 @@ where
     board: [usize; size_of::<T>()],
 }
 
-impl<'a, T: SerialDescriptor> SizeCalcState<'a, T>
+impl<'a, T: const SerialDescriptor> SizeCalcState<'a, T>
 where
     [(); T::N]:,
     [(); size_of::<T>()]:,
@@ -119,7 +163,7 @@ where
     const PADDING_ID: usize = usize::MAX;
     pub const fn new(value: &'a T) -> Self {
         Self {
-            temp: ConstVec::new(0, unsafe { MaybeUninit::uninit().assume_init() }),
+            temp: ConstVec::new(0, unsafe { MaybeUninit::zeroed().assume_init() }),
             value,
             cursor: 0,
             counter: 0,
@@ -127,7 +171,11 @@ where
         }
     }
 
-    pub const fn next_field<E: const SerialDescriptor, C: const CheckPrimitiveTypeSize>(
+    pub const fn next_field<
+        E: const SerialDescriptor,
+        C: const CheckPrimitiveTypeSize,
+        const FIELD: u16,
+    >(
         &mut self,
         field_ptr: &E,
     ) where
@@ -141,23 +189,10 @@ where
             self.board[i] = self.counter;
             i += 1;
         }
-        let mut slice = <E as SerialDescriptor>::fields::<C>().clone();
-        let mut i = 0;
-
-        while i < slice.len() {
-            match slice.as_slice()[i].clone() {
-                SerialSize::Unsized { fields } => {
-                    let mut fields = fields.clone();
-                    fields.push(&(self.counter as u16));
-                    *slice.get_mut(i) = SerialSize::Unsized { fields: fields };
-                }
-                _ => {}
-            }
-            i += 1;
-        }
+        self.counter += 1;
+        let slice = const { add_to_fields(<E as SerialDescriptor>::fields::<C>(), FIELD) };
         self.temp.push(&SerialSize::Padding(slice.len()));
         self.temp.append(&slice);
-        self.counter += 1;
     }
 
     pub const fn finish(mut self) -> ConstVec<[SerialSize; T::N]>
@@ -165,7 +200,7 @@ where
         [(); T::N]:,
     {
         let mut result: ConstVec<[SerialSize; T::N]> =
-            ConstVec::new(0, unsafe { MaybeUninit::uninit().assume_init() });
+            ConstVec::new(0, unsafe { MaybeUninit::zeroed().assume_init() });
         let mut i = 0;
         while i < self.board.len() {
             let field_index = self.board[i];
@@ -195,13 +230,19 @@ where
                         j += 1;
                         let repeat = j + fields_len;
                         while j < repeat {
-                            result.push(&match &self.temp.as_slice()[j] {
-                                SerialSize::Sized { start, len } => SerialSize::Sized {
-                                    start: i + *start,
-                                    len: *len,
-                                },
-                                size => size.clone(),
-                            });
+                            //TODO clean up code
+                            const fn serial_sized(start: usize, len: usize) -> SerialSize {
+                                SerialSize::Sized { start, len }
+                            }
+                            const fn aa(serial_size: &SerialSize, adder: usize) -> SerialSize {
+                                match serial_size {
+                                    SerialSize::Sized { start, len } => {
+                                        serial_sized(adder + *start, *len)
+                                    }
+                                    size => size.clone(),
+                                }
+                            }
+                            result.push(&aa(&self.temp.get(j), i));
                             j += 1;
                         }
                         loop {
@@ -256,7 +297,7 @@ impl Encode for WritingBytes<'_> {
     }
 }
 
-pub fn encode2<T: SerialDescriptor + Encode, E: Encoder>(
+pub fn encode2<T: const SerialDescriptor + Encode, E: Encoder>(
     value: &T,
     encoder: E,
 ) -> Result<(), E::Error>
@@ -266,9 +307,9 @@ where
 {
     let mut i = 0;
     let mut tup = encoder.encode_tuple()?;
-    let fields = T::fields::<E>();
+    let fields = const { T::fields::<E>() };
     while i < fields.len() {
-        match &fields.as_slice()[i] {
+        match fields.get(i) {
             SerialSize::Unsized { fields } => {
                 tup.encode_element(&WritableField {
                     value,
@@ -291,7 +332,7 @@ where
     Ok(())
 }
 
-pub fn decode2<'de, T: Sized + SerialDescriptor + Decode<'de>, D: Decoder<'de>>(
+pub fn decode2<'de, T: Sized + const SerialDescriptor + Decode<'de>, D: Decoder<'de>>(
     decoder: D,
 ) -> Result<T, D::Error>
 where
@@ -299,36 +340,44 @@ where
     [(); size_of::<T>()]:,
 {
     #[allow(invalid_value)]
-    let mut result = Buffer::<{ size_of::<T>() }>::new();
+    let mut result: T = unsafe { MaybeUninit::uninit().assume_init() };
     let mut i = 0;
     let mut tup = decoder.decode_tuple()?;
-    let fields = T::fields::<D>();
+    let fields = const { T::fields::<D>() };
     while i < fields.len() {
-        match &fields.as_slice()[i] {
+        match fields.get(i) {
             SerialSize::Unsized { fields } => {
                 let ReadableField { offset, len, value } =
-                    unsafe { T::decode_field(&fields, &mut tup)? };
-                result.write(unsafe {
-                    slice::from_raw_parts((&value as *const _ as *const u8).byte_add(offset), len)
-                });
+                    unsafe { T::decode_field(&fields.clone(), &mut tup)? };
+                unsafe {
+                    slice::from_raw_parts_mut(
+                        (&mut result as *mut _ as *mut u8).byte_add(offset),
+                        len,
+                    )
+                    .copy_from_slice(slice::from_raw_parts(
+                        (&value as *const _ as *const u8).byte_add(offset),
+                        len,
+                    ))
+                };
             }
-            SerialSize::Padding(size) => {
-                result.advance(*size);
-            }
-            SerialSize::Sized {
-                start: _,
-                len: size,
-            } => {
-                result.write(
-                    tup.read_bytes(*size)
-                        .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?,
-                );
+            SerialSize::Padding(_size) => {}
+            SerialSize::Sized { start, len } => {
+                unsafe {
+                    slice::from_raw_parts_mut(
+                        (&mut result as *mut _ as *mut u8).byte_add(*start),
+                        *len,
+                    )
+                    .copy_from_slice(
+                        tup.read_bytes(*len)
+                            .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?,
+                    )
+                };
             }
         }
         i += 1;
     }
     tup.end()?;
-    Ok(unsafe { const_transmute(*result.to_slice()) })
+    Ok(result)
 }
 
 pub const unsafe fn const_transmute<A, B>(a: A) -> B {
@@ -346,14 +395,21 @@ pub const unsafe fn const_transmute<A, B>(a: A) -> B {
     std::mem::ManuallyDrop::into_inner(Union { a }.b)
 }
 
-pub fn calc_field_offset<T, F>(base_ptr: &T, field_ptr: &F) -> usize {
+pub const fn calc_field_offset<T, F>(base_ptr: &T, field_ptr: &F) -> usize {
     let base_ptr = base_ptr as *const _ as *const u8;
     unsafe { (field_ptr as *const _ as *const u8).byte_sub_ptr(base_ptr) }
 }
 
 pub const fn compact_fields<const N: usize>(
     fields: ConstVec<[SerialSize; N]>,
+    or_else: ConstVec<[SerialSize; N]>,
 ) -> ConstVec<[SerialSize; N]> {
+    if fields.len() == 0 {
+        return or_else;
+    }
+    if fields.len() <= 1 {
+        return fields.clone();
+    }
     let mut result: [SerialSize; N] = [const { SerialSize::Sized { start: 0, len: 0 } }; N];
     let mut result_i = 0;
     let mut slice = fields.clone();
@@ -420,23 +476,23 @@ pub struct DecodeFieldState<'a, T> {
 }
 
 impl<'de, 'a, T: Decode<'de>> DecodeFieldState<'a, T> {
-    pub fn new(result: &'a T, fields: Fields) -> Self {
+    pub const fn new(result: &'a T, fields: Fields) -> Self {
         Self { result, fields }
     }
 
     pub fn start<D: CompositeDecoder<'de>>(
         &mut self,
-        decoder: &mut D,
     ) -> Result<Result<ReadableField<T>, D::Error>, u16> {
         if self.fields.len() == 0 {
-            let result = match decoder.decode_element() {
-                Err(err) => return Ok(Err(err)),
-                Ok(value) => value,
-            };
-            Ok(Ok(ReadableField {
-                offset: 0,
-                len: size_of::<Self>(),
-                value: result,
+            const fn fn1<T>(result: T) -> ReadableField<T> {
+                ReadableField {
+                    offset: 0,
+                    len: size_of::<T>(),
+                    value: result,
+                }
+            }
+            Ok(Ok(const {
+                fn1::<T>(unsafe { MaybeUninit::zeroed().assume_init() })
             }))
         } else {
             Err(*self.fields.pop_last())
@@ -453,7 +509,7 @@ impl<'de, 'a, T: Decode<'de>> DecodeFieldState<'a, T> {
     {
         let ReadableField { offset, len, value } =
             unsafe { DecodeField::decode_field(&self.fields, decoder)? };
-        let result: T = unsafe { MaybeUninit::uninit().assume_init() };
+        let result: T = unsafe { MaybeUninit::zeroed().assume_init() };
         let field_offset = calc_field_offset(self.result, field);
         let mut result: [u8; size_of::<T>()] = unsafe { const_transmute(result) };
         let dst = unsafe {
@@ -471,4 +527,45 @@ impl<'de, 'a, T: Decode<'de>> DecodeFieldState<'a, T> {
             value: unsafe { const_transmute(result) },
         })
     }
+}
+
+pub const fn is_not_fast_binary<
+    T: 'static + const SerialDescriptor,
+    E: const CheckPrimitiveTypeSize,
+>() -> bool
+where
+    [(); T::N]:,
+{
+    let mut fields = <T as SerialDescriptor>::fields::<E>();
+    fields.len() == 0 || ConstEq::eq(&(*fields.get_mut(0)), &SerialSize::unsized_of::<T>())
+}
+
+pub const fn sized_field_of<T: SerialDescriptor>() -> ConstVec<[SerialSize; T::N]> {
+    let value: [[u8; std::mem::size_of::<SerialSize>()]; T::N] =
+        [[0_u8; std::mem::size_of::<SerialSize>()]; T::N];
+    let value: [SerialSize; T::N] = unsafe { const_transmute(value) };
+    let mut value = ConstVec::new(1, value);
+    *value.get_mut(0) = SerialSize::Sized {
+        start: 0,
+        len: size_of::<T>(),
+    };
+    value
+}
+
+pub const fn add_to_fields<T: const SerialDescriptor>(
+    fields: ConstVec<[SerialSize; T::N]>,
+    field: u16,
+) -> ConstVec<[SerialSize; T::N]> {
+    let mut fields = fields.clone();
+    let mut i = 0;
+    while i < fields.len() {
+        match fields.get_mut(i) {
+            SerialSize::Unsized { fields } => {
+                fields.push(&field);
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    fields
 }

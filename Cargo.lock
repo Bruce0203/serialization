@@ -87,8 +87,8 @@ checksum = "baf0a07a401f374238ab8e2f11a104d2851bf9ce711ec69804834de8af45c7af"
 
 [[package]]
 name = "constvec"
-version = "0.1.0"
-source = "git+https://github.com/Bruce0203/constvec#3205e11f3f07e0243df6a1b9b7e427d444098fd1"
+version = "0.1.7"
+source = "git+https://github.com/Bruce0203/constvec#481957fa827f8f6406c5b23b8761e5d4e95799cb"
 
 [[package]]
 name = "convert_case"

@@ -87,7 +87,7 @@ impl<'de> DecodeField<'de> for Foo {
         #[allow(invalid_value)]
         let result: Self = unsafe { MaybeUninit::uninit().assume_init() };
         let mut state = DecodeFieldState::new(&result, fields.clone());
-        match state.start(decoder) {
+        match state.start::<D>() {
             Ok(value) => {
                 return value;
             }
@@ -111,16 +111,28 @@ impl const SerialDescriptor for Foo {
         + 1;
 
     fn fields<C: const CheckPrimitiveTypeSize>() -> ConstVec<[SerialSize; Self::N]> {
-        compact_fields({
-            #[allow(invalid_value)]
-            let value: Self = unsafe { MaybeUninit::uninit().assume_init() };
-            let mut padding_calc = SizeCalcState::new(&value);
-            padding_calc.next_field::<_, C>(&value.field1);
-            padding_calc.next_field::<_, C>(&value.field2);
-            padding_calc.next_field::<_, C>(&value.field3);
-            padding_calc.next_field::<_, C>(&value.field4);
-            padding_calc.finish()
-        })
+        compact_fields(
+            {
+                #[allow(invalid_value)]
+                let value: Self = unsafe { MaybeUninit::uninit().assume_init() };
+                let mut padding_calc = SizeCalcState::new(&value);
+                padding_calc.next_field::<_, C, 0>(&value.field1);
+                padding_calc.next_field::<_, C, 1>(&value.field2);
+                padding_calc.next_field::<_, C, 2>(&value.field3);
+                padding_calc.next_field::<_, C, 3>(&value.field4);
+                padding_calc.finish()
+            },
+            constvec::ConstVec::new(Self::N, unsafe {
+                serialization::binary_format::const_transmute(
+                    [const {
+                        serialization::binary_format::SerialSize::Sized {
+                            start: 0,
+                            len: size_of::<Self>(),
+                        }
+                    }; Self::N],
+                )
+            }),
+        )
     }
 }
 

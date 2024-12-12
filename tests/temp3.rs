@@ -13,18 +13,7 @@ pub struct Bar {
 
 impl serialization::Encode for Bar {
     fn encode<E: serialization::Encoder>(&self, encoder: E) -> Result<(), E::Error> {
-        if <Self as serialization::binary_format::SerialDescriptor>::fields::<E>().as_slice()[0]
-            == serialization::binary_format::SerialSize::unsized_of::<Self>()
-        {
-            let mut struc = encoder.encode_struct()?;
-            serialization::CompositeEncoder::encode_element(&mut struc, &self.field1)?;
-            serialization::CompositeEncoder::encode_element(&mut struc, &self.field2)?;
-            serialization::CompositeEncoder::encode_element(&mut struc, &self.field3)?;
-            serialization::CompositeEncoder::end(struc)?;
-            Ok(())
-        } else {
             serialization::binary_format::encode2(self, encoder)
-        }
     }
 }
 
@@ -76,7 +65,7 @@ impl<'de> serialization::binary_format::DecodeField<'de> for Bar {
         let result: Self = unsafe { std::mem::MaybeUninit::uninit().assume_init() };
         let mut state =
             serialization::binary_format::DecodeFieldState::new(&result, fields.clone());
-        match state.start(decoder) {
+        match state.start::<D>() {
             Ok(value) => {
                 return value;
             }
@@ -99,23 +88,36 @@ impl const serialization::binary_format::SerialDescriptor for Bar {
     fn fields<C: const serialization::CheckPrimitiveTypeSize>(
     ) -> constvec::ConstVec<[serialization::binary_format::SerialSize; <Self as SerialDescriptor>::N]>
     {
-        serialization::binary_format::compact_fields({
-            #[allow(invalid_value)]
-            let value: Self = unsafe { std::mem::MaybeUninit::uninit().assume_init() };
-            let mut padding_calc = serialization::binary_format::SizeCalcState::<Self>::new(&value);
-            serialization::binary_format::SizeCalcState::next_field::<_, C>(
-                &mut padding_calc,
-                &value.field1,
-            );
-            serialization::binary_format::SizeCalcState::next_field::<_, C>(
-                &mut padding_calc,
-                &value.field2,
-            );
-            serialization::binary_format::SizeCalcState::next_field::<_, C>(
-                &mut padding_calc,
-                &value.field3,
-            );
-            serialization::binary_format::SizeCalcState::finish(padding_calc)
-        })
+        serialization::binary_format::compact_fields(
+            {
+                #[allow(invalid_value)]
+                let value: Self = unsafe { std::mem::MaybeUninit::uninit().assume_init() };
+                let mut padding_calc =
+                    serialization::binary_format::SizeCalcState::<Self>::new(&value);
+                serialization::binary_format::SizeCalcState::next_field::<_, C, 0>(
+                    &mut padding_calc,
+                    &value.field1,
+                );
+                serialization::binary_format::SizeCalcState::next_field::<_, C, 1>(
+                    &mut padding_calc,
+                    &value.field2,
+                );
+                serialization::binary_format::SizeCalcState::next_field::<_, C, 2>(
+                    &mut padding_calc,
+                    &value.field3,
+                );
+                serialization::binary_format::SizeCalcState::finish(padding_calc)
+            },
+            constvec::ConstVec::new(Self::N, unsafe {
+                serialization::binary_format::const_transmute(
+                    [const {
+                        serialization::binary_format::SerialSize::Sized {
+                            start: 0,
+                            len: size_of::<Self>(),
+                        }
+                    }; Self::N],
+                )
+            }),
+        )
     }
 }

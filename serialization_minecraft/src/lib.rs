@@ -331,6 +331,10 @@ impl<S: Buf> BinaryDecoder for &mut PacketDecoder<S> {
     }
 
     fn read_bytes(&mut self, len: usize) -> Result<&[u8], ()> {
-        Ok(self.read(len))
+        let result = self.read(len);
+        if len != result.len() {
+            return Err(());
+        }
+        Ok(result)
     }
 }

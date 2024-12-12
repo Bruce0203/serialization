@@ -51,3 +51,5 @@ fast_binary_format = ["serialization_derive/fast_binary_format"]
 [[bench]]
 name = "sandbox"
 harness = false
+
+
