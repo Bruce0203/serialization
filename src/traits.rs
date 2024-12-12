@@ -119,4 +119,3 @@ pub trait Decoder<'de>: Sized + BinaryDecoder + const CheckPrimitiveTypeSize {
 
     fn decode_is_some(&mut self) -> Result<bool, Self::Error>;
 }
-

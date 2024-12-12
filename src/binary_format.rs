@@ -1,11 +1,7 @@
 use core::slice;
-use std::{
-    mem::{transmute, MaybeUninit},
-    time::Instant,
-};
+use std::mem::{transmute, MaybeUninit};
 
 use constvec::{ConstEq, ConstVec};
-use fastbuf::{Buf, Buffer, WriteBuf};
 
 use crate::{
     BinaryDecoder, BinaryEncoder, CheckPrimitiveTypeSize, CompositeDecoder, CompositeEncoder,
