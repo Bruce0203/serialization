@@ -22,4 +22,5 @@ mod traits;
 
 mod impls;
 
+#[cfg(feature = "fast_binary_format")]
 pub mod binary_format;
