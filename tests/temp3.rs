@@ -2,6 +2,8 @@
 #![feature(generic_const_exprs)]
 #![feature(specialization)]
 
+use serialization::binary_format::SerialDescriptor;
+
 #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct Bar {
     field1: u8,
@@ -87,19 +89,20 @@ impl<'de> serialization::binary_format::DecodeField<'de> for Bar {
         }
     }
 }
-
 impl const serialization::binary_format::SerialDescriptor for Bar {
     const N: usize = <u8 as serialization::binary_format::SerialDescriptor>::N
         + <u16 as serialization::binary_format::SerialDescriptor>::N
         + <u32 as serialization::binary_format::SerialDescriptor>::N
         + 3
         + 1;
+
     fn fields<C: const serialization::CheckPrimitiveTypeSize>(
-    ) -> constvec::ConstVec<[serialization::binary_format::SerialSize; Self::N]> {
+    ) -> constvec::ConstVec<[serialization::binary_format::SerialSize; <Self as SerialDescriptor>::N]>
+    {
         serialization::binary_format::compact_fields({
             #[allow(invalid_value)]
             let value: Self = unsafe { std::mem::MaybeUninit::uninit().assume_init() };
-            let mut padding_calc = serialization::binary_format::SizeCalcState::new(&value);
+            let mut padding_calc = serialization::binary_format::SizeCalcState::<Self>::new(&value);
             serialization::binary_format::SizeCalcState::next_field::<_, C>(
                 &mut padding_calc,
                 &value.field1,

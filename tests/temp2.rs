@@ -109,6 +109,7 @@ impl const SerialDescriptor for Foo {
         + <u32 as SerialDescriptor>::N
         + 4
         + 1;
+
     fn fields<C: const CheckPrimitiveTypeSize>() -> ConstVec<[SerialSize; Self::N]> {
         compact_fields({
             #[allow(invalid_value)]

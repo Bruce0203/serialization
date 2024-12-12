@@ -2,8 +2,6 @@
 #![feature(generic_const_exprs)]
 #![feature(specialization)]
 
-mod ss;
-
 use fastbuf::Buffer;
 use serialization::{CompositeEncoder, Decode, Encode, Encoder, Serializable};
 use serialization_minecraft::PacketDecoder;
