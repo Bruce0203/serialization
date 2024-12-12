@@ -15,7 +15,7 @@ use syn::{
 #[proc_macro_derive(Serializable)]
 pub fn serializable(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as Item);
-    let result = match input {
+    match input {
         Item::Enum(ref item_enum) => {
             let ref variant_state = variant_state(&item_enum);
             let encode = impl_encode_enum(item_enum, variant_state);
@@ -45,9 +45,8 @@ pub fn serializable(input: TokenStream) -> TokenStream {
             }
         }
         item => Error::new(item.span(), "only enum and struct supported").to_compile_error(),
-    };
-    println!("{:#}", result.to_string());
-    result.into()
+    }
+    .into()
 }
 
 #[proc_macro_derive(Encode)]

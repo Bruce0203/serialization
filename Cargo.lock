@@ -87,8 +87,9 @@ checksum = "baf0a07a401f374238ab8e2f11a104d2851bf9ce711ec69804834de8af45c7af"
 
 [[package]]
 name = "constvec"
-version = "0.1.7"
-source = "git+https://github.com/Bruce0203/constvec#481957fa827f8f6406c5b23b8761e5d4e95799cb"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b129c8f7fe17b9c414f86f76bc6b2afe95b50aecb476b27053048d7411acbc2e"
 
 [[package]]
 name = "convert_case"
@@ -269,7 +270,7 @@ dependencies = [
 
 [[package]]
 name = "serialization"
-version = "0.1.9"
+version = "0.2.0"
 dependencies = [
  "arrayvec",
  "concat-idents-bruce0203",
@@ -286,7 +287,7 @@ dependencies = [
 
 [[package]]
 name = "serialization_derive"
-version = "0.1.9"
+version = "0.2.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -295,7 +296,7 @@ dependencies = [
 
 [[package]]
 name = "serialization_minecraft"
-version = "0.1.9"
+version = "0.2.0"
 dependencies = [
  "concat-idents",
  "derive_more",
