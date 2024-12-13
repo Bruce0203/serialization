@@ -306,6 +306,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "serialization_nbt"
+version = "0.2.1"
+dependencies = [
+ "concat-idents",
+ "derive_more",
+ "fastbuf",
+ "fastvarint",
+ "serialization",
+]
+
+[[package]]
 name = "syn"
 version = "2.0.90"
 source = "registry+https://github.com/rust-lang/crates.io-index"

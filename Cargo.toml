@@ -14,7 +14,7 @@ include = [
 ]
 
 [workspace]
-members = ["impl", "serialization_minecraft"]
+members = ["impl", "serialization_minecraft", "serialization_nbt"]
 
 [workspace.package]
 version = "0.2.1"
