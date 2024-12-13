@@ -40,7 +40,7 @@ divan = "0.1.17"
 serialization_minecraft = { path = "./serialization_minecraft" }
 
 [features]
-default = ["std", "arrayvec", "fastvarint", "uuid", "nonmax", "fast_binary_format"]
+default = ["std", "arrayvec", "fastvarint", "uuid", "nonmax"]
 std = []
 uuid = ["dep:uuid", "serialization_derive/uuid"]
 arrayvec = ["dep:arrayvec", "serialization_derive/arrayvec"]
