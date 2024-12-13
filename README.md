@@ -35,17 +35,19 @@ Using the described optimization techniques, encoding and decoding times have sh
 
 ```rust
 #[derive(Serializable)]
-#[repr(Rust)]
 pub struct Foo {
-    v1: Bar,
     v2: u8,
+    v1: Bar,
+    v3: u64,
+    v4: i32,
+    v5: u16,
 }
 
 #[derive(Serializable)]
-#[repr(Rust)]
 pub struct Bar {
     v1: i32,
 }
+
 
 ```
 
