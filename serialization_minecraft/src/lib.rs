@@ -303,12 +303,14 @@ const fn is_sized<T: 'static>() -> bool {
     types!(u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, usize, isize, i128, u128)
 }
 
+#[cfg(feature = "fast_binary_format")]
 impl<S> const CheckPrimitiveTypeSize for &mut PacketEncoder<S> {
     fn is_sized<T: 'static>() -> bool {
         is_sized::<T>()
     }
 }
 
+#[cfg(feature = "fast_binary_format")]
 impl<S> const CheckPrimitiveTypeSize for &mut PacketDecoder<S> {
     fn is_sized<T: 'static>() -> bool {
         is_sized::<T>()

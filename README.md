@@ -51,16 +51,18 @@ pub struct Bar {
 
 ### Before Optimization
 ```
-           fastest       │ slowest       │ median        │ mean         
-├─ decode  2.013 ns      │ 9.097 ns      │ 2.096 ns      │ 2.093 ns     
-╰─ encode  1.013 ns      │ 2.389 ns      │ 1.055 ns      │ 1.198 ns     
+           fastest       │ slowest       │ median        │ mean          
+├─ decode  3.671 ns      │ 8.087 ns      │ 3.796 ns      │ 3.808 ns      
+╰─ encode  1.921 ns      │ 3.671 ns      │ 2.004 ns      │ 2.409 ns      
+
 ```
 
 ### After Optimization
 ```
            fastest       │ slowest       │ median        │ mean         
-├─ decode  1.888 ns      │ 15.8 ns       │ 1.972 ns      │ 1.978 ns     
-╰─ encode  0.847 ns      │ 1.096 ns      │ 0.93 ns       │ 0.917 ns     
+├─ decode  2.004 ns      │ 2.254 ns      │ 2.088 ns      │ 2.093 ns     
+╰─ encode  0.879 ns      │ 1.171 ns      │ 0.963 ns      │ 0.954 ns     
+
 ```
 
 ### Field-Specific Impact

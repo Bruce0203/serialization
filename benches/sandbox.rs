@@ -11,8 +11,11 @@ use serialization_minecraft::{PacketDecoder, PacketEncoder};
 
 #[derive(Serializable, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Foo {
-    v1: Bar,
     v2: u8,
+    v1: Bar,
+    v3: u64,
+    v4: i32,
+    v5: u16,
 }
 
 #[derive(Serializable, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -23,6 +26,9 @@ pub struct Bar {
 pub const MODEL: Foo = Foo {
     v1: Bar { v1: 123 },
     v2: 234,
+    v3: 456,
+    v4: 1234,
+    v5: 1919,
 };
 
 #[bench(sample_count = 1000, sample_size = 1000)]

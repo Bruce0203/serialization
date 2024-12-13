@@ -1,0 +1,8 @@
+
+           fastest       │ slowest       │ median        │ mean         
+├─ decode  2.004 ns      │ 2.254 ns      │ 2.088 ns      │ 2.093 ns     
+╰─ encode  0.879 ns      │ 1.171 ns      │ 0.963 ns      │ 0.954 ns     
+
+           fastest       │ slowest       │ median        │ mean          
+├─ decode  3.671 ns      │ 8.087 ns      │ 3.796 ns      │ 3.808 ns      
+╰─ encode  1.921 ns      │ 3.671 ns      │ 2.004 ns      │ 2.409 ns      
