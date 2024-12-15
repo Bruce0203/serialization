@@ -1,3 +1,6 @@
+//TODO Cow<'a, T> SerialDescriptor impl
+#![feature(auto_traits)]
+#![feature(negative_impls)]
 #![cfg_attr(feature = "fast_binary_format", feature(generic_arg_infer))]
 #![cfg_attr(feature = "fast_binary_format", feature(ptr_sub_ptr))]
 #![cfg_attr(feature = "fast_binary_format", feature(const_ptr_sub_ptr))]
@@ -19,3 +22,4 @@ pub mod constvec {
 
 #[cfg(feature = "fast_binary_format")]
 pub mod binary_format;
+

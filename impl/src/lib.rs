@@ -163,9 +163,10 @@ fn impl_serial_descriptor(item_struct: &ItemStruct) -> proc_macro2::TokenStream 
             ) -> serialization::constvec::ConstVec<[serialization::binary_format::SerialSize; <Self as serialization::binary_format::SerialDescriptor>::N]> {
                 serialization::binary_format::compact_fields({
                     #[allow(invalid_value)]
-                    let value: #struct_name<#(#generic_params_without_bounds_and_lifetimes),*>
-                        = unsafe { std::mem::MaybeUninit::zeroed().assume_init() };
-                    let mut padding_calc = serialization::binary_format::SizeCalcState::new(&value);
+                    let value: std::mem::MaybeUninit<#struct_name<#(#generic_params_without_bounds_and_lifetimes),*>>
+                        = unsafe { std::mem::MaybeUninit::zeroed() };
+                    let value = unsafe { value.assume_init_ref() };
+                    let mut padding_calc = serialization::binary_format::SizeCalcState::new(value);
                     #(
                     serialization::binary_format::SizeCalcState::next_field::<_, _C, #field_index>(
                         &mut padding_calc,

@@ -127,21 +127,24 @@ impl<'de, T: Decode<'de>> DecodeField<'de> for T {
     }
 }
 
-impl<T: 'static> const SerialDescriptor for T {
-    default const N: usize = 1;
-    default fn fields<C: const CheckPrimitiveTypeSize>() -> ConstVec<[SerialSize; Self::N]> {
-        if C::is_sized::<Self>() {
-            ConstVec::new(Self::N, unsafe {
-                const_transmute([SerialSize::Sized {
-                    start: 0,
-                    len: size_of::<Self>(),
-                }])
-            })
-        } else {
-            sized_field_of::<T>()
+macro_rules! impl_serial_descriptor {
+    ($($type:ty),*) => {$(
+        impl const SerialDescriptor for $type {
+            const N: usize = 1;
+            fn fields<C: const CheckPrimitiveTypeSize>() -> ConstVec<[SerialSize; Self::N]> {
+                if C::is_sized::<Self>() {
+                    sized_field_of::<Self>()
+                } else {
+                    SerialSize::unsized_field_of()
+                }
+            }
         }
-    }
+    )*};
 }
+
+impl_serial_descriptor!(
+    u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, bool, usize, isize, i128, u128
+);
 
 pub struct SizeCalcState<'a, T: const SerialDescriptor>
 where
@@ -570,11 +573,10 @@ pub const fn add_to_fields<T: const SerialDescriptor>(
     fields
 }
 
-impl<T: 'static> const crate::binary_format::SerialDescriptor for Vec<T> {
+impl<T> const SerialDescriptor for T {
     default const N: usize = 1;
 
-    default fn fields<C: const crate::CheckPrimitiveTypeSize>(
-    ) -> constvec::ConstVec<[crate::binary_format::SerialSize; Self::N]> {
-        super::binary_format::SerialSize::unsized_field_of()
+    default fn fields<C: const CheckPrimitiveTypeSize>() -> ConstVec<[SerialSize; Self::N]> {
+        SerialSize::unsized_field_of()
     }
 }

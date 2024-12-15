@@ -99,7 +99,7 @@ fn test_enum_T() {
     assert_eq!(value2, T::E);
 }
 #[derive(serialization::Encode)]
-struct U {
+struct U2 {
     value: &'static str,
 }
 #[derive(serialization::Serializable)]
@@ -112,3 +112,8 @@ struct X {}
 struct Y {}
 #[derive(serialization::Serializable)]
 struct Z {}
+
+#[derive(serialization::Serializable)]
+struct Test1 {
+    value: Vec<u8>,
+}
