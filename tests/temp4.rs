@@ -8,13 +8,14 @@
 #![feature(const_trait_impl)]
 #![feature(generic_const_exprs)]
 #![feature(specialization)]
+use std::any::type_name;
 #[prelude_import]
 use std::prelude::rust_2021::*;
 #[macro_use]
 extern crate std;
 
 use fastbuf::Buffer;
-use serialization::binary_format::const_transmute;
+use serialization::binary_format::{const_transmute, DecodeField};
 use serialization_minecraft::PacketEncoder;
 
 #[repr(C)]
@@ -328,7 +329,6 @@ fn test_log() {
         const_transmute::<_, &[u8; size_of::<Logs>()]>(&decoded)
     });
     //    println!("{:?}", decoded);
-    //   assert_eq!(decoded, value);
+    assert_eq!(decoded, value);
     println!("HIAAI");
-
 }

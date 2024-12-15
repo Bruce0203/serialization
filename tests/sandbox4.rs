@@ -3,14 +3,14 @@
 #![feature(specialization)]
 
 use fastbuf::Buffer;
-use serialization::binary_format::const_transmute;
+use serialization::binary_format::{const_transmute, SerialDescriptor};
 use serialization_minecraft::PacketEncoder;
 
 #[derive(Debug, serialization::Serializable, PartialEq, PartialOrd, Ord, Eq)]
 #[repr(C)]
 pub struct Log {
-    size: u32,
     v: Vec<u8>,
+    size: u64,
 }
 
 #[derive(Debug, serialization::Serializable, PartialEq, PartialOrd, Ord, Eq)]
@@ -20,6 +20,10 @@ pub struct Logs {
 
 // #[test]
 fn test_log() {
+    println!(
+        "{:?}",
+        Log::fields::<&mut PacketEncoder<&mut Buffer<100>>>()
+    );
     let mut buf = Buffer::<1000>::new();
     let mut enc = PacketEncoder::new(&mut buf);
     let value = Logs {
@@ -36,6 +40,6 @@ fn test_log() {
         const_transmute::<_, &[u8; size_of::<Logs>()]>(&decoded)
     });
     //    println!("{:?}", decoded);
-    //   assert_eq!(decoded, value);
+    assert_eq!(decoded, value);
     println!("HIAAI");
 }
