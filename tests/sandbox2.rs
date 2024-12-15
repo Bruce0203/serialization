@@ -8,6 +8,9 @@ use std::{
     mem::{transmute, MaybeUninit},
 };
 
+use fastbuf::Buffer;
+use serialization_minecraft::{PacketDecoder, PacketEncoder};
+
 #[derive(serialization::Serializable)]
 struct A;
 #[derive(serialization::Serializable)]
@@ -117,3 +120,4 @@ struct Z {}
 struct Test1 {
     value: Vec<u8>,
 }
+

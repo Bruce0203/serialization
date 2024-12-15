@@ -164,7 +164,7 @@ fn impl_serial_descriptor(item_struct: &ItemStruct) -> proc_macro2::TokenStream 
                 serialization::binary_format::compact_fields({
                     #[allow(invalid_value)]
                     let value: std::mem::MaybeUninit<#struct_name<#(#generic_params_without_bounds_and_lifetimes),*>>
-                        = unsafe { std::mem::MaybeUninit::zeroed() };
+                        = std::mem::MaybeUninit::zeroed();
                     let value = unsafe { value.assume_init_ref() };
                     let mut padding_calc = serialization::binary_format::SizeCalcState::new(value);
                     #(
@@ -175,15 +175,7 @@ fn impl_serial_descriptor(item_struct: &ItemStruct) -> proc_macro2::TokenStream 
                     )*
                     serialization::binary_format::SizeCalcState::finish(padding_calc)
                 },
-                serialization::constvec::ConstVec::new(Self::N, unsafe {
-                serialization::binary_format::const_transmute(
-                    [const {
-                        serialization::binary_format::SerialSize::Sized {
-                            start: 0,
-                            len: size_of::<Self>(),
-                        }
-                    }; Self::N],
-                )}))
+                serialization::binary_format::SerialSize::unsized_field_of())
             }
         }
     }
@@ -527,7 +519,7 @@ fn impl_decode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
             ) -> Result<serialization::binary_format::ReadableField<Self>, _D::Error> {
                 #[allow(invalid_value)]
                 let result: std::mem::MaybeUninit<#struct_name<#(#generic_params_without_bounds_and_lifetimes),*>>
-                    = unsafe { std::mem::MaybeUninit::zeroed() };
+                    = std::mem::MaybeUninit::zeroed();
                 let result = unsafe { result.assume_init_ref() };
                 let mut state =
                     serialization::binary_format::DecodeFieldState::new(result, fields.clone());

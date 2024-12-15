@@ -37,7 +37,7 @@ pub enum SerialSize {
 
 impl SerialSize {
     pub const fn unsized_field_of<const N: usize>() -> ConstVec<[SerialSize; N]> {
-        ConstVec::new(N, [const { Self::unsized_of() }; N])
+        ConstVec::new(0, [const { Self::unsized_of() }; N])
     }
 
     pub const fn unsized_of() -> SerialSize {
@@ -309,15 +309,16 @@ where
     [(); size_of::<T>()]:,
 {
     let mut i = 0;
-    let mut tup = encoder.encode_tuple()?;
     let fields = const { T::fields::<E>() };
+    let mut tup = encoder.encode_tuple()?;
     while i < fields.len() {
         match fields.get(i) {
             SerialSize::Unsized { fields } => {
-                tup.encode_element(&WritableField {
+                let writable_field = WritableField {
                     value,
                     fields: fields.clone(),
-                })?;
+                };
+                tup.encode_element(&writable_field)?;
             }
             SerialSize::Padding(size) => {
                 tup.skip_bytes(*size);
@@ -536,8 +537,8 @@ pub const fn is_not_fast_binary<
 where
     [(); T::N]:,
 {
-    let mut fields = <T as SerialDescriptor>::fields::<E>();
-    fields.len() == 0 || ConstEq::eq(&(*fields.get_mut(0)), &SerialSize::unsized_of())
+    let fields = <T as SerialDescriptor>::fields::<E>();
+    fields.len() == 0 || ConstEq::eq(fields.get(0), &SerialSize::unsized_of())
 }
 
 pub const fn sized_field_of<T: SerialDescriptor>() -> ConstVec<[SerialSize; T::N]> {
