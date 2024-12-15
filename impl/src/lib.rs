@@ -160,7 +160,7 @@ fn impl_serial_descriptor(item_struct: &ItemStruct) -> proc_macro2::TokenStream 
             for #struct_name<#(#generic_params_without_bounds),*> where #(#generic_where_clause),* {
             const N: usize = #(<#field_types as serialization::binary_format::SerialDescriptor>::N +)* #field_count + 1;
             fn fields<_C: const serialization::CheckPrimitiveTypeSize>(
-            ) -> constvec::ConstVec<[serialization::binary_format::SerialSize; <Self as serialization::binary_format::SerialDescriptor>::N]> {
+            ) -> serialization::constvec::ConstVec<[serialization::binary_format::SerialSize; <Self as serialization::binary_format::SerialDescriptor>::N]> {
                 serialization::binary_format::compact_fields({
                     #[allow(invalid_value)]
                     let value: #struct_name<#(#generic_params_without_bounds_and_lifetimes),*>
@@ -174,7 +174,7 @@ fn impl_serial_descriptor(item_struct: &ItemStruct) -> proc_macro2::TokenStream 
                     )*
                     serialization::binary_format::SizeCalcState::finish(padding_calc)
                 },
-                constvec::ConstVec::new(Self::N, unsafe {
+                serialization::constvec::ConstVec::new(Self::N, unsafe {
                 serialization::binary_format::const_transmute(
                     [const {
                         serialization::binary_format::SerialSize::Sized {
