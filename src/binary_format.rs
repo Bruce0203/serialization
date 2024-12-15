@@ -495,7 +495,7 @@ impl<'de, 'a, T: Decode<'de>> DecodeFieldState<'a, T> {
                 }
             }
             Ok(Ok(const {
-                fn1::<T>(unsafe { MaybeUninit::zeroed().assume_init() })
+                fn1::<T>(unsafe { MaybeUninit::<T>::zeroed().assume_init() })
             }))
         } else {
             Err(*self.fields.pop_last())
