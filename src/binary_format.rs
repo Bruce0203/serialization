@@ -1,5 +1,9 @@
 use core::slice;
-use std::mem::{transmute, MaybeUninit};
+use std::{
+    any::type_name,
+    mem::{transmute, MaybeUninit},
+    usize,
+};
 
 use constvec::{ConstEq, ConstVec};
 
@@ -37,7 +41,7 @@ pub enum SerialSize {
 
 impl SerialSize {
     pub const fn unsized_field_of<const N: usize>() -> ConstVec<[SerialSize; N]> {
-        ConstVec::new(0, [const { Self::unsized_of() }; N])
+        ConstVec::new(1, [const { Self::unsized_of() }; N])
     }
 
     pub const fn unsized_of() -> SerialSize {
@@ -114,6 +118,7 @@ impl<T: Encode> EncodeField for T {
     }
 }
 
+pub const UNSIZED_TOKEN: usize = usize::MAX;
 impl<'de, T: Decode<'de>> DecodeField<'de> for T {
     default unsafe fn decode_field<D: CompositeDecoder<'de>>(
         _field_indexes: &Fields,
@@ -121,7 +126,7 @@ impl<'de, T: Decode<'de>> DecodeField<'de> for T {
     ) -> Result<ReadableField<Self>, D::Error> {
         Ok(ReadableField {
             offset: 0,
-            len: size_of::<Self>(),
+            len: UNSIZED_TOKEN,
             value: decoder.decode_element()?,
         })
     }
@@ -320,9 +325,7 @@ where
                 };
                 tup.encode_element(&writable_field)?;
             }
-            SerialSize::Padding(size) => {
-                tup.skip_bytes(*size);
-            }
+            SerialSize::Padding(_) => {}
             SerialSize::Sized { start, len: size } => {
                 let slice: *const u8 = unsafe { transmute(value) };
                 let start = unsafe { slice.byte_add(*start) };
@@ -361,7 +364,7 @@ where
                     .copy_from_slice(slice::from_raw_parts(
                         (&value as *const _ as *const u8).byte_add(offset),
                         len,
-                    ))
+                    ));
                 };
             }
             SerialSize::Padding(_size) => {}
@@ -520,6 +523,7 @@ impl<'de, 'a, T: Decode<'de>> DecodeFieldState<'a, T> {
             )
         };
         let src = unsafe { slice::from_raw_parts(&value, size_of::<F>()) };
+
         dst.copy_from_slice(src);
 
         Ok(ReadableField {
@@ -538,7 +542,13 @@ where
     [(); T::N]:,
 {
     let fields = <T as SerialDescriptor>::fields::<E>();
-    fields.len() == 0 || ConstEq::eq(fields.get(0), &SerialSize::unsized_of())
+    fields.len() == 0
+        || ConstEq::eq(
+            fields.get(0),
+            &SerialSize::Unsized {
+                fields: ConstVec::new(1, unsafe { MaybeUninit::zeroed().assume_init() }),
+            },
+        )
 }
 
 pub const fn sized_field_of<T: SerialDescriptor>() -> ConstVec<[SerialSize; T::N]> {

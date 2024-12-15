@@ -14,6 +14,7 @@ use std::prelude::rust_2021::*;
 extern crate std;
 
 use fastbuf::{Buffer, ReadBuf};
+use serialization::binary_format::SerialDescriptor;
 use serialization_minecraft::{PacketDecoder, PacketEncoder};
 
 #[repr(transparent)]
@@ -152,4 +153,26 @@ impl ::core::cmp::Eq for TestA {
     fn assert_receiver_is_total_eq(&self) -> () {
         let _: ::core::cmp::AssertParamIsEq<Vec<u8>>;
     }
+}
+
+#[test]
+fn iasdfasdfasdfasdfwqerqwieurzxmcvn() {
+    println!(
+        "{:?}",
+        <TestA as SerialDescriptor>::fields::<&mut PacketDecoder<&mut Buffer<1>>>()
+    );
+    type T = TestA;
+    let mut buf = Buffer::<1000>::new();
+    let mut enc = PacketEncoder::new(&mut buf);
+    let value: T = TestA {
+        value4: vec![1, 2, 3],
+    };
+    serialization::Encode::encode(&value, &mut enc).unwrap();
+    println!("{:?}", &buf);
+    println!("{:?}", buf.remaining());
+    let mut dec = serialization_minecraft::PacketDecoder::new(&mut buf);
+    let decoded = <T as serialization::Decode>::decode(&mut dec).unwrap();
+    // println!("{:?}", decoded);
+    assert_eq!(decoded, value);
+    println!("HIAAI");
 }
