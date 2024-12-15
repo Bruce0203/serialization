@@ -270,7 +270,7 @@ dependencies = [
 
 [[package]]
 name = "serialization"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "arrayvec",
  "concat-idents-bruce0203",
@@ -287,7 +287,7 @@ dependencies = [
 
 [[package]]
 name = "serialization_derive"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -296,7 +296,7 @@ dependencies = [
 
 [[package]]
 name = "serialization_minecraft"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "concat-idents",
  "derive_more",
@@ -307,7 +307,7 @@ dependencies = [
 
 [[package]]
 name = "serialization_nbt"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "concat-idents",
  "derive_more",
