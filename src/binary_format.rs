@@ -487,14 +487,14 @@ impl<'de, 'a, T: Decode<'de>> DecodeFieldState<'a, T> {
         &mut self,
     ) -> Result<Result<ReadableField<T>, D::Error>, u16> {
         if self.fields.len() == 0 {
-            const fn fn1<T>() -> ReadableField<T> {
-                ReadableField {
+            const fn fn1<T, E>() -> Result<Result<ReadableField<T>, E>, u16> {
+                Ok(Ok(ReadableField {
                     offset: 0,
                     len: size_of::<T>(),
                     value: unsafe { MaybeUninit::zeroed().assume_init() },
-                }
+                }))
             }
-            Ok(Ok(const { fn1::<T>() }))
+            const { fn1::<T, D::Error>() }
         } else {
             Err(*self.fields.pop_last())
         }
