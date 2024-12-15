@@ -569,3 +569,12 @@ pub const fn add_to_fields<T: const SerialDescriptor>(
     }
     fields
 }
+
+impl<T: 'static> const crate::binary_format::SerialDescriptor for Vec<T> {
+    default const N: usize = 1;
+
+    default fn fields<C: const crate::CheckPrimitiveTypeSize>(
+    ) -> constvec::ConstVec<[crate::binary_format::SerialSize; Self::N]> {
+        super::binary_format::SerialSize::unsized_field_of()
+    }
+}
