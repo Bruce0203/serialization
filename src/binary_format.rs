@@ -118,15 +118,14 @@ impl<T: Encode> EncodeField for T {
     }
 }
 
-pub const UNSIZED_TOKEN: usize = usize::MAX;
 impl<'de, T: Decode<'de>> DecodeField<'de> for T {
     default unsafe fn decode_field<D: CompositeDecoder<'de>>(
         _field_indexes: &Fields,
         decoder: &mut D,
-    ) -> Result<ReadableField<Self>, D::Error> {
+    ) -> Result<ReadableField<T>, D::Error> {
         Ok(ReadableField {
             offset: 0,
-            len: UNSIZED_TOKEN,
+            len: size_of::<T>(),
             value: decoder.decode_element()?,
         })
     }
@@ -356,6 +355,7 @@ where
             SerialSize::Unsized { fields } => {
                 let ReadableField { offset, len, value } =
                     unsafe { T::decode_field(&fields.clone(), &mut tup)? };
+                println!("{offset}, {len}, {}", type_name::<T>());
                 unsafe {
                     slice::from_raw_parts_mut(
                         (&mut result as *mut _ as *mut u8).byte_add(offset),
@@ -366,6 +366,7 @@ where
                         len,
                     ));
                 };
+                std::mem::forget(value);
             }
             SerialSize::Padding(_size) => {}
             SerialSize::Sized { start, len } => {
@@ -542,13 +543,18 @@ where
     [(); T::N]:,
 {
     let fields = <T as SerialDescriptor>::fields::<E>();
-    fields.len() == 0
-        || ConstEq::eq(
-            fields.get(0),
-            &SerialSize::Unsized {
-                fields: ConstVec::new(1, unsafe { MaybeUninit::zeroed().assume_init() }),
-            },
-        )
+    let mut i = 0;
+    while i < fields.len() {
+        match fields.get(i) {
+            SerialSize::Unsized { fields } => {}
+            SerialSize::Padding(_) => {}
+            SerialSize::Sized { start: _, len: _ } => {
+                return false;
+            }
+        }
+        i += 1;
+    }
+    true
 }
 
 pub const fn sized_field_of<T: SerialDescriptor>() -> ConstVec<[SerialSize; T::N]> {

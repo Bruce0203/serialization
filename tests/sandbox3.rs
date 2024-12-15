@@ -3,11 +3,12 @@
 #![feature(specialization)]
 
 use fastbuf::{Buffer, ReadBuf};
-use serialization::binary_format::SerialDescriptor;
+use serialization::binary_format::{const_transmute, SerialDescriptor};
 use serialization_minecraft::{PacketDecoder, PacketEncoder};
 
 #[derive(Debug, serialization::Serializable, PartialEq, PartialOrd, Ord, Eq)]
 pub struct TestA {
+    value3: (u16, u16),
     value4: Vec<u8>,
 }
 
@@ -20,8 +21,13 @@ fn testA() {
     let mut buf = Buffer::<1000>::new();
     let mut enc = PacketEncoder::new(&mut buf);
     let value: T = TestA {
+        value3: (11, 22),
         value4: vec![1, 2, 3],
     };
+    println!("value ={:?}", unsafe {
+        const_transmute::<_, &[u8; size_of::<T>()]>(&value)
+    });
+    println!("len={}", size_of::<TestA>());
     serialization::Encode::encode(&value, &mut enc).unwrap();
     println!("{:?}", &buf);
     println!("{:?}", buf.remaining());

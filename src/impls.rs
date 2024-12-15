@@ -26,6 +26,7 @@ serialize_num!(u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, bool, usize, isiz
 
 seq!(A in 2..21 {#(
     seq!(N in 0..A {
+
         impl<#(T~N: Encode, )*> Encode for (#(T~N, )*) {
             fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
                 #[allow(unused_mut)]
