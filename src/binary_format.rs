@@ -355,7 +355,6 @@ where
             SerialSize::Unsized { fields } => {
                 let ReadableField { offset, len, value } =
                     unsafe { T::decode_field(&fields.clone(), &mut tup)? };
-                println!("{offset}, {len}, {}", type_name::<T>());
                 unsafe {
                     slice::from_raw_parts_mut(
                         (&mut result as *mut _ as *mut u8).byte_add(offset),
