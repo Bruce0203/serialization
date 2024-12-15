@@ -1,4 +1,5 @@
 //TODO Cow<'a, T> SerialDescriptor impl
+//TODO support tuple fast binary encoding 
 #![feature(auto_traits)]
 #![feature(negative_impls)]
 #![cfg_attr(feature = "fast_binary_format", feature(generic_arg_infer))]
