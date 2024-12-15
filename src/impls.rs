@@ -340,6 +340,7 @@ impl<'de, T: Decode<'de>, const CAP: usize> Decode<'de> for [T; CAP] {
     }
 }
 
+#[cfg(feature = "nonmax")]
 macro_rules! nonmax {
     ($($type:ty: $inner:ty),*) => {$(
         impl Encode for $type {
@@ -356,6 +357,7 @@ macro_rules! nonmax {
     )*};
 }
 
+#[cfg(feature = "nonmax")]
 nonmax!(
     NonMaxI8: i8,
     NonMaxU8: u8,
