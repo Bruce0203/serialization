@@ -36,7 +36,11 @@ pub enum SerialSize {
 }
 
 impl SerialSize {
-    pub const fn unsized_of<T: 'static>() -> SerialSize {
+    pub const fn unsized_field_of<const N: usize>() -> ConstVec<[SerialSize; N]> {
+        ConstVec::new(N, [const { Self::unsized_of() }; N])
+    }
+
+    pub const fn unsized_of() -> SerialSize {
         SerialSize::Unsized {
             fields: ConstVec::new(0, unsafe { MaybeUninit::zeroed().assume_init() }),
         }
@@ -533,7 +537,7 @@ where
     [(); T::N]:,
 {
     let mut fields = <T as SerialDescriptor>::fields::<E>();
-    fields.len() == 0 || ConstEq::eq(&(*fields.get_mut(0)), &SerialSize::unsized_of::<T>())
+    fields.len() == 0 || ConstEq::eq(&(*fields.get_mut(0)), &SerialSize::unsized_of())
 }
 
 pub const fn sized_field_of<T: SerialDescriptor>() -> ConstVec<[SerialSize; T::N]> {

@@ -111,6 +111,16 @@ impl<T: Encode> Encode for Vec<T> {
     }
 }
 
+#[cfg(feature = "fast_binary_format")]
+impl<T: 'static> const crate::binary_format::SerialDescriptor for Vec<T> {
+    default const N: usize = 1;
+
+    default fn fields<C: const crate::CheckPrimitiveTypeSize>(
+    ) -> constvec::ConstVec<[crate::binary_format::SerialSize; Self::N]> {
+        super::binary_format::SerialSize::unsized_field_of()
+    }
+}
+
 impl<'de, T: Decode<'de>> Decode<'de> for Vec<T> {
     fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
         let len = decoder.decode_seq_len()?;

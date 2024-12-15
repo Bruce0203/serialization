@@ -4,6 +4,7 @@
 #![cfg_attr(feature = "fast_binary_format", feature(generic_const_exprs))]
 #![cfg_attr(feature = "fast_binary_format", feature(const_trait_impl))]
 #![feature(specialization)]
+#![feature(min_specialization)]
 
 pub use serialization_derive::*;
 
