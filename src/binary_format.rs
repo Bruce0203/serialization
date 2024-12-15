@@ -491,7 +491,7 @@ impl<'de, 'a, T: Decode<'de>> DecodeFieldState<'a, T> {
                 ReadableField {
                     offset: 0,
                     len: size_of::<T>(),
-                    value: unsafe { MaybeUninit::<T>::zeroed().assume_init() },
+                    value: unsafe { MaybeUninit::zeroed().assume_init() },
                 }
             }
             Ok(Ok(const { fn1::<T>() }))

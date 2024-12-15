@@ -526,10 +526,11 @@ fn impl_decode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
                 decoder: &mut _D,
             ) -> Result<serialization::binary_format::ReadableField<Self>, _D::Error> {
                 #[allow(invalid_value)]
-                let result: #struct_name<#(#generic_params_without_bounds_and_lifetimes),*>
-                    = unsafe { std::mem::MaybeUninit::zeroed().assume_init() };
+                let result: std::mem::MaybeUninit<#struct_name<#(#generic_params_without_bounds_and_lifetimes),*>>
+                    = unsafe { std::mem::MaybeUninit::zeroed() };
+                let result = unsafe { result.assume_init_ref() };
                 let mut state =
-                    serialization::binary_format::DecodeFieldState::new(&result, fields.clone());
+                    serialization::binary_format::DecodeFieldState::new(result, fields.clone());
                 match state.start::<_D>() {
                     Ok(value) => {
                         return value;
