@@ -292,7 +292,7 @@ impl<S: Buf> PacketEncoder<S> {
 }
 
 const fn is_sized<T: 'static>() -> bool {
-    macro_rules! types {
+    macro_rules! sized_types {
         ($($type:ty),*) => {
             match type_id::<T>() {
                 $(const { type_id::<$type>() } => true,)*
@@ -300,7 +300,7 @@ const fn is_sized<T: 'static>() -> bool {
             }
         };
     }
-    types!(u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, usize, isize, i128, u128)
+    sized_types!(u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, usize, isize, i128, u128)
 }
 
 #[cfg(feature = "fast_binary_format")]
