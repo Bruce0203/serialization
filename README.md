@@ -86,3 +86,10 @@ A macro implementation avoids overhead by:
 ## Conclusion
 By removing fixed endianness constraints and leveraging efficient macros, significant performance improvements can be achieved in packet encoding and decoding. This approach is especially beneficial for high-performance applications, such as game servers, where every nanosecond counts.
 
+# Requirements
+```rust
+#![feature(const_trait_impl)]
+#![feature(generic_const_exprs)]
+#![feature(specialization)]
+
+```
