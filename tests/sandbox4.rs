@@ -2,9 +2,9 @@
 #![feature(generic_const_exprs)]
 #![feature(specialization)]
 
-use std::str::FromStr;
+use std::{fs::File, io::Read, str::FromStr};
 
-use fastbuf::{Buf, Buffer};
+use fastbuf::{Buf, Buffer, ReadToBuf};
 use serialization::binary_format::{const_transmute, SerialDescriptor};
 use serialization_minecraft::PacketEncoder;
 
@@ -57,7 +57,10 @@ fn test_log() {
             size: 66,
         }],
     };
-    serialization::Encode::encode(&value, &mut enc).unwrap();
+    let mut file = File::open("testtemp").unwrap();
+    file.read_to_buf(&mut buf).unwrap();
+
+    // serialization::Encode::encode(&value, &mut enc).unwrap();
     for i in 0..1000 {
         println!("{i}");
         let mut dec = serialization_minecraft::PacketDecoder::new(&mut buf);

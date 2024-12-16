@@ -1,7 +1,7 @@
 use core::slice;
 use std::{
     fmt::Debug,
-    mem::{transmute, MaybeUninit},
+    mem::{transmute, ManuallyDrop, MaybeUninit},
     usize,
 };
 
@@ -126,7 +126,7 @@ impl<'de, T: Decode<'de>> DecodeField<'de> for T {
         Ok(ReadableField {
             offset: 0,
             len: size_of::<T>(),
-            value: decoder.decode_element::<T>()?,
+            value: ManuallyDrop::new(decoder.decode_element::<T>()?),
         })
     }
 }
@@ -284,7 +284,7 @@ pub struct WritableField<'a, T: EncodeField> {
 pub struct ReadableField<T> {
     offset: usize,
     len: usize,
-    value: T,
+    value: ManuallyDrop<T>,
 }
 
 impl<'a, T: EncodeField> Encode for WritableField<'a, T> {
@@ -345,7 +345,7 @@ where
     [(); size_of::<T>()]:,
 {
     #[allow(invalid_value)]
-    let mut result: T = unsafe { MaybeUninit::uninit().assume_init() };
+    let mut result: ManuallyDrop<T> = unsafe { MaybeUninit::uninit().assume_init() };
     let mut i = 0;
     let mut tup = decoder.decode_tuple()?;
     let fields = const { T::fields::<D>() };
@@ -384,7 +384,7 @@ where
         i += 1;
     }
     tup.end()?;
-    Ok(result)
+    Ok(unsafe { const_transmute(result) })
 }
 
 pub const unsafe fn const_transmute<A, B>(a: A) -> B {
@@ -522,10 +522,16 @@ impl<'de, 'a, T: Decode<'de>> DecodeFieldState<'a, T> {
                 size_of::<F>(),
             )
         };
-        let src = unsafe { slice::from_raw_parts(&value as *const F as *const u8, size_of::<F>()) };
-        std::mem::forget(value);
+        let src = unsafe {
+            slice::from_raw_parts(
+                &value as *const ManuallyDrop<F> as *const u8,
+                size_of::<F>(),
+            )
+        };
 
         dst.copy_from_slice(src);
+
+        std::mem::forget(value);
 
         Ok(ReadableField {
             offset: field_offset + offset,

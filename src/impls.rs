@@ -1,10 +1,14 @@
+use core::slice;
 use std::{marker::PhantomData, mem::MaybeUninit};
 
 use concat_idents_bruce0203::concat_idents;
 use nonmax::*;
 use seq_macro::seq;
 
-use crate::{CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder, Encode, Encoder};
+use crate::{
+    BinaryDecoder, BinaryEncoder, CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder,
+    Encode, EncodeError, Encoder,
+};
 
 macro_rules! serialize_num {
     ($($type:ident),*) => {$(
@@ -287,9 +291,8 @@ impl Encode for String {
     fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
         let bytes = self.as_bytes();
         let mut col = encoder.encode_seq(bytes.len())?;
-        for v in bytes {
-            col.encode_element(v)?;
-        }
+        col.write_bytes(bytes)
+            .map_err(|()| EncodeError::not_enough_bytes_in_the_buffer())?;
         col.end()?;
         Ok(())
     }
@@ -301,9 +304,11 @@ impl<'de> Decode<'de> for String {
         let mut seq = decoder.decode_seq()?;
         let mut result = Vec::with_capacity(len);
         unsafe { result.set_len(len) };
-        for i in 0..len {
-            *unsafe { result.get_unchecked_mut(i) } = seq.decode_element()?;
-        }
+        let bytes = seq
+            .read_bytes(len)
+            .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?;
+        let dst = unsafe { slice::from_raw_parts_mut(result.as_mut_ptr(), len) };
+        dst.copy_from_slice(bytes);
         seq.end()?;
         Ok(unsafe { String::from_utf8_unchecked(result) })
     }

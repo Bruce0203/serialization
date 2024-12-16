@@ -12,6 +12,7 @@ use serialization_minecraft::{PacketDecoder, PacketEncoder};
 #[derive(Debug, serialization::Serializable, PartialEq, PartialOrd, Ord, Eq)]
 pub struct TestA {
     value5: Vec<Foo>,
+    value2: String,
 }
 
 #[derive(Debug, serialization::Serializable, PartialEq, PartialOrd, Ord, Eq)]
@@ -36,6 +37,7 @@ fn testA() {
     let mut enc = PacketEncoder::new(&mut buf);
     let value: T = TestA {
         value5: vec![Foo { value: 123 }],
+        value2: String::from_str("ABCD").unwrap(),
     };
     println!("value ={:?}", unsafe {
         const_transmute::<_, &[u8; size_of::<T>()]>(&value)

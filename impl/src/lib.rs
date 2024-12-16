@@ -523,13 +523,14 @@ fn impl_decode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
                 let value = unsafe { value.assume_init_ref() };
                 let mut state =
                     serialization::binary_format::DecodeFieldState::new(value, fields.clone());
-                match state.start::<_D>() {
+                let result = match state.start::<_D>() {
                     Ok(value) => value,
                     Err(index) => Ok(match index as usize {
                         #(#indexes => {state.decode_field(decoder, &value.#fields)?})*
                         _ => unreachable!()
                     })
-                }
+                };
+                result
             }
         }
 
