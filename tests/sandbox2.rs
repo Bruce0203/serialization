@@ -120,4 +120,3 @@ struct Z {}
 struct Test1 {
     value: Vec<u8>,
 }
-

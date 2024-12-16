@@ -2,7 +2,7 @@ use core::slice;
 use std::{
     any::type_name,
     fmt::Debug,
-    mem::{transmute, MaybeUninit},
+    mem::{transmute, ManuallyDrop, MaybeUninit},
     usize,
 };
 
@@ -127,7 +127,7 @@ impl<'de, T: Decode<'de>> DecodeField<'de> for T {
         Ok(ReadableField {
             offset: 0,
             len: size_of::<T>(),
-            value: MaybeUninit::new(decoder.decode_element::<T>()?),
+            value: decoder.decode_element::<T>()?,
         })
     }
 }
@@ -285,7 +285,7 @@ pub struct WritableField<'a, T: EncodeField> {
 pub struct ReadableField<T> {
     offset: usize,
     len: usize,
-    value: MaybeUninit<T>,
+    value: T,
 }
 
 impl<'a, T: EncodeField> Encode for WritableField<'a, T> {
@@ -523,12 +523,8 @@ impl<'de, 'a, T: Decode<'de>> DecodeFieldState<'a, T> {
                 size_of::<F>(),
             )
         };
-        let src = unsafe {
-            slice::from_raw_parts(
-                value.assume_init_ref() as *const F as *const u8,
-                size_of::<F>(),
-            )
-        };
+        let src = unsafe { slice::from_raw_parts(&value as *const F as *const u8, size_of::<F>()) };
+        std::mem::forget(value);
 
         dst.copy_from_slice(src);
 
