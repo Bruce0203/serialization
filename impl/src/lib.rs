@@ -151,7 +151,7 @@ fn impl_serial_descriptor(item_struct: &ItemStruct) -> proc_macro2::TokenStream 
     let generic_params_without_bounds = generic_params_without_bounds(&item_struct.generics.params);
     let field_index = (0..field_names.len())
         .map(|i| {
-            let s = format!("{}_u16", i);
+            let s = format!("{{ {} as serialization::binary_format::Field }}", i);
             parse_str::<proc_macro2::TokenStream>(&s).unwrap()
         })
         .collect::<Vec<_>>();
@@ -530,6 +530,7 @@ fn impl_decode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
                         _ => unreachable!()
                     })
                 };
+                std::mem::forget(state);
                 result
             }
         }

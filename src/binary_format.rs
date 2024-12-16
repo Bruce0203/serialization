@@ -1,5 +1,6 @@
 use core::slice;
 use std::{
+    any::type_name,
     fmt::Debug,
     mem::{transmute, ManuallyDrop, MaybeUninit},
     usize,
@@ -29,7 +30,8 @@ pub trait SerialDescriptor {
     fn fields<C: const CheckPrimitiveTypeSize>() -> ConstVec<[SerialSize; Self::N]>;
 }
 
-pub type Fields = ConstVec<[u16; 128]>;
+pub type Field = u16;
+pub type Fields = ConstVec<[Field; 256]>;
 
 #[derive(Eq, PartialEq, Clone, Debug)]
 #[repr(u8)]
@@ -123,11 +125,12 @@ impl<'de, T: Decode<'de>> DecodeField<'de> for T {
         _field_indexes: &Fields,
         decoder: &mut D,
     ) -> Result<ReadableField<T>, D::Error> {
-        Ok(ReadableField {
+        let result = Ok(ReadableField {
             offset: 0,
             len: size_of::<T>(),
             value: ManuallyDrop::new(decoder.decode_element::<T>()?),
-        })
+        });
+        result
     }
 }
 
@@ -181,7 +184,7 @@ where
     pub const fn next_field<
         E: const SerialDescriptor,
         C: const CheckPrimitiveTypeSize,
-        const FIELD: u16,
+        const FIELD: Field,
     >(
         &mut self,
         field_ptr: &E,
@@ -272,6 +275,7 @@ where
         if last_padding > 0 {
             self.temp.push(&SerialSize::Padding(last_padding));
         }
+        std::mem::forget(self);
         result
     }
 }
@@ -365,7 +369,6 @@ where
                         len,
                     ));
                 };
-                std::mem::forget(value);
             }
             SerialSize::Padding(_size) => {}
             SerialSize::Sized { start, len } => {
@@ -489,7 +492,7 @@ impl<'de, 'a, T: Decode<'de>> DecodeFieldState<'a, T> {
 
     pub fn start<D: CompositeDecoder<'de>>(
         &mut self,
-    ) -> Result<Result<ReadableField<T>, D::Error>, u16> {
+    ) -> Result<Result<ReadableField<T>, D::Error>, Field> {
         if self.fields.len() == 0 {
             Ok(Ok({
                 ReadableField {
@@ -531,8 +534,6 @@ impl<'de, 'a, T: Decode<'de>> DecodeFieldState<'a, T> {
 
         dst.copy_from_slice(src);
 
-        std::mem::forget(value);
-
         Ok(ReadableField {
             offset: field_offset + offset,
             len,
@@ -565,7 +566,7 @@ pub const fn sized_field_of<T: SerialDescriptor>() -> ConstVec<[SerialSize; T::N
 
 pub const fn add_to_fields<T: const SerialDescriptor>(
     fields: ConstVec<[SerialSize; T::N]>,
-    field: u16,
+    field: Field,
 ) -> ConstVec<[SerialSize; T::N]> {
     let mut fields = fields.clone();
     let mut i = 0;

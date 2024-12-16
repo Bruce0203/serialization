@@ -1,13 +1,16 @@
 use core::slice;
-use std::{marker::PhantomData, mem::MaybeUninit};
+use std::{
+    marker::PhantomData,
+    mem::{ManuallyDrop, MaybeUninit},
+};
 
 use concat_idents_bruce0203::concat_idents;
 use nonmax::*;
 use seq_macro::seq;
 
 use crate::{
-    BinaryDecoder, BinaryEncoder, CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder,
-    Encode, EncodeError, Encoder,
+    BinaryEncoder, CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder, Encode,
+    EncodeError, Encoder,
 };
 
 macro_rules! serialize_num {
@@ -120,13 +123,23 @@ impl<'de, T: Decode<'de>> Decode<'de> for Vec<T> {
     fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
         let len = decoder.decode_seq_len()?;
         let mut seq = decoder.decode_seq()?;
-        let mut result = Vec::with_capacity(len);
+        let mut result: ManuallyDrop<Vec<T>> = ManuallyDrop::new(Vec::with_capacity(len));
         unsafe { result.set_len(len) };
         for i in 0..len {
-            *unsafe { result.get_unchecked_mut(i) } = seq.decode_element()?;
+            let value: ManuallyDrop<T> = ManuallyDrop::new(seq.decode_element()?);
+            unsafe {
+                slice::from_raw_parts_mut(
+                    &mut *result.as_mut_ptr().offset(i as isize) as *mut _ as *mut u8,
+                    size_of::<T>(),
+                )
+                .copy_from_slice(slice::from_raw_parts(
+                    &value as *const _ as *const u8,
+                    size_of::<T>(),
+                ));
+            }
         }
         seq.end()?;
-        Ok(result)
+        Ok(ManuallyDrop::<Vec<T>>::into_inner(result))
     }
 }
 
@@ -299,18 +312,8 @@ impl Encode for String {
 }
 
 impl<'de> Decode<'de> for String {
-    fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
-        let len = decoder.decode_seq_len()?;
-        let mut seq = decoder.decode_seq()?;
-        let mut result = Vec::with_capacity(len);
-        unsafe { result.set_len(len) };
-        let bytes = seq
-            .read_bytes(len)
-            .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?;
-        let dst = unsafe { slice::from_raw_parts_mut(result.as_mut_ptr(), len) };
-        dst.copy_from_slice(bytes);
-        seq.end()?;
-        Ok(unsafe { String::from_utf8_unchecked(result) })
+    fn decode<D: Decoder<'de>>(decoder: D) -> Result<Self, D::Error> {
+        Ok(unsafe { String::from_utf8_unchecked(Vec::<u8>::decode(decoder)?) })
     }
 }
 
