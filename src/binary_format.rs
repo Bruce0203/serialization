@@ -272,7 +272,6 @@ where
         if last_padding > 0 {
             self.temp.push(&SerialSize::Padding(last_padding));
         }
-        std::mem::forget(self);
         result
     }
 }
