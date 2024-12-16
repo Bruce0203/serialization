@@ -8,10 +8,7 @@ use std::{hint::black_box, mem::MaybeUninit, str::FromStr};
 use constvec::ConstVec;
 use divan::{bench, Bencher};
 use fastbuf::{Buf, Buffer, WriteBuf};
-use serialization::{
-    binary_format::{DecodeField, SerialDescriptor},
-    CompositeDecoder, Decode, Decoder, Encode,
-};
+use serialization::{binary_format::DecodeField, CompositeDecoder, Decode, Decoder, Encode};
 use serialization_minecraft::{PacketDecoder, PacketEncoder};
 
 #[derive(
@@ -138,29 +135,18 @@ fn bitcode_decode(bencher: Bencher) {
     });
 }
 
-#[derive(serialization::Serializable, Debug, PartialEq, PartialOrd, Ord, Eq)]
-#[repr(C)]
+#[derive(serialization::Serializable)]
 pub struct AA {
     value: u32,
-    value2: Vec<A2>,
-}
-
-#[derive(serialization::Serializable, Debug, PartialEq, PartialOrd, Ord, Eq)]
-#[repr(C)]
-pub struct A2 {
-    value: u8,
-    value2: Option<u8>,
-    value3: u16,
 }
 
 #[bench(sample_count = 1000, sample_size = 1000)]
 fn a_test11(bencher: Bencher) {
-    println!("{:?}", AA::fields::<&mut PacketDecoder<&mut Buffer<100>>>());
-    let mut field: AA = unsafe { MaybeUninit::zeroed().assume_init() };
+    let mut fields = ConstVec::new(1, [0; _]);
+    let mut field = unsafe { MaybeUninit::zeroed().assume_init() };
     let mut buf = Buffer::<1000>::new();
-    buf.write(&[1, 22, 1, 33, 00, 44]);
+    buf.write(&[1, 0, 0, 0]);
     bencher.bench_local(|| {
-        let mut fields = ConstVec::new(1, [1; _]);
         unsafe { buf.set_pos(0) };
         let mut decoder = PacketDecoder::new(&mut buf);
         let mut tup = decoder.decode_tuple().unwrap();

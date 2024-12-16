@@ -1,5 +1,8 @@
 use core::slice;
-use std::{marker::PhantomData, mem::MaybeUninit};
+use std::{
+    marker::PhantomData,
+    mem::{ManuallyDrop, MaybeUninit},
+};
 
 use concat_idents_bruce0203::concat_idents;
 use nonmax::*;
@@ -68,13 +71,57 @@ impl<T: Encode> Encode for Option<T> {
     }
 }
 
+const fn get_result_offset_of<T, Error>() -> usize {
+    let result: ManuallyDrop<Result<T, Error>> =
+        ManuallyDrop::new(Ok(unsafe { MaybeUninit::zeroed().assume_init() }));
+    const RESULT_VARIANT_INDEX_SIZE: usize = 1;
+    let data = unsafe {
+        slice::from_raw_parts(
+            &result as *const _ as *const u8,
+            size_of::<T>() + RESULT_VARIANT_INDEX_SIZE,
+        )
+    };
+    let mut i = 0;
+    while i < data.len() {
+        if data[i] == 1 {
+            return i;
+        }
+        i += 1;
+    }
+    panic!("error while getting offset of result's variant index");
+}
+
+const fn get_option_offset_of<T>() -> usize {
+    let option: ManuallyDrop<Option<T>> =
+        ManuallyDrop::new(Some(unsafe { MaybeUninit::zeroed().assume_init() }));
+    const OPTION_VARIANT_INDEX_SIZE: usize = 1;
+    let data = unsafe {
+        slice::from_raw_parts(
+            &option as *const _ as *const u8,
+            size_of::<T>() + OPTION_VARIANT_INDEX_SIZE,
+        )
+    };
+    let mut i = 0;
+    while i < data.len() {
+        if data[i] == 1 {
+            return i;
+        }
+        i += 1;
+    }
+    panic!("error while getting offset of option's variant index");
+}
+
 impl<'de, T: Decode<'de>> Decode<'de> for Option<T> {
     fn decode<D: Decoder<'de>>(
         mut decoder: D,
         place: &mut MaybeUninit<Self>,
     ) -> Result<(), D::Error> {
         if decoder.decode_is_some()? {
-            *place = MaybeUninit::new(Some(unsafe { MaybeUninit::uninit().assume_init() }));
+            unsafe {
+                *(place.assume_init_mut() as *mut _ as *mut u8)
+                    .byte_add(get_option_offset_of::<T>()) = 1
+            };
+
             let value_place =
                 unsafe { const_transmute(place.assume_init_mut().as_mut().unwrap_unchecked()) };
             T::decode(decoder, value_place)?;
@@ -106,7 +153,10 @@ impl<'de, T: Decode<'de>, Error: Decode<'de>> Decode<'de> for Result<T, Error> {
         place: &mut MaybeUninit<Self>,
     ) -> Result<(), D::Error> {
         if decoder.decode_is_some()? {
-            *place = MaybeUninit::new(Ok(unsafe { MaybeUninit::uninit().assume_init() }));
+            unsafe {
+                *(place.assume_init_mut() as *mut _ as *mut u8)
+                    .byte_add(get_result_offset_of::<T, Error>()) = 1
+            };
             let value_place =
                 unsafe { const_transmute(place.assume_init_mut().as_mut().unwrap_unchecked()) };
             T::decode(decoder, value_place)?;
@@ -151,11 +201,12 @@ impl<'de, T: Decode<'de>> Decode<'de> for Vec<T> {
     ) -> Result<(), D::Error> {
         let len = decoder.decode_seq_len()?;
         let mut seq = decoder.decode_seq()?;
-        *place = MaybeUninit::new(Vec::with_capacity(len));
-        unsafe { place.assume_init_mut().set_len(len) };
+        let mut vec: Vec<T> = Vec::with_capacity(len);
+        let ptr = vec.as_mut_ptr().clone();
+        unsafe { vec.set_len(len) };
+        *place = MaybeUninit::new(vec);
         for i in 0..len {
-            let value_place: &mut MaybeUninit<T> =
-                unsafe { const_transmute(place.assume_init_mut().as_mut_ptr().add(i)) };
+            let value_place: &mut MaybeUninit<T> = unsafe { const_transmute(ptr.add(i)) };
             seq.decode_element(value_place)?;
         }
         seq.end()?;
@@ -170,15 +221,15 @@ impl<'de> Decode<'de> for Vec<u8> {
     ) -> Result<(), D::Error> {
         let len = decoder.decode_seq_len()?;
         let mut seq = decoder.decode_seq()?;
-        *place = MaybeUninit::new(Vec::with_capacity(len));
-        unsafe { place.assume_init_mut().set_len(len) };
-
+        let mut vec = Vec::with_capacity(len);
+        let ptr = vec.as_mut_ptr();
+        unsafe { vec.set_len(len) };
+        *place = MaybeUninit::new(vec);
         unsafe {
             let src = seq
                 .read_bytes(len)
                 .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?;
 
-            let ptr = place.assume_init_mut().as_mut_ptr();
             slice::from_raw_parts_mut(ptr as *mut _ as *mut u8, len).copy_from_slice(src);
         };
         seq.end()?;
