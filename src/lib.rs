@@ -1,6 +1,7 @@
 //TODO Cow<'a, T> SerialDescriptor impl
 //TODO support tuple fast binary encoding
 //TODO fix ArrayVec drop dangerous in impl Decode
+//TODO fix primitive type's encode/decode to call decode2/encode2
 #![feature(auto_traits)]
 #![feature(negative_impls)]
 #![cfg_attr(feature = "fast_binary_format", feature(generic_arg_infer))]

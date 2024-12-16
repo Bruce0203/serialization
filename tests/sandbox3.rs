@@ -37,7 +37,7 @@ fn testA() {
                 value: 123,
                 value2: unsafe { String::from_str("bruce").unwrap() }
             };
-            10000
+            10
         ],
         value2: String::from_str("ABCD").unwrap(),
     };

@@ -304,17 +304,12 @@ fn impl_encode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
             for #struct_name<#(#generic_params_without_bounds),*> #generic_where_clause {
             fn encode_field<_E: serialization::Encoder>(
                 &self,
-                fields: &serialization::binary_format::Fields,
+                fields: &mut serialization::binary_format::Fields,
                 encoder: _E,
             ) -> Result<(), _E::Error> {
-                if fields.len() == 0 {
-                    serialization::Encode::encode(&self, encoder)
-                } else {
-                    let mut fields = fields.clone();
-                    match *fields.pop_last() as usize {
-                        #(#indexes => #fields.encode_field(&fields, encoder),)*
-                        _ => unreachable!(),
-                    }
+                match *fields.pop_last() as usize {
+                    #(#indexes => #fields.encode_field(fields, encoder),)*
+                    _ => unreachable!(),
                 }
             }
         }

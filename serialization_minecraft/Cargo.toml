@@ -20,5 +20,5 @@ serialization = { path = "../", version = "0.2.7" }
 concat-idents = "1.1.5"
 
 [features]
-default = []
+default = ["fast_binary_format"]
 fast_binary_format = ["serialization/fast_binary_format"]

@@ -1,19 +1,24 @@
 use core::slice;
 use std::{
+    any::type_name,
     fmt::Debug,
-    mem::{transmute, ManuallyDrop, MaybeUninit},
+    mem::{size_of, transmute, ManuallyDrop, MaybeUninit},
     usize,
 };
 
 use constvec::{ConstEq, ConstVec};
 
 use crate::{
-    BinaryDecoder, CheckPrimitiveTypeSize, CompositeDecoder, CompositeEncoder, Decode, DecodeError,
-    Decoder, Encode, EncodeError, Encoder,
+    const_transmute, BinaryDecoder, CheckPrimitiveTypeSize, CompositeDecoder, CompositeEncoder,
+    Decode, DecodeError, Decoder, Encode, EncodeError, Encoder,
 };
 
 pub trait EncodeField: Encode {
-    fn encode_field<E: Encoder>(&self, field_indexes: &Fields, encoder: E) -> Result<(), E::Error>;
+    fn encode_field<E: Encoder>(
+        &self,
+        field_indexes: &mut Fields,
+        encoder: E,
+    ) -> Result<(), E::Error>;
 }
 
 pub trait DecodeField<'de>: Sized {
@@ -113,7 +118,7 @@ impl const ConstEq for SerialSize {
 impl<T: Encode> EncodeField for T {
     default fn encode_field<E: Encoder>(
         &self,
-        _field_indexes: &Fields,
+        _field_indexes: &mut Fields,
         encoder: E,
     ) -> Result<(), E::Error> {
         self.encode(encoder)
@@ -284,7 +289,7 @@ pub struct WritableField<'a, T: EncodeField> {
 
 impl<'a, T: EncodeField> Encode for WritableField<'a, T> {
     fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
-        self.value.encode_field(&self.fields, encoder)
+        self.value.encode_field(&mut self.fields.clone(), encoder)
     }
 }
 
@@ -351,14 +356,12 @@ where
             SerialSize::Padding(_size) => {}
             SerialSize::Sized { start, len } => {
                 unsafe {
-                    (place as *mut _ as *mut u8)
-                        .byte_add(*start)
-                        .copy_from_nonoverlapping(
-                            tup.read_bytes(*len)
-                                .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?
-                                as *const _ as *const u8,
-                            *len,
-                        );
+                    let dst =
+                        slice::from_raw_parts_mut((&raw mut *place as *mut u8).add(*start), *len);
+                    let src = tup
+                        .read_bytes(*len)
+                        .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?;
+                    dst.copy_from_slice(src);
                 };
             }
         }
@@ -450,13 +453,11 @@ pub const fn is_not_fast_binary<
 where
     [(); T::N]:,
 {
-    let fields = T::fields::<E>();
-    fields.len() == 1 && ConstEq::eq(fields.get(0), &SerialSize::unsized_of())
+    false
 }
 
 pub const fn sized_field_of<T: SerialDescriptor>() -> ConstVec<[SerialSize; T::N]> {
-    let value: [[u8; std::mem::size_of::<SerialSize>()]; T::N] =
-        [[0_u8; std::mem::size_of::<SerialSize>()]; T::N];
+    let value: [[u8; size_of::<SerialSize>()]; T::N] = [[0_u8; size_of::<SerialSize>()]; T::N];
     let value: [SerialSize; T::N] = unsafe { const_transmute(value) };
     let mut value = ConstVec::new(1, value);
     *value.get_mut(0) = SerialSize::Sized {

@@ -12,7 +12,9 @@ use concat_idents::concat_idents;
 use fastbuf::Buf;
 use fastvarint::{DecodeVarInt, EncodeVarInt, VarInt};
 use serialization::{
-    const_transmute, BinaryDecoder, BinaryEncoder, CheckPrimitiveTypeSize, CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder, Encode, EncodeError, Encoder, EnumIdentifier, Serializable
+    const_transmute, BinaryDecoder, BinaryEncoder, CheckPrimitiveTypeSize, CompositeDecoder,
+    CompositeEncoder, Decode, DecodeError, Decoder, Encode, EncodeError, Encoder, EnumIdentifier,
+    Serializable,
 };
 
 #[derive(derive_more::Deref, derive_more::DerefMut)]
@@ -307,6 +309,7 @@ const fn is_sized<T: 'static>() -> bool {
             }
         };
     }
+
     sized_types!(u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, usize, isize, i128, u128)
 }
 

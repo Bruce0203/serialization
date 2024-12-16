@@ -3,8 +3,6 @@
 #![feature(generic_const_exprs)]
 #![feature(specialization)]
 
-use std::str::FromStr;
-
 use fastbuf::Buffer;
 use serialization_minecraft::PacketEncoder;
 

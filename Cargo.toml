@@ -54,5 +54,5 @@ fast_binary_format = ["serialization_derive/fast_binary_format"]
 name = "sandbox"
 harness = false
 
-[profile.bench]
-lto = true
+# [profile.bench]
+# lto = true

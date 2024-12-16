@@ -1,9 +1,5 @@
 use core::slice;
-use std::{
-    marker::PhantomData,
-    mem::{ManuallyDrop, MaybeUninit},
-    rc::Weak,
-};
+use std::{marker::PhantomData, mem::MaybeUninit};
 
 use concat_idents_bruce0203::concat_idents;
 use nonmax::*;
@@ -30,7 +26,7 @@ macro_rules! serialize_num {
     )*};
 }
 
-serialize_num!(u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, bool, usize, isize, i128, u128);
+serialize_num!(u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, usize, isize, i128, u128, bool);
 
 seq!(A in 2..21 {#(
     seq!(N in 0..A {
@@ -178,12 +174,12 @@ impl<'de> Decode<'de> for Vec<u8> {
         unsafe { place.assume_init_mut().set_len(len) };
 
         unsafe {
-            (place.assume_init_mut().as_mut_ptr() as *mut _ as *mut u8).copy_from_nonoverlapping(
-                seq.read_bytes(len)
-                    .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?
-                    as *const _ as *const u8,
-                len,
-            )
+            let src = seq
+                .read_bytes(len)
+                .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?;
+
+            let ptr = place.assume_init_mut().as_mut_ptr();
+            slice::from_raw_parts_mut(ptr as *mut _ as *mut u8, len).copy_from_slice(src);
         };
         seq.end()?;
         Ok(())

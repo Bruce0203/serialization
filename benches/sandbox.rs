@@ -5,7 +5,6 @@
 
 use std::{hint::black_box, mem::MaybeUninit, str::FromStr};
 
-use constvec::ConstVec;
 use divan::{bench, Bencher};
 use fastbuf::{Buf, Buffer};
 use serialization::{CompositeDecoder, Decode, Decoder, Encode};
@@ -66,6 +65,7 @@ pub struct Address {
     pub x3: u8,
 }
 
+type Model = Logs;
 fn model() -> Logs {
     Logs {
         logs: vec![
@@ -87,6 +87,7 @@ fn model() -> Logs {
         ],
     }
 }
+
 #[bench(sample_count = 1000, sample_size = 1000)]
 fn encode(bencher: Bencher) {
     let mut buf = Buffer::<1000>::new();
@@ -106,7 +107,7 @@ fn decode(bencher: Bencher) {
     black_box(model.encode(&mut enc)).unwrap();
     bencher.bench_local(|| {
         let mut dec = PacketDecoder::new(&mut buf);
-        black_box(&Logs::decode_placed(&mut dec));
+        black_box(&Model::decode_placed(&mut dec));
         unsafe { buf.set_pos(0) };
     });
 }
@@ -129,6 +130,6 @@ fn bitcode_decode(bencher: Bencher) {
     let bytes = bitcode::encode(&model);
     let bytes = &bytes;
     bencher.bench_local(|| {
-        black_box(&bitcode::decode::<Logs>(bytes).unwrap());
+        black_box(&bitcode::decode::<Model>(bytes).unwrap());
     });
 }
