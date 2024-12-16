@@ -1,8 +1,7 @@
 use core::slice;
 use std::{
-    any::type_name,
     fmt::Debug,
-    mem::{transmute, ManuallyDrop, MaybeUninit},
+    mem::{transmute, MaybeUninit},
     usize,
 };
 
@@ -273,6 +272,7 @@ where
         if last_padding > 0 {
             self.temp.push(&SerialSize::Padding(last_padding));
         }
+        std::mem::forget(self);
         result
     }
 }
