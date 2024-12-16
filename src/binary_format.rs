@@ -321,8 +321,8 @@ where
             SerialSize::Padding(_) => {}
             SerialSize::Sized { start, len: size } => {
                 let slice: *const u8 = unsafe { transmute(value) };
-                let start = unsafe { slice.byte_add(*start) };
-                let value = unsafe { slice::from_raw_parts(start, *size) };
+                let ptr = unsafe { slice.byte_add(*start) };
+                let value = unsafe { slice::from_raw_parts(ptr, *size) };
                 tup.encode_element(&WritingBytes(value))?;
             }
         }
@@ -346,16 +346,19 @@ where
     while i < fields.len() {
         match fields.get(i) {
             SerialSize::Unsized { fields } => {
-                unsafe { T::decode_field(&mut fields.clone(), place, &mut tup) }?;
+                unsafe { T::decode_field(&mut fields.clone(), place, &mut tup) }?
             }
             SerialSize::Padding(_size) => {}
             SerialSize::Sized { start, len } => {
                 unsafe {
-                    slice::from_raw_parts_mut((place as *mut _ as *mut u8).byte_add(*start), *len)
-                        .copy_from_slice(
+                    (place as *mut _ as *mut u8)
+                        .byte_add(*start)
+                        .copy_from_nonoverlapping(
                             tup.read_bytes(*len)
-                                .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?,
-                        )
+                                .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?
+                                as *const _ as *const u8,
+                            *len,
+                        );
                 };
             }
         }
@@ -363,21 +366,6 @@ where
     }
     tup.end()?;
     Ok(())
-}
-
-pub const unsafe fn const_transmute<A, B>(a: A) -> B {
-    if std::mem::size_of::<A>() != std::mem::size_of::<B>() {
-        panic!("Size mismatch for generic_array::const_transmute");
-    }
-
-    #[repr(C)]
-    union Union<A, B> {
-        a: std::mem::ManuallyDrop<A>,
-        b: std::mem::ManuallyDrop<B>,
-    }
-
-    let a = std::mem::ManuallyDrop::new(a);
-    std::mem::ManuallyDrop::into_inner(Union { a }.b)
 }
 
 pub const fn calc_field_offset<T, F>(base_ptr: &T, field_ptr: &F) -> usize {

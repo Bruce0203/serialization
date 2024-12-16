@@ -12,9 +12,7 @@ use concat_idents::concat_idents;
 use fastbuf::Buf;
 use fastvarint::{DecodeVarInt, EncodeVarInt, VarInt};
 use serialization::{
-    binary_format::const_transmute, BinaryDecoder, BinaryEncoder, CheckPrimitiveTypeSize,
-    CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder, Encode, EncodeError, Encoder,
-    EnumIdentifier, Serializable,
+    const_transmute, BinaryDecoder, BinaryEncoder, CheckPrimitiveTypeSize, CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder, Encode, EncodeError, Encoder, EnumIdentifier, Serializable
 };
 
 #[derive(derive_more::Deref, derive_more::DerefMut)]

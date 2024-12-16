@@ -13,7 +13,6 @@ use std::{
 };
 
 use fastbuf::{Buf, Buffer, ReadBuf, WriteBuf};
-use serialization::binary_format::{const_transmute, SerialDescriptor};
 use serialization_minecraft::PacketEncoder;
 
 #[derive(Debug, serialization::Serializable, PartialEq, PartialOrd, Ord, Eq, Clone)]

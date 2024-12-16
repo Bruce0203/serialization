@@ -586,7 +586,7 @@ fn decode_structed_enum(
                 match unsafe { place.assume_init_mut() } {
                     #struct_name {#(ref mut #field_names),*} => {
                         #(
-                        let value_place: &mut std::mem::MaybeUninit<#field_types> = unsafe { serialization::binary_format::const_transmute(#field_names) };
+                        let value_place: &mut std::mem::MaybeUninit<#field_types> = unsafe { serialization::const_transmute(#field_names) };
                 <_D::TupleDecoder as serialization::CompositeDecoder>::decode_element::<#field_types>(&mut tup, value_place)?;
                         )*
                     }
@@ -604,7 +604,7 @@ fn decode_struct(
 ) -> proc_macro2::TokenStream {
     return quote! {{
         let mut struc = serialization::Decoder::<'de>::decode_struct(decoder)?;
-        #(let value_place: &mut std::mem::MaybeUninit<#field_types> = unsafe { serialization::binary_format::const_transmute(&mut place.assume_init_mut().#fields) };
+        #(let value_place: &mut std::mem::MaybeUninit<#field_types> = unsafe { serialization::const_transmute(&mut place.assume_init_mut().#fields) };
         <_D::StructDecoder as serialization::CompositeDecoder>::decode_element::<#field_types>(&mut struc, value_place)?;)*
         <_D::StructDecoder as serialization::CompositeDecoder>::end(struc)?;
         Ok(())
@@ -617,13 +617,13 @@ fn decode_struct_fast(
     field_types: &Vec<Type>,
 ) -> proc_macro2::TokenStream {
     #[cfg(not(feature = "fast_binary_format"))]
-    return decode_struct(struct_name, fields);
+    return decode_struct(struct_name, fields, field_types);
     #[cfg(feature = "fast_binary_format")]
     {
         quote! {{
             if const { serialization::binary_format::is_not_fast_binary::<#struct_name, _D>() } {
                 let mut struc = decoder.decode_struct()?;
-                #(let value_place: &mut std::mem::MaybeUninit<#field_types> = unsafe { serialization::binary_format::const_transmute(&mut place.assume_init_mut().#fields) };
+                #(let value_place: &mut std::mem::MaybeUninit<#field_types> = unsafe { serialization::const_transmute(&mut place.assume_init_mut().#fields) };
                 serialization::CompositeDecoder::decode_element::<#field_types>(&mut struc, value_place)?;)*
                 serialization::CompositeDecoder::end(struc)?;
                 Ok(())
@@ -652,7 +652,7 @@ fn decode_enum_tuple(
                 match unsafe { place.assume_init_mut() } {
                     #tuple_name(#(ref mut #values),*) => {
                         #(
-                        let value_place: &mut std::mem::MaybeUninit<#field_types> = unsafe { serialization::binary_format::const_transmute(#values) };
+                        let value_place: &mut std::mem::MaybeUninit<#field_types> = unsafe { serialization::const_transmute(#values) };
                 <_D::TupleDecoder as serialization::CompositeDecoder>::decode_element::<#field_types>(&mut tup, value_place)?;
                         )*
                     }

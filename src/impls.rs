@@ -10,8 +10,8 @@ use nonmax::*;
 use seq_macro::seq;
 
 use crate::{
-    binary_format::const_transmute, BinaryDecoder, BinaryEncoder, CompositeDecoder,
-    CompositeEncoder, Decode, DecodeError, Decoder, Encode, EncodeError, Encoder,
+    const_transmute, BinaryDecoder, BinaryEncoder, CompositeDecoder, CompositeEncoder, Decode,
+    DecodeError, Decoder, Encode, EncodeError, Encoder,
 };
 
 macro_rules! serialize_num {
@@ -176,16 +176,15 @@ impl<'de> Decode<'de> for Vec<u8> {
         let mut seq = decoder.decode_seq()?;
         *place = MaybeUninit::new(Vec::with_capacity(len));
         unsafe { place.assume_init_mut().set_len(len) };
-        let dst = unsafe {
-            slice::from_raw_parts_mut(
-                place.assume_init_mut().as_mut_ptr() as *mut _ as *mut u8,
+
+        unsafe {
+            (place.assume_init_mut().as_mut_ptr() as *mut _ as *mut u8).copy_from_nonoverlapping(
+                seq.read_bytes(len)
+                    .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?
+                    as *const _ as *const u8,
                 len,
             )
         };
-        dst.copy_from_slice(
-            seq.read_bytes(len)
-                .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?,
-        );
         seq.end()?;
         Ok(())
     }
