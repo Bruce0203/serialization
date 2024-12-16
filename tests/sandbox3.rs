@@ -43,10 +43,6 @@ fn testA() {
         ],
         value2: String::from_str("ABCD").unwrap(),
     };
-        const_transmute::<_, &[u8; size_of::<T>()]>(&value)
-    });
-        const_transmute::<_, &usize>(&value.value5.as_ptr())
-    });
     serialization::Encode::encode(&value, &mut enc).unwrap();
     // println!("{:?}", &buf);
     // println!("{:?}", buf.remaining());

@@ -38,6 +38,7 @@ rand = "0.8.5"
 
 [dev-dependencies]
 divan = "0.1.17"
+bitcode = "0.6.3"
 serialization_minecraft = { path = "./serialization_minecraft" }
 
 [features]
@@ -53,4 +54,5 @@ fast_binary_format = ["serialization_derive/fast_binary_format"]
 name = "sandbox"
 harness = false
 
-
+[profile.bench]
+lto = true

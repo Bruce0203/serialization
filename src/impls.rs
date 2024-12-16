@@ -9,8 +9,8 @@ use nonmax::*;
 use seq_macro::seq;
 
 use crate::{
-    BinaryEncoder, CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder, Encode,
-    EncodeError, Encoder,
+    BinaryDecoder, BinaryEncoder, CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder,
+    Encode, EncodeError, Encoder,
 };
 
 macro_rules! serialize_num {
@@ -106,7 +106,7 @@ impl<'de, T: Decode<'de>, Error: Decode<'de>> Decode<'de> for Result<T, Error> {
 }
 
 impl<T: Encode> Encode for Vec<T> {
-    fn encode<E>(&self, encoder: E) -> Result<(), E::Error>
+    default fn encode<E>(&self, encoder: E) -> Result<(), E::Error>
     where
         E: Encoder,
     {
@@ -119,8 +119,18 @@ impl<T: Encode> Encode for Vec<T> {
     }
 }
 
+impl Encode for Vec<u8> {
+    default fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
+        let mut col = encoder.encode_seq(self.len())?;
+        col.write_bytes(&self)
+            .map_err(|()| EncodeError::not_enough_bytes_in_the_buffer())?;
+        col.end()?;
+        Ok(())
+    }
+}
+
 impl<'de, T: Decode<'de>> Decode<'de> for Vec<T> {
-    fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
+    default fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
         let len = decoder.decode_seq_len()?;
         let mut seq = decoder.decode_seq()?;
         let mut result: ManuallyDrop<Vec<T>> = ManuallyDrop::new(Vec::with_capacity(len));
@@ -140,6 +150,23 @@ impl<'de, T: Decode<'de>> Decode<'de> for Vec<T> {
         }
         seq.end()?;
         Ok(ManuallyDrop::<Vec<T>>::into_inner(result))
+    }
+}
+
+impl<'de> Decode<'de> for Vec<u8> {
+    default fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
+        let len = decoder.decode_seq_len()?;
+        let mut seq = decoder.decode_seq()?;
+        let mut result: ManuallyDrop<Vec<u8>> = ManuallyDrop::new(Vec::with_capacity(len));
+        unsafe { result.set_len(len) };
+        let dst =
+            unsafe { slice::from_raw_parts_mut(result.as_mut_ptr() as *mut _ as *mut u8, len) };
+        dst.copy_from_slice(
+            seq.read_bytes(len)
+                .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?,
+        );
+        seq.end()?;
+        Ok(ManuallyDrop::<Vec<u8>>::into_inner(result))
     }
 }
 

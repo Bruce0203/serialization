@@ -27,11 +27,11 @@ pub struct Log {
     pub size: u64,
 }
 
-impl Drop for Log {
-    fn drop(&mut self) {
-        println!("log dropped");
-    }
-}
+// impl Drop for Log {
+//     fn drop(&mut self) {
+//         println!("log dropped");
+//     }
+// }
 
 #[derive(Debug, serialization::Serializable, PartialEq, PartialOrd, Ord, Eq, Clone)]
 pub struct Logs {

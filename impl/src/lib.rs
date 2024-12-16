@@ -514,24 +514,24 @@ fn impl_decode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
             impl<#(#generic_params),*> serialization::binary_format::DecodeField<'de>
                 for #struct_name<#(#generic_params_without_bounds),*> #generic_where_clause {
             unsafe fn decode_field<_D: serialization::CompositeDecoder<'de>>(
-                fields: &serialization::binary_format::Fields,
+                fields: &mut serialization::binary_format::Fields,
+                field: &mut #struct_name<#(#generic_params_without_bounds),*>,
                 decoder: &mut _D,
-            ) -> Result<serialization::binary_format::ReadableField<Self>, _D::Error> {
-                #[allow(invalid_value)]
-                let value: std::mem::MaybeUninit<#struct_name<#(#generic_params_without_bounds_and_lifetimes),*>>
-                    = std::mem::MaybeUninit::zeroed();
-                let value = unsafe { value.assume_init_ref() };
-                let mut state =
-                    serialization::binary_format::DecodeFieldState::new(value, fields.clone());
-                let result = match state.start::<_D>() {
-                    Ok(value) => value,
-                    Err(index) => Ok(match index as usize {
-                        #(#indexes => {state.decode_field(decoder, &value.#fields)?})*
-                        _ => unreachable!()
-                    })
-                };
-                std::mem::forget(state);
-                result
+            ) -> Result<(), _D::Error> {
+                if fields.len() == 0 {
+                    serialization::binary_format::DecodeField::decode_field(fields, field, decoder)
+                } else {
+                    match *fields.pop_last() as usize {
+                        #(#indexes => {
+                            serialization::binary_format::DecodeField::decode_field(
+                                fields,
+                                &mut field.#fields,
+                                decoder,
+                            )
+                        })*
+                        _ => unreachable!(),
+                    }
+                }
             }
         }
 
@@ -671,8 +671,9 @@ fn generic_params_with_bounds<F: Fn() -> Punctuated<TypeParamBound, Plus>>(
                 param.into()
             }
             GenericParam::Lifetime(lifetime) => {
-                let param = lifetime.clone();
+                let mut param = lifetime.clone();
                 if lifetime.lifetime.ident != format_ident!("static") {
+                    param.bounds.push(parse_quote!('de));
                     match &mut generic_params[0] {
                         GenericParam::Lifetime(ref mut lifetime_param) => {
                             lifetime_param.bounds.push(lifetime.lifetime.clone());

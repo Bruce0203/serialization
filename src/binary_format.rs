@@ -1,6 +1,5 @@
 use core::slice;
 use std::{
-    any::type_name,
     fmt::Debug,
     mem::{transmute, ManuallyDrop, MaybeUninit},
     usize,
@@ -19,9 +18,10 @@ pub trait EncodeField: Encode {
 
 pub trait DecodeField<'de>: Sized {
     unsafe fn decode_field<D: CompositeDecoder<'de>>(
-        fields: &Fields,
+        fields: &mut Fields,
+        field: &mut Self,
         decoder: &mut D,
-    ) -> Result<ReadableField<Self>, D::Error>;
+    ) -> Result<(), D::Error>;
 }
 
 #[const_trait]
@@ -122,15 +122,13 @@ impl<T: Encode> EncodeField for T {
 
 impl<'de, T: Decode<'de>> DecodeField<'de> for T {
     default unsafe fn decode_field<D: CompositeDecoder<'de>>(
-        _field_indexes: &Fields,
+        _field_indexes: &mut Fields,
+        field: &mut Self,
         decoder: &mut D,
-    ) -> Result<ReadableField<T>, D::Error> {
-        let result = Ok(ReadableField {
-            offset: 0,
-            len: size_of::<T>(),
-            value: ManuallyDrop::new(decoder.decode_element::<T>()?),
-        });
-        result
+    ) -> Result<(), D::Error> {
+        let field = const_transmute::<_, &mut ManuallyDrop<Self>>(field);
+        *field = ManuallyDrop::new(decoder.decode_element()?);
+        Ok(())
     }
 }
 
@@ -285,12 +283,6 @@ pub struct WritableField<'a, T: EncodeField> {
     fields: Fields,
 }
 
-pub struct ReadableField<T> {
-    offset: usize,
-    len: usize,
-    value: ManuallyDrop<T>,
-}
-
 impl<'a, T: EncodeField> Encode for WritableField<'a, T> {
     fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
         self.value.encode_field(&self.fields, encoder)
@@ -346,7 +338,6 @@ pub fn decode2<'de, T: Sized + const SerialDescriptor + Decode<'de>, D: Decoder<
 ) -> Result<T, D::Error>
 where
     [(); T::N]:,
-    [(); size_of::<T>()]:,
 {
     #[allow(invalid_value)]
     let mut result: ManuallyDrop<T> = unsafe { MaybeUninit::uninit().assume_init() };
@@ -356,19 +347,7 @@ where
     while i < fields.len() {
         match fields.get(i) {
             SerialSize::Unsized { fields } => {
-                let ReadableField { offset, len, value } =
-                    unsafe { T::decode_field(&fields.clone(), &mut tup)? };
-
-                unsafe {
-                    slice::from_raw_parts_mut(
-                        (&mut result as *mut _ as *mut u8).byte_add(offset),
-                        len,
-                    )
-                    .copy_from_slice(slice::from_raw_parts(
-                        (&value as *const _ as *const u8).byte_add(offset),
-                        len,
-                    ));
-                };
+                unsafe { T::decode_field(&mut fields.clone(), &mut result, &mut tup) }?;
             }
             SerialSize::Padding(_size) => {}
             SerialSize::Sized { start, len } => {
@@ -480,68 +459,6 @@ pub const fn compact_fields<const N: usize>(
     ConstVec::new(result_i, result)
 }
 
-pub struct DecodeFieldState<'a, T> {
-    result: &'a T,
-    fields: Fields,
-}
-
-impl<'de, 'a, T: Decode<'de>> DecodeFieldState<'a, T> {
-    pub const fn new(result: &'a T, fields: Fields) -> Self {
-        Self { result, fields }
-    }
-
-    pub fn start<D: CompositeDecoder<'de>>(
-        &mut self,
-    ) -> Result<Result<ReadableField<T>, D::Error>, Field> {
-        if self.fields.len() == 0 {
-            Ok(Ok({
-                ReadableField {
-                    offset: 0,
-                    len: size_of::<T>(),
-                    value: unsafe { MaybeUninit::zeroed().assume_init() },
-                }
-            }))
-        } else {
-            Err(*self.fields.pop_last())
-        }
-    }
-
-    pub fn decode_field<D: CompositeDecoder<'de>, F: DecodeField<'de>>(
-        &mut self,
-        decoder: &mut D,
-        field: &F,
-    ) -> Result<ReadableField<T>, D::Error>
-    where
-        [(); size_of::<T>()]:,
-    {
-        let ReadableField { offset, len, value } =
-            unsafe { F::decode_field(&self.fields, decoder)? };
-        let result: MaybeUninit<T> = unsafe { MaybeUninit::zeroed().assume_init() };
-        let field_offset = calc_field_offset(self.result, field);
-        let mut result: [u8; size_of::<T>()] = unsafe { const_transmute(result) };
-        let dst = unsafe {
-            slice::from_raw_parts_mut(
-                (&mut result as *mut _ as *mut u8).add(field_offset),
-                size_of::<F>(),
-            )
-        };
-        let src = unsafe {
-            slice::from_raw_parts(
-                &value as *const ManuallyDrop<F> as *const u8,
-                size_of::<F>(),
-            )
-        };
-
-        dst.copy_from_slice(src);
-
-        Ok(ReadableField {
-            offset: field_offset + offset,
-            len,
-            value: unsafe { const_transmute(result) },
-        })
-    }
-}
-
 pub const fn is_not_fast_binary<
     T: 'static + const SerialDescriptor,
     E: const CheckPrimitiveTypeSize,
@@ -549,7 +466,8 @@ pub const fn is_not_fast_binary<
 where
     [(); T::N]:,
 {
-    false
+    let fields = T::fields::<E>();
+    fields.len() == 1 && ConstEq::eq(fields.get(0), &SerialSize::unsized_of())
 }
 
 pub const fn sized_field_of<T: SerialDescriptor>() -> ConstVec<[SerialSize; T::N]> {
