@@ -26,7 +26,7 @@ fn testasdf() {
     Encode::encode(&value, enc).unwrap();
     println!("{:?}", buf);
     let mut dec = PacketDecoder::new(&mut buf);
-    let v: TestEnum = Decode::decode(&mut dec).unwrap();
+    let v: TestEnum = Decode::decode_placed(&mut dec).unwrap();
     println!("{v:?}");
 }
 

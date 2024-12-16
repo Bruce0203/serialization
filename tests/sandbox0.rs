@@ -11,15 +11,11 @@ use serialization_minecraft::PacketEncoder;
 #[repr(C)]
 #[derive(Debug, serialization::Serializable, PartialEq, PartialOrd, Ord, Eq)]
 pub struct TestA {
-    value5: Vec<Foo>,
-    value2: String,
+    value: Vec<u32>,
 }
 
 #[derive(Debug, serialization::Serializable, PartialEq, PartialOrd, Ord, Eq, Clone)]
-struct Foo {
-    value2: String,
-    value: u32,
-}
+struct Foo {}
 
 impl Drop for Foo {
     fn drop(&mut self) {}
@@ -31,18 +27,10 @@ fn testA() {
     const BUFFER_LEN: usize = 1024 * 1024 * 5000;
     let mut buf = unsafe { Box::<Buffer<BUFFER_LEN>>::new_zeroed().assume_init() };
     let mut enc = PacketEncoder::new(&mut buf);
-    let value: T = TestA {
-        value5: vec![
-            Foo {
-                value: 123,
-                value2: unsafe { String::from_str("bruce").unwrap() }
-            };
-            10000
-        ],
-        value2: String::from_str("ABCD").unwrap(),
-    };
+    let value: T = TestA { value: vec![123] };
     serialization::Encode::encode(&value, &mut enc).unwrap();
-    // println!("{:?}", &buf);
+
+    println!("{:?}", &buf);
     // println!("{:?}", buf.remaining());
     let mut dec = serialization_minecraft::PacketDecoder::new(&mut buf);
     let decoded = <T as serialization::Decode>::decode_placed(&mut dec).unwrap();

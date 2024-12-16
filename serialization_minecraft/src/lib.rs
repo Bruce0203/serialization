@@ -12,8 +12,9 @@ use concat_idents::concat_idents;
 use fastbuf::Buf;
 use fastvarint::{DecodeVarInt, EncodeVarInt, VarInt};
 use serialization::{
-    BinaryDecoder, BinaryEncoder, CheckPrimitiveTypeSize, CompositeDecoder, CompositeEncoder,
-    Decode, DecodeError, Decoder, Encode, EncodeError, Encoder, EnumIdentifier, Serializable,
+    binary_format::const_transmute, BinaryDecoder, BinaryEncoder, CheckPrimitiveTypeSize,
+    CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder, Encode, EncodeError, Encoder,
+    EnumIdentifier, Serializable,
 };
 
 #[derive(derive_more::Deref, derive_more::DerefMut)]
@@ -63,7 +64,7 @@ macro_rules! serialize_num {
 macro_rules! deserialize_num {
     ($($type:ty),*) => {$(
         concat_idents!(fn_name = decode_, $type, {
-            fn fn_name(&mut self) -> Result<$type, Self::Error> {
+            fn fn_name(&mut self, place: &mut MaybeUninit<$type>) -> Result<(), Self::Error> {
                 let buf = self.read(size_of::<$type>());
                 if buf.len() != size_of::<$type>() {
                     Err(PacketDecodingError::NotEnoughBytesInTheBuffer)?;
@@ -71,7 +72,8 @@ macro_rules! deserialize_num {
                 #[allow(invalid_value)]
                 let mut slice = [unsafe { MaybeUninit::<u8>::uninit().assume_init() }; size_of::<$type>()];
                 slice.copy_from_slice(buf);
-                Ok(<$type>::from_be_bytes(slice))
+                *place = MaybeUninit::new(<$type>::from_be_bytes(slice));
+                Ok(())
             }
         });
     )*};
@@ -220,20 +222,23 @@ impl<'de, T: Buf> Decoder<'de> for &mut PacketDecoder<T> {
     }
 
     fn decode_is_some(&mut self) -> Result<bool, Self::Error> {
-        self.decode_bool()
+        let mut place = MaybeUninit::uninit();
+        self.decode_bool(&mut place)?;
+        Ok(unsafe { place.assume_init() })
     }
 
-    fn decode_bool(&mut self) -> Result<bool, Self::Error> {
-        Ok(if self.decode_u8()? == 0 { false } else { true })
+    fn decode_bool(&mut self, place: &mut MaybeUninit<bool>) -> Result<(), Self::Error> {
+        self.decode_u8(unsafe { const_transmute(place) })
     }
 
-    fn decode_str(&mut self) -> Result<&'de str, Self::Error> {
+    fn decode_str(&mut self, place: &mut MaybeUninit<&'de str>) -> Result<(), Self::Error> {
         let len = self.decode_seq_len()?;
         let read = self.buffer.read(len);
         if read.len() != len {
             Err(DecodeError::not_enough_bytes_in_the_buffer())?;
         }
-        Ok(unsafe { std::str::from_raw_parts(read.as_ptr(), len) })
+        *place = MaybeUninit::new(unsafe { std::str::from_raw_parts(read.as_ptr(), len) });
+        Ok(())
     }
 
     fn decode_bytes(&mut self) -> Result<&[u8], Self::Error> {
@@ -245,16 +250,20 @@ impl<'de, T: Buf> Decoder<'de> for &mut PacketDecoder<T> {
         Ok(read)
     }
 
-    fn decode_var_i32(&mut self) -> Result<i32, Self::Error> {
-        Ok(self.decode_varint()? as i32)
+    fn decode_var_i32(&mut self, place: &mut MaybeUninit<i32>) -> Result<(), Self::Error> {
+        *place = MaybeUninit::new(self.decode_varint()? as i32);
+        Ok(())
     }
 }
 
 impl<'de, S: Buf> CompositeDecoder<'de> for &mut PacketDecoder<S> {
     type Error = PacketDecodingError;
 
-    fn decode_element<D: Decode<'de>>(&mut self) -> Result<D, Self::Error> {
-        D::decode(&mut **self)
+    fn decode_element<D: Decode<'de>>(
+        &mut self,
+        place: &mut MaybeUninit<D>,
+    ) -> Result<(), Self::Error> {
+        D::decode(&mut **self, place)
     }
 
     fn end(self) -> Result<(), Self::Error> {

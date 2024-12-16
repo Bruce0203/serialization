@@ -87,7 +87,7 @@ fn test_log() {
         let mut buf = unsafe { Box::<Buffer<BUFFER_LEN>>::new_zeroed().assume_init() };
         WriteBuf::write(&mut buf, &buf_clone);
         let mut dec = serialization_minecraft::PacketDecoder::new(&mut buf);
-        let decoded = <Logs as serialization::Decode>::decode(&mut dec);
+        let decoded = <Logs as serialization::Decode>::decode_placed(&mut dec);
         let decoded = decoded.unwrap();
         unsafe { buf.set_pos(0) };
 

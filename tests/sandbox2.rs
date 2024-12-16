@@ -106,7 +106,10 @@ struct U2 {
     value: &'static str,
 }
 #[derive(serialization::Serializable)]
-struct V {}
+enum V {
+    A { value: i32 },
+    B { value2: u16 },
+}
 #[derive(serialization::Serializable)]
 struct W {}
 #[derive(serialization::Serializable)]

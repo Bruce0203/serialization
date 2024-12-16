@@ -126,9 +126,8 @@ impl<'de, T: Decode<'de>> DecodeField<'de> for T {
         field: &mut Self,
         decoder: &mut D,
     ) -> Result<(), D::Error> {
-        let field = const_transmute::<_, &mut ManuallyDrop<Self>>(field);
-        *field = ManuallyDrop::new(decoder.decode_element()?);
-        Ok(())
+        let field: &mut MaybeUninit<T> = const_transmute(field);
+        decoder.decode_element(field)
     }
 }
 
@@ -335,38 +334,35 @@ where
 
 pub fn decode2<'de, T: Sized + const SerialDescriptor + Decode<'de>, D: Decoder<'de>>(
     decoder: D,
-) -> Result<T, D::Error>
+    place: &mut MaybeUninit<T>,
+) -> Result<(), D::Error>
 where
     [(); T::N]:,
 {
-    #[allow(invalid_value)]
-    let mut result: ManuallyDrop<T> = unsafe { MaybeUninit::uninit().assume_init() };
     let mut i = 0;
     let mut tup = decoder.decode_tuple()?;
     let fields = const { T::fields::<D>() };
+    let place: &mut T = unsafe { const_transmute(place) };
     while i < fields.len() {
         match fields.get(i) {
             SerialSize::Unsized { fields } => {
-                unsafe { T::decode_field(&mut fields.clone(), &mut result, &mut tup) }?;
+                unsafe { T::decode_field(&mut fields.clone(), place, &mut tup) }?;
             }
             SerialSize::Padding(_size) => {}
             SerialSize::Sized { start, len } => {
                 unsafe {
-                    slice::from_raw_parts_mut(
-                        (&mut result as *mut _ as *mut u8).byte_add(*start),
-                        *len,
-                    )
-                    .copy_from_slice(
-                        tup.read_bytes(*len)
-                            .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?,
-                    )
+                    slice::from_raw_parts_mut((place as *mut _ as *mut u8).byte_add(*start), *len)
+                        .copy_from_slice(
+                            tup.read_bytes(*len)
+                                .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?,
+                        )
                 };
             }
         }
         i += 1;
     }
     tup.end()?;
-    Ok(unsafe { const_transmute(result) })
+    Ok(())
 }
 
 pub const unsafe fn const_transmute<A, B>(a: A) -> B {

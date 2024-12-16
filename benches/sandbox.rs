@@ -1,12 +1,17 @@
+#![feature(generic_arg_infer)]
 #![feature(const_trait_impl)]
 #![feature(generic_const_exprs)]
 #![feature(specialization)]
 
-use std::{hint::black_box, str::FromStr};
+use std::{hint::black_box, mem::MaybeUninit, str::FromStr};
 
+use constvec::ConstVec;
 use divan::{bench, Bencher};
 use fastbuf::{Buf, Buffer};
-use serialization::{Decode, Encode};
+use serialization::{
+    binary_format::{DecodeField, SerialDescriptor},
+    CompositeDecoder, Decode, Decoder, Encode,
+};
 use serialization_minecraft::{PacketDecoder, PacketEncoder};
 
 #[derive(
@@ -128,5 +133,25 @@ fn bitcode_decode(bencher: Bencher) {
     let bytes = &bytes;
     bencher.bench_local(|| {
         black_box(&bitcode::decode::<Logs>(bytes).unwrap());
+    });
+}
+
+#[bench(sample_count = 1000, sample_size = 1000)]
+fn sandboXx90(bencher: Bencher) {
+    let mut buf = Buffer::<1000>::new();
+    let mut enc = PacketEncoder::new(&mut buf);
+    {
+        let model = model();
+        black_box(model.encode(&mut enc)).unwrap();
+    }
+    let model_clone = model();
+    let mut model = unsafe { MaybeUninit::uninit().assume_init() };
+    bencher.bench_local(|| {
+        let mut dec = PacketDecoder::new(&mut buf);
+        let mut tup = dec.decode_tuple().unwrap();
+        let result =
+            unsafe { Logs::decode_field(&mut ConstVec::new(0, [0; _]), &mut model, &mut tup) };
+        unsafe { buf.set_pos(0) };
+        black_box(&result);
     });
 }

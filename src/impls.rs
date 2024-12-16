@@ -2,6 +2,7 @@ use core::slice;
 use std::{
     marker::PhantomData,
     mem::{ManuallyDrop, MaybeUninit},
+    rc::Weak,
 };
 
 use concat_idents_bruce0203::concat_idents;
@@ -9,8 +10,8 @@ use nonmax::*;
 use seq_macro::seq;
 
 use crate::{
-    BinaryDecoder, BinaryEncoder, CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder,
-    Encode, EncodeError, Encoder,
+    binary_format::const_transmute, BinaryDecoder, BinaryEncoder, CompositeDecoder,
+    CompositeEncoder, Decode, DecodeError, Decoder, Encode, EncodeError, Encoder,
 };
 
 macro_rules! serialize_num {
@@ -22,8 +23,8 @@ macro_rules! serialize_num {
         }
 
         impl<'de> Decode<'de> for $type {
-            fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
-                concat_idents!(fn_name = decode_, $type, {decoder.fn_name()})
+            fn decode<D: Decoder<'de>>(mut decoder: D, place: &mut MaybeUninit<Self>) -> Result<(), D::Error> {
+                concat_idents!(fn_name = decode_, $type, {decoder.fn_name(place)})
             }
         }
     )*};
@@ -44,12 +45,13 @@ seq!(A in 2..21 {#(
             }
         }
         impl<'de, #(T~N: Decode<'de>, )*> Decode<'de> for (#(T~N, )*) {
-            fn decode<D: Decoder<'de> >(decoder: D) -> Result<Self, D::Error> {
+            fn decode<D: Decoder<'de> >(decoder: D, place: &mut MaybeUninit<Self>) -> Result<(), D::Error> {
                 #[allow(unused_mut)]
                 let mut tup = decoder.decode_tuple()?;
-                let v = (#(tup.decode_element()?, )*);
+
+                #(tup.decode_element(unsafe { const_transmute::<_, &mut MaybeUninit<T~N>>(&mut place.assume_init_mut().N) })?;)*
                 tup.end()?;
-                Ok(v)
+                Ok(())
             }
         }
     });
@@ -71,12 +73,19 @@ impl<T: Encode> Encode for Option<T> {
 }
 
 impl<'de, T: Decode<'de>> Decode<'de> for Option<T> {
-    fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
+    fn decode<D: Decoder<'de>>(
+        mut decoder: D,
+        place: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
         if decoder.decode_is_some()? {
-            Ok(Some(Decode::decode(decoder)?))
+            *place = MaybeUninit::new(Some(unsafe { MaybeUninit::uninit().assume_init() }));
+            let value_place =
+                unsafe { const_transmute(place.assume_init_mut().as_mut().unwrap_unchecked()) };
+            T::decode(decoder, value_place)?;
         } else {
-            Ok(None)
+            *place = MaybeUninit::new(None);
         }
+        Ok(())
     }
 }
 
@@ -96,12 +105,22 @@ impl<T: Encode, Error: Encode> Encode for Result<T, Error> {
 }
 
 impl<'de, T: Decode<'de>, Error: Decode<'de>> Decode<'de> for Result<T, Error> {
-    fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
+    fn decode<D: Decoder<'de>>(
+        mut decoder: D,
+        place: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
         if decoder.decode_is_some()? {
-            Ok(Ok(T::decode(decoder)?))
+            *place = MaybeUninit::new(Ok(unsafe { MaybeUninit::uninit().assume_init() }));
+            let value_place =
+                unsafe { const_transmute(place.assume_init_mut().as_mut().unwrap_unchecked()) };
+            T::decode(decoder, value_place)?;
         } else {
-            Ok(Err(Error::decode(decoder)?))
+            *place = MaybeUninit::new(Err(unsafe { MaybeUninit::uninit().assume_init() }));
+            let value_place =
+                unsafe { const_transmute(place.assume_init_mut().as_mut().unwrap_err_unchecked()) };
+            Error::decode(decoder, value_place)?;
         }
+        Ok(())
     }
 }
 
@@ -130,43 +149,45 @@ impl Encode for Vec<u8> {
 }
 
 impl<'de, T: Decode<'de>> Decode<'de> for Vec<T> {
-    default fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
+    default fn decode<D: Decoder<'de>>(
+        mut decoder: D,
+        place: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
         let len = decoder.decode_seq_len()?;
         let mut seq = decoder.decode_seq()?;
-        let mut result: ManuallyDrop<Vec<T>> = ManuallyDrop::new(Vec::with_capacity(len));
-        unsafe { result.set_len(len) };
+        *place = MaybeUninit::new(Vec::with_capacity(len));
+        unsafe { place.assume_init_mut().set_len(len) };
         for i in 0..len {
-            let value: ManuallyDrop<T> = ManuallyDrop::new(seq.decode_element()?);
-            unsafe {
-                slice::from_raw_parts_mut(
-                    &mut *result.as_mut_ptr().offset(i as isize) as *mut _ as *mut u8,
-                    size_of::<T>(),
-                )
-                .copy_from_slice(slice::from_raw_parts(
-                    &value as *const _ as *const u8,
-                    size_of::<T>(),
-                ));
-            }
+            let value_place: &mut MaybeUninit<T> =
+                unsafe { const_transmute(place.assume_init_mut().as_mut_ptr().add(i)) };
+            seq.decode_element(value_place)?;
         }
         seq.end()?;
-        Ok(ManuallyDrop::<Vec<T>>::into_inner(result))
+        Ok(())
     }
 }
 
 impl<'de> Decode<'de> for Vec<u8> {
-    default fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
+    default fn decode<D: Decoder<'de>>(
+        mut decoder: D,
+        place: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
         let len = decoder.decode_seq_len()?;
         let mut seq = decoder.decode_seq()?;
-        let mut result: ManuallyDrop<Vec<u8>> = ManuallyDrop::new(Vec::with_capacity(len));
-        unsafe { result.set_len(len) };
-        let dst =
-            unsafe { slice::from_raw_parts_mut(result.as_mut_ptr() as *mut _ as *mut u8, len) };
+        *place = MaybeUninit::new(Vec::with_capacity(len));
+        unsafe { place.assume_init_mut().set_len(len) };
+        let dst = unsafe {
+            slice::from_raw_parts_mut(
+                place.assume_init_mut().as_mut_ptr() as *mut _ as *mut u8,
+                len,
+            )
+        };
         dst.copy_from_slice(
             seq.read_bytes(len)
                 .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?,
         );
         seq.end()?;
-        Ok(ManuallyDrop::<Vec<u8>>::into_inner(result))
+        Ok(())
     }
 }
 
@@ -183,14 +204,20 @@ impl<T> Encode for PhantomData<T> {
 }
 
 impl<'de, T> Decode<'de> for PhantomData<T> {
-    fn decode<D: Decoder<'de>>(_decoder: D) -> Result<Self, D::Error> {
-        Ok(Self)
+    fn decode<D: Decoder<'de>>(
+        _decoder: D,
+        _place: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
+        Ok(())
     }
 }
 
 impl<'de> Decode<'de> for &'de str {
-    fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
-        decoder.decode_str()
+    fn decode<D: Decoder<'de>>(
+        mut decoder: D,
+        place: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
+        decoder.decode_str(place)
     }
 }
 
@@ -215,8 +242,11 @@ impl Encode for uuid::Uuid {
 
 #[cfg(feature = "uuid")]
 impl<'de> Decode<'de> for uuid::Uuid {
-    fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
-        Ok(uuid::Uuid::from_u128(decoder.decode_u128()?))
+    fn decode<D: Decoder<'de>>(
+        mut decoder: D,
+        place: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
+        decoder.decode_u128(unsafe { const_transmute(place) })
     }
 }
 
@@ -241,36 +271,28 @@ impl<const CAP: usize> Encode for arrayvec::ArrayVec<u8, CAP> {
 
 #[cfg(feature = "arrayvec")]
 impl<'de, const CAP: usize> Decode<'de> for arrayvec::ArrayVec<u8, CAP> {
-    fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
-        let bytes: &[u8] = decoder.decode_bytes()?;
-        if bytes.len() > CAP {
-            Err(DecodeError::too_large())?
-        }
-        Ok(arrayvec::ArrayVec::try_from(bytes).unwrap())
+    fn decode<D: Decoder<'de>>(
+        mut decoder: D,
+        place: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
+        todo!()
     }
 }
 
 #[cfg(feature = "arrayvec")]
 impl<'de, T: Decode<'de>, const CAP: usize> Decode<'de> for arrayvec::ArrayVec<T, CAP> {
-    default fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
-        let len = decoder.decode_seq_len()?;
-        let mut seq = decoder.decode_seq()?;
-        let mut result = arrayvec::ArrayVec::new();
-        unsafe { result.set_len(len) };
-        for i in 0..len {
-            *unsafe { result.get_unchecked_mut(i) } = seq.decode_element()?;
-        }
-        seq.end()?;
-        Ok(result)
+    default fn decode<D: Decoder<'de>>(
+        mut decoder: D,
+        place: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
+        todo!()
     }
 }
 
 #[cfg(feature = "arrayvec")]
 impl<'de, const CAP: usize> Decode<'de> for arrayvec::ArrayString<CAP> {
-    fn decode<D: Decoder<'de>>(decoder: D) -> Result<Self, D::Error> {
-        let vec = arrayvec::ArrayVec::<u8, CAP>::decode(decoder)?;
-        let s = unsafe { std::str::from_utf8_unchecked(vec.as_slice()) };
-        Ok(arrayvec::ArrayString::from(s).unwrap())
+    fn decode<D: Decoder<'de>>(decoder: D, place: &mut MaybeUninit<Self>) -> Result<(), D::Error> {
+        todo!()
     }
 }
 
@@ -294,15 +316,24 @@ impl<'a, T: Encode + Clone> Encode for std::borrow::Cow<'a, T> {
 
 #[cfg(feature = "std")]
 impl<'de, 'a, T: Decode<'de> + Clone> Decode<'de> for std::borrow::Cow<'a, T> {
-    fn decode<D: Decoder<'de>>(decoder: D) -> Result<Self, D::Error> {
-        Ok(std::borrow::Cow::Owned(T::decode(decoder)?))
+    fn decode<D: Decoder<'de>>(decoder: D, place: &mut MaybeUninit<Self>) -> Result<(), D::Error> {
+        *place = MaybeUninit::new(std::borrow::Cow::Owned(unsafe {
+            MaybeUninit::uninit().assume_init()
+        }));
+        let value_place: &mut MaybeUninit<T> =
+            unsafe { const_transmute(place.assume_init_mut().to_mut()) };
+        T::decode(decoder, value_place)?;
+        Ok(())
     }
 }
 
 #[cfg(feature = "fastvarint")]
 impl<'de> Decode<'de> for fastvarint::VarInt {
-    fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
-        Ok(decoder.decode_var_i32()?.into())
+    fn decode<D: Decoder<'de>>(
+        mut decoder: D,
+        place: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
+        decoder.decode_var_i32(unsafe { std::mem::transmute(place) })
     }
 }
 
@@ -322,8 +353,11 @@ impl Encode for fastvarint::NonMaxI32VarInt {
 
 #[cfg(feature = "fastvarint")]
 impl<'de> Decode<'de> for fastvarint::NonMaxI32VarInt {
-    fn decode<D: Decoder<'de>>(mut decoder: D) -> Result<Self, D::Error> {
-        Ok(fastvarint::NonMaxI32VarInt::new(decoder.decode_var_i32()?))
+    fn decode<D: Decoder<'de>>(
+        mut decoder: D,
+        place: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
+        decoder.decode_var_i32(unsafe { std::mem::transmute(place) })
     }
 }
 
@@ -339,8 +373,8 @@ impl Encode for String {
 }
 
 impl<'de> Decode<'de> for String {
-    fn decode<D: Decoder<'de>>(decoder: D) -> Result<Self, D::Error> {
-        Ok(unsafe { String::from_utf8_unchecked(Vec::<u8>::decode(decoder)?) })
+    fn decode<D: Decoder<'de>>(decoder: D, place: &mut MaybeUninit<Self>) -> Result<(), D::Error> {
+        Vec::<u8>::decode(decoder, unsafe { const_transmute(place) })
     }
 }
 
@@ -355,14 +389,15 @@ impl<T: Encode, const CAP: usize> Encode for [T; CAP] {
 }
 
 impl<'de, T: Decode<'de>, const CAP: usize> Decode<'de> for [T; CAP] {
-    fn decode<D: Decoder<'de>>(decoder: D) -> Result<Self, D::Error> {
+    fn decode<D: Decoder<'de>>(decoder: D, place: &mut MaybeUninit<Self>) -> Result<(), D::Error> {
         let mut tup = decoder.decode_tuple()?;
-        let mut result: [T; CAP] = unsafe { MaybeUninit::uninit().assume_init() };
         for i in 0..CAP {
-            result[i] = tup.decode_element()?;
+            let value_place: &mut MaybeUninit<T> =
+                unsafe { const_transmute(place.assume_init_mut().get_unchecked_mut(i)) };
+            tup.decode_element(value_place)?;
         }
         tup.end()?;
-        Ok(result)
+        Ok(())
     }
 }
 
@@ -376,8 +411,8 @@ macro_rules! nonmax {
         }
 
         impl<'de> Decode<'de> for $type {
-            fn decode<D: Decoder<'de>>(decoder: D) -> Result<Self, D::Error> {
-                Ok(unsafe { Self::new_unchecked(<$inner>::decode(decoder)?) })
+            fn decode<D: Decoder<'de>>(decoder: D, place: &mut MaybeUninit<Self>) -> Result<(), D::Error> {
+                <$inner>::decode(decoder, unsafe { const_transmute(place) })
             }
         }
     )*};
