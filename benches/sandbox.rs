@@ -122,19 +122,21 @@ fn main() {
 
 #[bench(sample_count = 1000, sample_size = 1000)]
 fn bitcode_encode(bencher: Bencher) {
+    let mut buf = bitcode::Buffer::default();
     let model = model();
     bencher.bench_local(|| {
-        black_box(&bitcode::encode(&model));
+        black_box(&buf.encode(&model));
     });
 }
 
 #[bench(sample_count = 1000, sample_size = 1000)]
 fn bitcode_decode(bencher: Bencher) {
+    let mut buf = bitcode::Buffer::default();
     let model = model();
     let bytes = bitcode::encode(&model);
     let bytes = &bytes;
     bencher.bench_local(|| {
-        black_box(&bitcode::decode::<Model>(bytes).unwrap());
+        black_box(&buf.decode::<Model>(bytes).unwrap());
     });
 }
 
