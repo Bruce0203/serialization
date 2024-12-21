@@ -4,8 +4,6 @@
 //TODO fix primitive type's encode/decode to call decode2/encode2
 //TODO warnings on proc macro
 //TODO use raw vec on decode Vec<T>
-#![feature(alloc_layout_extra)]
-#![feature(allocator_api)]
 #![feature(type_alias_impl_trait)]
 #![feature(auto_traits)]
 #![feature(negative_impls)]
