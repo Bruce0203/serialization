@@ -1,0 +1,28 @@
+name: bench
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+env:
+  RUST_MSRV: "1.83"
+
+jobs:
+  deploy:
+    name: bench
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+      - name: Install Repo MSRV toolchain
+        run: |
+          rustup update
+          cargo -V
+      - name: Run 
+        run: |
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+          cargo bench
+
+ 

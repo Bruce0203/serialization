@@ -11,6 +11,9 @@ use fastvarint::{EncodeVarInt, VarInt};
 use serialization::{Decode, Encode};
 use serialization_minecraft::{PacketDecoder, PacketEncoder};
 
+const SAMPLE_COUNT: u32 = 2000;
+const SAMPLE_SIZE: u32 = 2000;
+
 #[derive(
     Debug,
     serialization::Serializable,
@@ -21,6 +24,9 @@ use serialization_minecraft::{PacketDecoder, PacketEncoder};
     Clone,
     bitcode::Decode,
     bitcode::Encode,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    rkyv::Archive,
 )]
 pub struct Log {
     pub address: Address,
@@ -33,6 +39,9 @@ pub struct Log {
 }
 
 #[derive(
+    rkyv::Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
     bitcode::Decode,
     bitcode::Encode,
     Debug,
@@ -48,6 +57,9 @@ pub struct Logs {
 }
 
 #[derive(
+    rkyv::Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
     Debug,
     serialization::Serializable,
     PartialEq,
@@ -89,10 +101,10 @@ fn model() -> Logs {
     }
 }
 
-#[bench(sample_count = 1000, sample_size = 1000)]
+#[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
 fn encode(bencher: Bencher) {
     let mut buf = Buffer::<1000>::new();
-    let model = model();
+    let model = &model();
     bencher.bench_local(|| {
         let mut enc = PacketEncoder::new(&mut buf);
         black_box(&model.encode(&mut enc).unwrap());
@@ -100,11 +112,11 @@ fn encode(bencher: Bencher) {
     });
 }
 
-#[bench(sample_count = 1000, sample_size = 1000)]
+#[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
 fn decode(bencher: Bencher) {
     let mut buf = Buffer::<1000>::new();
     let mut enc = PacketEncoder::new(&mut buf);
-    let model = model();
+    let model = &model();
     black_box(model.encode(&mut enc)).unwrap();
     bencher.bench_local(|| {
         let mut dec = PacketDecoder::new(&mut buf);
@@ -117,21 +129,21 @@ fn main() {
     divan::main();
 }
 
-#[bench(sample_count = 1000, sample_size = 1000)]
+#[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
 fn bitcode_encode(bencher: Bencher) {
     let mut buf = bitcode::Buffer::default();
-    let model = model();
+    let model = &model();
     bencher.bench_local(|| {
-        black_box(&buf.encode(&model));
+        black_box(&buf.encode(model));
     });
 }
 
-#[bench(sample_count = 1000, sample_size = 1000)]
+#[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
 fn bitcode_decode(bencher: Bencher) {
     let mut buf = bitcode::Buffer::default();
     let model = model();
     let bytes = bitcode::encode(&model);
-    let bytes = &bytes;
+    let bytes = bytes.as_slice();
     bencher.bench_local(|| {
         black_box(&buf.decode::<Model>(bytes).unwrap());
     });
@@ -151,7 +163,7 @@ pub struct A2 {
     value: u8,
 }
 
-#[bench(sample_count = 1000, sample_size = 1000)]
+#[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
 fn a_test11(bencher: Bencher) {
     let mut buf = Buffer::<1000>::new();
     let mut enc = PacketEncoder::new(&mut buf);
@@ -168,7 +180,7 @@ fn a_test11(bencher: Bencher) {
     });
 }
 
-#[bench(sample_count = 1000, sample_size = 1000)]
+#[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
 fn asdfwqer(bencher: Bencher) {
     let mut buf = Buffer::<1000>::new();
     bencher.bench_local(|| {
