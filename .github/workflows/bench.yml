@@ -18,11 +18,9 @@ jobs:
           submodules: 'true'
       - name: Install Repo MSRV toolchain
         run: |
-          rustup update
           cargo -V
       - name: Run 
         run: |
-          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
           cargo bench
 
  

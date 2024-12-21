@@ -1,5 +1,6 @@
 use core::slice;
 use std::{
+    alloc::{Allocator, Global, GlobalAlloc, Layout},
     any::type_name,
     marker::PhantomData,
     mem::{ManuallyDrop, MaybeUninit},
@@ -196,15 +197,35 @@ impl<T: Decode> Decode for Vec<T> {
     ) -> Result<(), D::Error> {
         let len = decoder.decode_seq_len()?;
         let seq = decoder.decode_seq()?;
-        let mut vec: MaybeUninit<Vec<T>> = MaybeUninit::new(Vec::with_capacity(len));
-        let ptr = unsafe { vec.assume_init_mut() }.as_mut_ptr().clone();
-        unsafe { vec.assume_init_mut().set_len(len) };
-        *place = vec;
+        let layout = Layout::new::<T>()
+            .repeat(len)
+            .map(|(layout, _pad)| layout)
+            .unwrap();
+        let nonnull_ptr = Global
+            .allocate(layout)
+            .expect("allocate failed")
+            .cast::<T>();
+
+        let ptr = nonnull_ptr.as_ptr();
+        *(unsafe { &mut *(place as *mut _ as *mut [usize; 3]) }) = [len, ptr as usize, len];
         for i in 0..len {
-            let value_place: &mut MaybeUninit<T> = unsafe { const_transmute(ptr.add(i)) };
-            seq.decode_element(value_place)?;
+            let value_place: &mut MaybeUninit<T> =
+                unsafe { &mut *(ptr.add(i) as *mut MaybeUninit<T>) };
+            match seq.decode_element(value_place) {
+                Ok(_) => {}
+                Err(err) => {
+                    unsafe { Global.deallocate(nonnull_ptr.cast::<u8>(), layout) };
+                    Err(err)?;
+                }
+            }
         }
-        seq.end()?;
+        match seq.end() {
+            Ok(()) => {}
+            Err(err) => {
+                unsafe { Global.deallocate(nonnull_ptr.cast::<u8>(), layout) };
+                Err(err)?
+            }
+        }
         Ok(())
     }
 }

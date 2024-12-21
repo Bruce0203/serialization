@@ -11,8 +11,8 @@ use fastvarint::{EncodeVarInt, VarInt};
 use serialization::{Decode, Encode};
 use serialization_minecraft::{PacketDecoder, PacketEncoder};
 
-const SAMPLE_COUNT: u32 = 2000;
-const SAMPLE_SIZE: u32 = 2000;
+const SAMPLE_COUNT: u32 = 1000;
+const SAMPLE_SIZE: u32 = 1000;
 
 #[derive(
     Debug,
@@ -24,9 +24,6 @@ const SAMPLE_SIZE: u32 = 2000;
     Clone,
     bitcode::Decode,
     bitcode::Encode,
-    rkyv::Deserialize,
-    rkyv::Serialize,
-    rkyv::Archive,
 )]
 pub struct Log {
     pub address: Address,
@@ -39,9 +36,6 @@ pub struct Log {
 }
 
 #[derive(
-    rkyv::Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
     bitcode::Decode,
     bitcode::Encode,
     Debug,
@@ -57,9 +51,6 @@ pub struct Logs {
 }
 
 #[derive(
-    rkyv::Archive,
-    rkyv::Deserialize,
-    rkyv::Serialize,
     Debug,
     serialization::Serializable,
     PartialEq,
