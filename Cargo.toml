@@ -17,7 +17,7 @@ include = [
 members = ["impl", "serialization_minecraft", "serialization_nbt"]
 
 [workspace.package]
-version = "0.2.8"
+version = "0.2.9"
 description = "encode and decode your struct"
 edition = "2021"
 author = "Bruce0203 <brucefreedy@gmail.com>"
@@ -25,7 +25,7 @@ repository = "https://github.com/Bruce0203/serialization"
 license = "MIT"
 
 [dependencies]
-serialization_derive = { path = "./impl", version = "0.2.8" }
+serialization_derive = { path = "./impl", version = "0.2.9" }
 fastbuf = "0.28.0"
 seq-macro = "0.3"
 concat-idents-bruce0203 = "1.1.6"
