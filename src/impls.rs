@@ -1,7 +1,5 @@
 use core::slice;
 use std::{
-    alloc::{Allocator, Global, GlobalAlloc, Layout},
-    any::type_name,
     marker::PhantomData,
     mem::{ManuallyDrop, MaybeUninit},
 };
