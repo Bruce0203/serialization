@@ -10,7 +10,8 @@ use nonmax::*;
 use seq_macro::seq;
 
 use crate::{
-    const_transmute, is_ascii_simd, BinaryDecoder, BinaryEncoder, CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder, Encode, EncodeError, Encoder
+    const_transmute, is_ascii_simd, BinaryDecoder, BinaryEncoder, CompositeDecoder,
+    CompositeEncoder, Decode, DecodeError, Decoder, Encode, EncodeError, Encoder,
 };
 
 macro_rules! serialize_num {
@@ -169,7 +170,7 @@ impl<T: Encode> Encode for Vec<T> {
     where
         E: Encoder,
     {
-        let mut col = encoder.encode_seq(self.len())?;
+        let col = encoder.encode_seq(self.len())?;
         for v in self.iter() {
             col.encode_element(v)?;
         }

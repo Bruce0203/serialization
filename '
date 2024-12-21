@@ -10,8 +10,8 @@ use constvec::{ConstEq, ConstVec};
 use seq_macro::seq;
 
 use crate::{
-    const_transmute, CheckPrimitiveTypeSize, Decode, DecodeError, Decoder, Encode, EncodeError,
-    Encoder,
+    const_transmute, CheckPrimitiveTypeSize, CompositeEncoder, Decode, DecodeError, Decoder,
+    Encode, EncodeError, Encoder,
 };
 pub trait EncodeField: Encode {
     fn encode_field<E: Encoder>(
@@ -310,8 +310,8 @@ where
     [(); T::N]:,
     [(); size_of::<T>()]:,
 {
-    let commands = &const { collect_encode_functions::<T, E>() };
     let mut i = 0;
+    let commands = &const { collect_encode_functions::<T, E>() };
     while i < commands.len() {
         match commands.get(i) {
             SerialCommand::Unsized { offset, function } => {

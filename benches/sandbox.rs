@@ -7,6 +7,7 @@ use std::{hint::black_box, marker::PhantomData, mem::MaybeUninit, str::FromStr};
 
 use divan::{bench, Bencher};
 use fastbuf::{Buf, Buffer, ReadBuf, WriteBuf};
+use fastvarint::{EncodeVarInt, VarInt};
 use serialization::{Decode, Encode};
 use serialization_minecraft::{PacketDecoder, PacketEncoder};
 
@@ -168,16 +169,15 @@ fn a_test11(bencher: Bencher) {
 }
 
 #[bench(sample_count = 1000, sample_size = 1000)]
-fn bitcode_vec_u8_decode(bencher: Bencher) {
+fn asdfwqer(bencher: Bencher) {
     let mut buf = Buffer::<1000>::new();
-    let encoded = bitcode::encode(&AA {
-        value2: vec![A2 { value: 123 }],
-    });
-    buf.write(&encoded);
-    println!("{buf:?}");
     bencher.bench_local(|| {
-        unsafe { buf.set_pos(0) };
-        let result = bitcode::decode::<AA>(buf.read(buf.remaining()));
+        unsafe { buf.set_filled_pos(0) };
+        let mut enc = PacketEncoder::new(&mut buf);
+        let result = AA {
+            value2: vec![A2 { value: 123 }],
+        }
+        .encode(&mut enc);
         result.unwrap();
     });
 }

@@ -537,7 +537,7 @@ fn impl_decode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
             return part1;
         }
         let generic_params = generic_params_with_bounds(&item_struct.generics, || {
-            parse_quote! { serialization::binary_format::DecodeField + serialization::Decode }
+            parse_quote! { serialization::Decode + serialization::binary_format::Encode}
         });
         let field_index = (0..fields.len())
             .map(|i| {
@@ -600,7 +600,7 @@ fn impl_decode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
                 }
             }
 
-            fn acc_fn<'_a, _D: serialization::Decoder>(
+            fn acc_decode_fn<'_a, _D: serialization::Decoder>(
                     fields: &serialization::binary_format::Fields,
                     field_index: serialization::binary_format::Field,
             ) -> &'_a dyn serialization::binary_format::UnsafeDecode<_D> {
@@ -610,9 +610,34 @@ fn impl_decode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
                     match fields.get(field_index as usize) {
                         #(#field_index => {
                             if field_index == 0 {
-                                <#field_types as serialization::binary_format::OffsetAccumlator>::current::<_D>()
+                                <#field_types as serialization::binary_format::OffsetAccumlator>::current_decode_fn::<_D>()
                             } else {
-                                <#field_types as serialization::binary_format::OffsetAccumlator>::acc_fn::<_D>(
+                                <#field_types as serialization::binary_format::OffsetAccumlator>::acc_decode_fn::<_D>(
+                                    fields,
+                                    field_index - 1
+                                )
+                            }
+                                                })*
+                        _ => unreachable!(),
+                    }
+                }
+            }
+
+            fn acc_encode_fn<'_a, _E: serialization::Encoder>(
+                    fields: &serialization::binary_format::Fields,
+                    field_index: serialization::binary_format::Field,
+            ) -> &'_a dyn serialization::binary_format::UnsafeEncode<_E>
+            where Self: '_a
+            {
+                if fields.len() == 0 {
+                    &serialization::binary_format::EmptyEncodeFn
+                } else {
+                    match fields.get(field_index as usize) {
+                        #(#field_index => {
+                            if field_index == 0 {
+                                <#field_types as serialization::binary_format::OffsetAccumlator>::current_encode_fn::<_E>()
+                            } else {
+                                <#field_types as serialization::binary_format::OffsetAccumlator>::acc_encode_fn::<_E>(
                                     fields,
                                     field_index - 1
                                 )

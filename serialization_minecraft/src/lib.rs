@@ -316,9 +316,14 @@ impl<S: Buf> PacketDecoder<S> {
 
 impl<S: Buf> PacketEncoder<S> {
     fn encode_varint(&mut self, v: i32) -> Result<(), <Self as Encoder>::Error> {
-        VarInt::from(v)
-            .encode_var_int(|v| self.buffer.try_write(v))
-            .map_err(|()| PacketEncodingError::FullOfCapacityInBuffer)?;
+        if v < 255 {
+            self.try_write(&[v as u8])
+                .map_err(|()| EncodeError::not_enough_bytes_in_the_buffer())?;
+        } else {
+            VarInt::from(v)
+                .encode_var_int(|v| self.buffer.try_write(v))
+                .map_err(|()| PacketEncodingError::FullOfCapacityInBuffer)?;
+        }
         Ok(())
     }
 }
