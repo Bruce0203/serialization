@@ -42,7 +42,7 @@ pub struct TestStruct2 {
 }
 
 impl Encode for TestStruct {
-    fn encode<E>(&self, encoder: E) -> Result<(), E::Error>
+    fn encode<E>(&self, encoder: &mut E) -> Result<(), E::Error>
     where
         E: Encoder,
     {
@@ -55,7 +55,7 @@ impl Encode for TestStruct {
 }
 
 impl Encode for TestStruct2 {
-    fn encode<E>(&self, encoder: E) -> Result<(), E::Error>
+    fn encode<E>(&self, encoder: &mut E) -> Result<(), E::Error>
     where
         E: Encoder,
     {

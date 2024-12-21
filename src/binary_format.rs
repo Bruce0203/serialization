@@ -1,38 +1,110 @@
 use core::slice;
 use std::{
-    any::type_name,
     fmt::Debug,
-    mem::{size_of, transmute, ManuallyDrop, MaybeUninit},
+    marker::PhantomData,
+    mem::{size_of, transmute, MaybeUninit},
     usize,
 };
 
 use constvec::{ConstEq, ConstVec};
+use seq_macro::seq;
 
 use crate::{
-    const_transmute, BinaryDecoder, CheckPrimitiveTypeSize, CompositeDecoder, CompositeEncoder,
-    Decode, DecodeError, Decoder, Encode, EncodeError, Encoder,
+    const_transmute, CheckPrimitiveTypeSize, CompositeEncoder, Decode, DecodeError, Decoder,
+    Encode, EncodeError, Encoder,
 };
-
 pub trait EncodeField: Encode {
     fn encode_field<E: Encoder>(
         &self,
         field_indexes: &mut Fields,
-        encoder: E,
+        encoder: &mut E,
     ) -> Result<(), E::Error>;
 }
 
-pub trait DecodeField<'de>: Sized {
-    unsafe fn decode_field<D: CompositeDecoder<'de>>(
-        fields: &mut Fields,
-        field: &mut Self,
-        decoder: &mut D,
-    ) -> Result<(), D::Error>;
+#[const_trait]
+pub trait OffsetAccumlator: Decode {
+    fn current<'a, D: Decoder>() -> &'a dyn UnsafeDecode<D>
+    where
+        Self: 'a,
+    {
+        &DecodeWrapper::<Self>(std::marker::PhantomData) as &'a dyn UnsafeDecode<D>
+    }
+
+    fn acc_offset(fields: &Fields, field_index: Field) -> usize;
+
+    fn acc_fn<'a, D: Decoder>(fields: &Fields, field_index: Field) -> &'a dyn UnsafeDecode<D>
+    where
+        Self: 'a,
+    {
+        Self::current()
+    }
+}
+
+impl<T: Decode> const OffsetAccumlator for T {
+    default fn current<'a, D: Decoder>() -> &'a dyn UnsafeDecode<D>
+    where
+        Self: 'a,
+    {
+        &DecodeWrapper::<Self>(std::marker::PhantomData) as &'a dyn UnsafeDecode<D>
+    }
+
+    default fn acc_offset(_fields: &Fields, _field_index: Field) -> usize {
+        0
+    }
+
+    default fn acc_fn<'a, D: Decoder>(
+        _fields: &Fields,
+        _field_index: Field,
+    ) -> &'a dyn UnsafeDecode<D>
+    where
+        Self: 'a,
+    {
+        Self::current()
+    }
+}
+
+pub trait UnsafeDecode<D: Decoder> {
+    fn decode_unsafe(&self, decoder: &mut D, place: *mut u8) -> Result<(), D::Error>;
+}
+
+pub struct DecodeWrapper<T>(pub PhantomData<T>);
+
+impl<T: Decode, D: Decoder> UnsafeDecode<D> for T {
+    fn decode_unsafe(&self, decoder: &mut D, place: *mut u8) -> Result<(), D::Error> {
+        T::decode(decoder, unsafe { &mut *(place as *mut MaybeUninit<T>) })
+    }
+}
+
+impl<T: Decode> Decode for DecodeWrapper<T> {
+    fn decode<D: Decoder>(decoder: &mut D, place: &mut MaybeUninit<Self>) -> Result<(), D::Error> {
+        T::decode(decoder, unsafe {
+            &mut *(place as *mut _ as *mut MaybeUninit<T>)
+        })
+    }
+}
+
+pub struct EmptyDecodeFn;
+impl Decode for EmptyDecodeFn {
+    fn decode<D: Decoder>(
+        _decoder: &mut D,
+        _place: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
+        Ok(())
+    }
 }
 
 #[const_trait]
 pub trait SerialDescriptor {
     const N: usize;
     fn fields<C: const CheckPrimitiveTypeSize>() -> ConstVec<[SerialSize; Self::N]>;
+}
+
+impl<T> const SerialDescriptor for T {
+    default const N: usize = 1;
+
+    default fn fields<C: const CheckPrimitiveTypeSize>() -> ConstVec<[SerialSize; Self::N]> {
+        SerialSize::unsized_field_of()
+    }
 }
 
 pub type Field = u16;
@@ -53,7 +125,7 @@ impl SerialSize {
 
     pub const fn unsized_of() -> SerialSize {
         SerialSize::Unsized {
-            fields: ConstVec::new(0, unsafe { MaybeUninit::zeroed().assume_init() }),
+            fields: Fields::EMPTY,
         }
     }
 
@@ -119,20 +191,9 @@ impl<T: Encode> EncodeField for T {
     default fn encode_field<E: Encoder>(
         &self,
         _field_indexes: &mut Fields,
-        encoder: E,
+        encoder: &mut E,
     ) -> Result<(), E::Error> {
         self.encode(encoder)
-    }
-}
-
-impl<'de, T: Decode<'de>> DecodeField<'de> for T {
-    default unsafe fn decode_field<D: CompositeDecoder<'de>>(
-        _field_indexes: &mut Fields,
-        field: &mut Self,
-        decoder: &mut D,
-    ) -> Result<(), D::Error> {
-        let field: &mut MaybeUninit<T> = const_transmute(field);
-        decoder.decode_element(field)
     }
 }
 
@@ -151,136 +212,7 @@ macro_rules! impl_serial_descriptor {
     )*};
 }
 
-impl_serial_descriptor!(
-    u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, bool, usize, isize, i128, u128
-);
-
-pub struct SizeCalcState<'a, T: const SerialDescriptor>
-where
-    [(); T::N]:,
-    [(); size_of::<T>()]:,
-{
-    temp: ConstVec<[SerialSize; T::N]>,
-    value: &'a T,
-    cursor: usize,
-    counter: usize,
-    board: [usize; size_of::<T>()],
-}
-
-impl<'a, T: const SerialDescriptor> SizeCalcState<'a, T>
-where
-    [(); T::N]:,
-    [(); size_of::<T>()]:,
-{
-    const PADDING_ID: usize = usize::MAX;
-    pub const fn new(value: &'a T) -> Self {
-        Self {
-            temp: ConstVec::new(0, unsafe { MaybeUninit::zeroed().assume_init() }),
-            value,
-            cursor: 0,
-            counter: 0,
-            board: [Self::PADDING_ID; _],
-        }
-    }
-
-    pub const fn next_field<
-        E: const SerialDescriptor,
-        C: const CheckPrimitiveTypeSize,
-        const FIELD: Field,
-    >(
-        &mut self,
-        field_ptr: &E,
-    ) where
-        [(); T::N]:,
-        [(); <E as SerialDescriptor>::N]:,
-    {
-        let offset = unsafe { (field_ptr as *const E).byte_sub_ptr(self.value as *const T) };
-        let size = size_of::<E>();
-        let mut i = offset;
-        while i < offset + size {
-            self.board[i] = self.counter;
-            i += 1;
-        }
-        self.counter += 1;
-        let slice = const { add_to_fields(<E as SerialDescriptor>::fields::<C>(), FIELD) };
-        self.temp.push(&SerialSize::Padding(slice.len()));
-        self.temp.append(&slice);
-    }
-
-    pub const fn finish(mut self) -> ConstVec<[SerialSize; T::N]>
-    where
-        [(); T::N]:,
-    {
-        let mut result: ConstVec<[SerialSize; T::N]> =
-            ConstVec::new(0, unsafe { MaybeUninit::zeroed().assume_init() });
-        let mut i = 0;
-        while i < self.board.len() {
-            let field_index = self.board[i];
-            if field_index == Self::PADDING_ID {
-                let mut padding = 0;
-                while i < self.board.len() {
-                    let field_index = self.board[i];
-                    if field_index != Self::PADDING_ID {
-                        break;
-                    }
-                    padding += 1;
-                    i += 1;
-                }
-                i -= 1;
-                let v = SerialSize::Padding(padding);
-                result.push(&v);
-            } else {
-                let mut j = 0;
-                let mut k = 0;
-                while j < self.temp.len() {
-                    let v = self.temp.as_slice()[j].clone();
-                    let fields_len = match v {
-                        SerialSize::Padding(size) => size,
-                        _ => unreachable!(),
-                    };
-                    if field_index == k {
-                        j += 1;
-                        let repeat = j + fields_len;
-                        while j < repeat {
-                            //TODO clean up code
-                            const fn serial_sized(start: usize, len: usize) -> SerialSize {
-                                SerialSize::Sized { start, len }
-                            }
-                            const fn aa(serial_size: &SerialSize, adder: usize) -> SerialSize {
-                                match serial_size {
-                                    SerialSize::Sized { start, len } => {
-                                        serial_sized(adder + *start, *len)
-                                    }
-                                    size => size.clone(),
-                                }
-                            }
-                            result.push(&aa(&self.temp.get(j), i));
-                            j += 1;
-                        }
-                        loop {
-                            i += 1;
-                            if i >= self.board.len() || self.board[i] != field_index {
-                                i -= 1;
-                                break;
-                            }
-                        }
-                        break;
-                    } else {
-                        k += 1;
-                        j += fields_len + 1;
-                    }
-                }
-            }
-            i += 1;
-        }
-        let last_padding = size_of::<T>() - self.cursor;
-        if last_padding > 0 {
-            self.temp.push(&SerialSize::Padding(last_padding));
-        }
-        std::mem::forget(self);
-        result
-    }
-}
+impl_serial_descriptor!(u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, usize, isize, i128, u128);
 
 pub struct WritableField<'a, T: EncodeField> {
     value: &'a T,
@@ -288,7 +220,7 @@ pub struct WritableField<'a, T: EncodeField> {
 }
 
 impl<'a, T: EncodeField> Encode for WritableField<'a, T> {
-    fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error> {
+    fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
         self.value.encode_field(&mut self.fields.clone(), encoder)
     }
 }
@@ -296,7 +228,7 @@ impl<'a, T: EncodeField> Encode for WritableField<'a, T> {
 pub struct WritingBytes<'a>(&'a [u8]);
 
 impl Encode for WritingBytes<'_> {
-    fn encode<E: Encoder>(&self, mut encoder: E) -> Result<(), E::Error> {
+    fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
         encoder
             .write_bytes(self.0)
             .map_err(|()| EncodeError::not_enough_bytes_in_the_buffer())?;
@@ -306,7 +238,7 @@ impl Encode for WritingBytes<'_> {
 
 pub fn encode2<T: const SerialDescriptor + Encode, E: Encoder>(
     value: &T,
-    encoder: E,
+    encoder: &mut E,
 ) -> Result<(), E::Error>
 where
     [(); T::N]:,
@@ -314,7 +246,7 @@ where
 {
     let mut i = 0;
     let fields = const { T::fields::<E>() };
-    let mut tup = encoder.encode_tuple()?;
+    let tup = encoder.encode_tuple()?;
     while i < fields.len() {
         match fields.get(i) {
             SerialSize::Unsized { fields } => {
@@ -337,37 +269,145 @@ where
     Ok(())
 }
 
-pub fn decode2<'de, T: Sized + const SerialDescriptor + Decode<'de>, D: Decoder<'de>>(
-    decoder: D,
+pub enum DecodeCommand<F> {
+    Unsized { offset: usize, function: F },
+    Sized { start: usize, len: usize },
+    Padding,
+}
+
+impl<F> Debug for DecodeCommand<F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Unsized { offset, function } => {
+                f.debug_struct("Unsized").field("offset", offset).finish()
+            }
+            Self::Sized { start, len } => f
+                .debug_struct("Sized")
+                .field("start", start)
+                .field("len", len)
+                .finish(),
+            Self::Padding => write!(f, "Padding"),
+        }
+    }
+}
+
+impl<F> DecodeCommand<F> {
+    pub const fn padding() -> Self {
+        Self::Padding
+    }
+}
+pub const fn collect_functions<
+    'a,
+    T: 'a + const SerialDescriptor + const OffsetAccumlator,
+    D: Decoder,
+>(
+    serial_size: &SerialSize,
+) -> DecodeCommand<&'a dyn UnsafeDecode<D>>
+where
+    [(); T::N]:,
+{
+    match serial_size {
+        SerialSize::Unsized { fields } => DecodeCommand::Unsized {
+            offset: T::acc_offset(fields, fields.len() as Field - 1),
+            function: T::acc_fn::<D>(fields, fields.len() as Field - 1),
+        },
+        SerialSize::Padding(_) => DecodeCommand::Padding,
+        SerialSize::Sized { start, len } => DecodeCommand::Sized {
+            start: *start,
+            len: *len,
+        },
+    }
+}
+
+seq!(N in 0..256 {
+    pub struct FlatVec<T> {
+        len: u16,
+        #(v~N: MaybeUninit<T>,)*
+    }
+
+    impl<T> FlatVec<T> {
+        pub const fn new() -> Self {
+            Self {
+                len: 0,
+                #(v~N: unsafe { MaybeUninit::zeroed().assume_init() },)*
+            }
+        }
+
+        pub const fn get(&self, index: usize) -> &T {
+            match index {
+                #(N => unsafe { self.v~N.assume_init_ref() },)*
+                _ => panic!("Out of index")
+            }
+        }
+
+        pub const fn push(&mut self, new_value: T) {
+            match self.len {
+                #(N => {
+                    self.v~N = MaybeUninit::new(new_value);
+                })*
+                _ => unreachable!()
+            };
+            self.len += 1;
+        }
+
+        pub const fn len(&self) -> usize {
+            self.len as usize
+        }
+    }
+});
+
+pub const fn decode3<
+    'a,
+    T: 'a + const OffsetAccumlator + Sized + const SerialDescriptor,
+    D: 'a + Decoder,
+>() -> FlatVec<DecodeCommand<&'a dyn UnsafeDecode<D>>>
+where
+    [(); T::N]:,
+{
+    let fields = const { T::fields::<D>() };
+    let mut vec = FlatVec::<DecodeCommand<&dyn UnsafeDecode<D>>>::new();
+    let mut i = 0;
+    while i < fields.len() {
+        vec.push(collect_functions::<T, D>(fields.get(i)));
+        i += 1;
+    }
+    vec
+}
+
+pub fn decode2<
+    'a,
+    T: const OffsetAccumlator + Sized + const SerialDescriptor + Decode,
+    D: 'a + Decoder,
+>(
+    decoder: &mut D,
     place: &mut MaybeUninit<T>,
 ) -> Result<(), D::Error>
 where
     [(); T::N]:,
 {
+    let commands = &const { decode3::<T, D>() };
     let mut i = 0;
-    let mut tup = decoder.decode_tuple()?;
-    let fields = const { T::fields::<D>() };
-    let place: &mut T = unsafe { const_transmute(place) };
-    while i < fields.len() {
-        match fields.get(i) {
-            SerialSize::Unsized { fields } => {
-                unsafe { T::decode_field(&mut fields.clone(), place, &mut tup) }?
+    while i < commands.len() {
+        match commands.get(i) {
+            DecodeCommand::Unsized { offset, function } => {
+                function.decode_unsafe(decoder, unsafe {
+                    (&raw mut *place as *mut u8).byte_add(*offset)
+                })?;
             }
-            SerialSize::Padding(_size) => {}
-            SerialSize::Sized { start, len } => {
+            DecodeCommand::Sized { start, len } => {
                 unsafe {
                     let dst =
                         slice::from_raw_parts_mut((&raw mut *place as *mut u8).add(*start), *len);
-                    let src = tup
+                    let src = decoder
                         .read_bytes(*len)
                         .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?;
                     dst.copy_from_slice(src);
                 };
             }
+            DecodeCommand::Padding => {}
         }
         i += 1;
     }
-    tup.end()?;
     Ok(())
 }
 
@@ -485,10 +525,130 @@ pub const fn add_to_fields<T: const SerialDescriptor>(
     fields
 }
 
-impl<T> const SerialDescriptor for T {
-    default const N: usize = 1;
+pub struct SizeCalcState<'a, T: const SerialDescriptor>
+where
+    [(); T::N]:,
+    [(); size_of::<T>()]:,
+{
+    temp: ConstVec<[SerialSize; T::N]>,
+    value: &'a T,
+    cursor: usize,
+    counter: usize,
+    board: [usize; size_of::<T>()],
+}
 
-    default fn fields<C: const CheckPrimitiveTypeSize>() -> ConstVec<[SerialSize; Self::N]> {
-        SerialSize::unsized_field_of()
+impl<'a, T: const SerialDescriptor> SizeCalcState<'a, T>
+where
+    [(); T::N]:,
+    [(); size_of::<T>()]:,
+{
+    const PADDING_ID: usize = usize::MAX;
+
+    pub const fn new(value: &'a T) -> Self {
+        Self {
+            temp: ConstVec::new(0, unsafe { MaybeUninit::zeroed().assume_init() }),
+            value,
+            cursor: 0,
+            counter: 0,
+            board: [Self::PADDING_ID; _],
+        }
+    }
+
+    pub const fn next_field<
+        F: const SerialDescriptor,
+        C: const CheckPrimitiveTypeSize,
+        const FIELD: Field,
+    >(
+        &mut self,
+        field_ptr: &F,
+    ) where
+        [(); T::N]:,
+        [(); <F as SerialDescriptor>::N]:,
+    {
+        let offset = unsafe { (field_ptr as *const F).byte_sub_ptr(self.value as *const T) };
+        let size = size_of::<F>();
+        let mut i = offset;
+        while i < offset + size {
+            self.board[i] = self.counter;
+            i += 1;
+        }
+        self.counter += 1;
+        let slice = const { add_to_fields(<F as SerialDescriptor>::fields::<C>(), FIELD) };
+        self.temp.push(&SerialSize::Padding(slice.len()));
+        self.temp.append(&slice);
+    }
+
+    pub const fn finish(mut self) -> ConstVec<[SerialSize; T::N]>
+    where
+        [(); T::N]:,
+    {
+        let mut result: ConstVec<[SerialSize; T::N]> =
+            ConstVec::new(0, unsafe { MaybeUninit::zeroed().assume_init() });
+        let mut i = 0;
+        while i < self.board.len() {
+            let field_index = self.board[i];
+            if field_index == Self::PADDING_ID {
+                let mut padding = 0;
+                while i < self.board.len() {
+                    let field_index = self.board[i];
+                    if field_index != Self::PADDING_ID {
+                        break;
+                    }
+                    padding += 1;
+                    i += 1;
+                }
+                i -= 1;
+                let v = SerialSize::Padding(padding);
+                result.push(&v);
+            } else {
+                let mut j = 0;
+                let mut k = 0;
+                while j < self.temp.len() {
+                    let v = self.temp.as_slice()[j].clone();
+                    let fields_len = match v {
+                        SerialSize::Padding(size) => size,
+                        _ => unreachable!(),
+                    };
+                    if field_index == k {
+                        j += 1;
+                        let repeat = j + fields_len;
+                        while j < repeat {
+                            //TODO clean up code
+                            const fn serial_sized(start: usize, len: usize) -> SerialSize {
+                                SerialSize::Sized { start, len }
+                            }
+                            const fn aa(serial_size: &SerialSize, adder: usize) -> SerialSize {
+                                match serial_size {
+                                    SerialSize::Sized { start, len } => {
+                                        serial_sized(adder + *start, *len)
+                                    }
+                                    size => size.clone(),
+                                }
+                            }
+                            result.push(&aa(&self.temp.get(j), i));
+                            j += 1;
+                        }
+                        loop {
+                            i += 1;
+                            if i >= self.board.len() || self.board[i] != field_index {
+                                i -= 1;
+                                break;
+                            }
+                        }
+                        break;
+                    } else {
+                        k += 1;
+                        j += fields_len + 1;
+                    }
+                }
+            }
+            i += 1;
+        }
+        let last_padding = size_of::<T>() - self.cursor;
+        if last_padding > 0 {
+            self.temp.push(&SerialSize::Padding(last_padding));
+        }
+        std::mem::forget(self);
+        result
     }
 }

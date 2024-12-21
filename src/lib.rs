@@ -3,6 +3,8 @@
 //TODO fix ArrayVec drop dangerous in impl Decode
 //TODO fix primitive type's encode/decode to call decode2/encode2
 //TODO warnings on proc macro
+//TODO use raw vec on decode Vec<T>
+#![feature(type_alias_impl_trait)]
 #![feature(auto_traits)]
 #![feature(negative_impls)]
 #![feature(raw_vec_internals)]
@@ -41,4 +43,22 @@ pub const unsafe fn const_transmute<A, B>(a: A) -> B {
 
     let a = std::mem::ManuallyDrop::new(a);
     std::mem::ManuallyDrop::into_inner(Union { a }.b)
+}
+
+pub fn is_ascii_simd(v: &[u8]) -> bool {
+    const CHUNK: usize = 128;
+    let chunks_exact = v.chunks_exact(CHUNK);
+    let remainder = chunks_exact.remainder();
+    for chunk in chunks_exact {
+        let mut any = false;
+        for &v in chunk {
+            any |= v & 0x80 != 0;
+        }
+        if any {
+            debug_assert!(!chunk.is_ascii());
+            return false;
+        }
+    }
+    debug_assert!(v[..v.len() - remainder.len()].is_ascii());
+    remainder.is_ascii()
 }

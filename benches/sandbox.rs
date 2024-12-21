@@ -3,15 +3,11 @@
 #![feature(generic_const_exprs)]
 #![feature(specialization)]
 
-use std::{hint::black_box, mem::MaybeUninit, str::FromStr};
+use std::{hint::black_box, marker::PhantomData, mem::MaybeUninit, str::FromStr};
 
-use constvec::ConstVec;
 use divan::{bench, Bencher};
-use fastbuf::{Buf, Buffer, WriteBuf};
-use serialization::{
-    binary_format::{DecodeField, SerialDescriptor},
-    CompositeDecoder, Decode, Decoder, Encode,
-};
+use fastbuf::{Buf, Buffer, ReadBuf, WriteBuf};
+use serialization::{Decode, Encode};
 use serialization_minecraft::{PacketDecoder, PacketEncoder};
 
 #[derive(
@@ -80,10 +76,10 @@ fn model() -> Logs {
                     x2: 33,
                     x3: 44,
                 },
-                identity: String::from_str("ABCD").unwrap(),
-                userid: String::from_str("ABCD").unwrap(),
-                date: String::from_str("ABCD").unwrap(),
-                request: String::from_str("ABCD").unwrap(),
+                identity: String::from_str("asdf").unwrap(),
+                userid: String::from_str("asdf").unwrap(),
+                date: String::from_str("asdf").unwrap(),
+                request: String::from_str("asdf").unwrap(),
                 code: 55,
                 size: 66,
             };
@@ -142,30 +138,46 @@ fn bitcode_decode(bencher: Bencher) {
 
 #[derive(serialization::Serializable, Debug, PartialEq, PartialOrd, Ord, Eq)]
 #[repr(C)]
+#[derive(bitcode::Encode, bitcode::Decode)]
 pub struct AA {
-    value: u32,
     value2: Vec<A2>,
 }
 
 #[derive(serialization::Serializable, Debug, PartialEq, PartialOrd, Ord, Eq)]
 #[repr(C)]
+#[derive(bitcode::Encode, bitcode::Decode)]
 pub struct A2 {
     value: u8,
-    value2: Option<u8>,
-    value3: u16,
 }
 
 #[bench(sample_count = 1000, sample_size = 1000)]
 fn a_test11(bencher: Bencher) {
-    println!("{:?}", AA::fields::<&mut PacketDecoder<&mut Buffer<100>>>());
-    let mut field: AA = unsafe { MaybeUninit::zeroed().assume_init() };
     let mut buf = Buffer::<1000>::new();
-    buf.write(&[1, 22, 1, 33, 00, 44]);
+    let mut enc = PacketEncoder::new(&mut buf);
+    let result = AA {
+        value2: vec![A2 { value: 123 }],
+    }
+    .encode(&mut enc);
+    result.unwrap();
     bencher.bench_local(|| {
-        let mut fields = ConstVec::new(1, [1; _]);
         unsafe { buf.set_pos(0) };
-        let mut decoder = PacketDecoder::new(&mut buf);
-        let mut tup = decoder.decode_tuple().unwrap();
-        black_box(unsafe { AA::decode_field(&mut fields, &mut field, &mut tup) }.unwrap());
+        let mut dec = PacketDecoder::new(&mut buf);
+        let result = AA::decode_placed(&mut dec);
+        result.unwrap();
+    });
+}
+
+#[bench(sample_count = 1000, sample_size = 1000)]
+fn bitcode_vec_u8_decode(bencher: Bencher) {
+    let mut buf = Buffer::<1000>::new();
+    let encoded = bitcode::encode(&AA {
+        value2: vec![A2 { value: 123 }],
+    });
+    buf.write(&encoded);
+    println!("{buf:?}");
+    bencher.bench_local(|| {
+        unsafe { buf.set_pos(0) };
+        let result = bitcode::decode::<AA>(buf.read(buf.remaining()));
+        result.unwrap();
     });
 }

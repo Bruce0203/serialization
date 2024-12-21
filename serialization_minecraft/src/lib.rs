@@ -12,9 +12,9 @@ use concat_idents::concat_idents;
 use fastbuf::Buf;
 use fastvarint::{DecodeVarInt, EncodeVarInt, VarInt};
 use serialization::{
-    const_transmute, BinaryDecoder, BinaryEncoder, CheckPrimitiveTypeSize, CompositeDecoder,
-    CompositeEncoder, Decode, DecodeError, Decoder, Encode, EncodeError, Encoder, EnumIdentifier,
-    Serializable,
+    const_transmute, is_ascii_simd, BinaryDecoder, BinaryEncoder, CheckPrimitiveTypeSize,
+    CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder, Encode, EncodeError, Encoder,
+    EnumIdentifier, Serializable,
 };
 
 #[derive(derive_more::Deref, derive_more::DerefMut)]
@@ -79,7 +79,7 @@ macro_rules! deserialize_num {
     )*};
 }
 
-impl<'a, S: Buf> Encoder for &'a mut PacketEncoder<S> {
+impl<'a, S: Buf> Encoder for PacketEncoder<S> {
     type Error = PacketEncodingError;
     type TupleEncoder = Self;
     type StructEncoder = Self;
@@ -87,7 +87,7 @@ impl<'a, S: Buf> Encoder for &'a mut PacketEncoder<S> {
 
     serialize_num!(u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, usize, isize, i128, u128);
 
-    fn encode_struct(self) -> Result<Self, Self::Error> {
+    fn encode_struct(&mut self) -> Result<&mut Self, Self::Error> {
         Ok(self)
     }
 
@@ -109,12 +109,12 @@ impl<'a, S: Buf> Encoder for &'a mut PacketEncoder<S> {
         self.encode_u8(0)
     }
 
-    fn encode_seq(self, len: usize) -> Result<Self, Self::Error> {
+    fn encode_seq(&mut self, len: usize) -> Result<&mut Self, Self::Error> {
         self.encode_varint(len as i32)?;
         Ok(self)
     }
 
-    fn encode_tuple(self) -> Result<Self, Self::Error> {
+    fn encode_tuple(&mut self) -> Result<&mut Self, Self::Error> {
         Ok(self)
     }
 
@@ -138,14 +138,14 @@ impl<'a, S: Buf> Encoder for &'a mut PacketEncoder<S> {
     }
 }
 
-impl<'a, S: Buf> CompositeEncoder for &'a mut PacketEncoder<S> {
+impl<'a, S: Buf> CompositeEncoder for PacketEncoder<S> {
     type Error = <Self as Encoder>::Error;
 
     fn encode_element<E: Encode>(&mut self, v: &E) -> Result<(), Self::Error> {
-        v.encode(&mut **self)
+        v.encode(self)
     }
 
-    fn end(self) -> Result<(), Self::Error> {
+    fn end(&mut self) -> Result<(), Self::Error> {
         Ok(())
     }
 }
@@ -167,7 +167,10 @@ pub enum PacketDecodingError {
     InvalidEnumKeyIndex,
     NotEnoughBytesInTheBuffer,
     TooLarge,
+    InvalidUtf8,
     Custom,
+    NonMaxButMax,
+    NonZeroButZero,
 }
 
 impl DecodeError for PacketDecodingError {
@@ -190,9 +193,21 @@ impl DecodeError for PacketDecodingError {
     fn custom() -> Self {
         Self::Custom
     }
+
+    fn invalid_utf8() -> Self {
+        Self::InvalidUtf8
+    }
+
+    fn nonmax_but_max() -> Self {
+        Self::NonMaxButMax
+    }
+
+    fn nonzero_but_zero() -> Self {
+        Self::NonZeroButZero
+    }
 }
 
-impl<'de, T: Buf> Decoder<'de> for &mut PacketDecoder<T> {
+impl<T: Buf> Decoder for PacketDecoder<T> {
     type Error = PacketDecodingError;
 
     type TupleDecoder = Self;
@@ -201,15 +216,15 @@ impl<'de, T: Buf> Decoder<'de> for &mut PacketDecoder<T> {
 
     deserialize_num!(u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, usize, isize, i128, u128);
 
-    fn decode_tuple(self) -> Result<Self::TupleDecoder, Self::Error> {
+    fn decode_tuple(&mut self) -> Result<&mut PacketDecoder<T>, PacketDecodingError> {
         Ok(self)
     }
 
-    fn decode_struct(self) -> Result<Self::StructDecoder, Self::Error> {
+    fn decode_struct(&mut self) -> Result<&mut PacketDecoder<T>, PacketDecodingError> {
         Ok(self)
     }
 
-    fn decode_seq(self) -> Result<Self::SequenceDecoder, Self::Error> {
+    fn decode_seq(&mut self) -> Result<&mut PacketDecoder<T>, PacketDecodingError> {
         Ok(self)
     }
 
@@ -228,16 +243,27 @@ impl<'de, T: Buf> Decoder<'de> for &mut PacketDecoder<T> {
     }
 
     fn decode_bool(&mut self, place: &mut MaybeUninit<bool>) -> Result<(), Self::Error> {
-        self.decode_u8(unsafe { const_transmute(place) })
+        let place: &mut MaybeUninit<u8> = unsafe { const_transmute(place) };
+        self.decode_u8(place)?;
+        if unsafe { const_transmute::<_, u8>(*place) } > 1 {
+            *place = MaybeUninit::new(1);
+        } else {
+        }
+        Ok(())
     }
 
-    fn decode_str(&mut self, place: &mut MaybeUninit<&'de str>) -> Result<(), Self::Error> {
+    fn decode_str(&mut self, place: &mut MaybeUninit<&str>) -> Result<(), Self::Error> {
         let len = self.decode_seq_len()?;
         let read = self.buffer.read(len);
         if read.len() != len {
             Err(DecodeError::not_enough_bytes_in_the_buffer())?;
         }
-        *place = MaybeUninit::new(unsafe { std::str::from_raw_parts(read.as_ptr(), len) });
+        if !is_ascii_simd(read) {
+            return Err(DecodeError::invalid_utf8());
+        }
+        *place = MaybeUninit::new(unsafe {
+            std::str::from_utf8_unchecked(std::slice::from_raw_parts(read.as_ptr(), len))
+        });
         Ok(())
     }
 
@@ -256,23 +282,20 @@ impl<'de, T: Buf> Decoder<'de> for &mut PacketDecoder<T> {
     }
 }
 
-impl<'de, S: Buf> CompositeDecoder<'de> for &mut PacketDecoder<S> {
+impl<S: Buf> CompositeDecoder for PacketDecoder<S> {
     type Error = PacketDecodingError;
 
-    fn decode_element<D: Decode<'de>>(
-        &mut self,
-        place: &mut MaybeUninit<D>,
-    ) -> Result<(), Self::Error> {
-        D::decode(&mut **self, place)
+    fn decode_element<D: Decode>(&mut self, place: &mut MaybeUninit<D>) -> Result<(), Self::Error> {
+        D::decode(&mut *self, place)
     }
 
-    fn end(self) -> Result<(), Self::Error> {
+    fn end(&mut self) -> Result<(), Self::Error> {
         Ok(())
     }
 }
 
 impl<S: Buf> PacketDecoder<S> {
-    fn decode_varint(&mut self) -> Result<usize, <&mut Self as Decoder>::Error> {
+    fn decode_varint(&mut self) -> Result<usize, <Self as Decoder>::Error> {
         let buf = self.buffer.get_continuous(self.buffer.remaining());
         let (len, read_len) = fastvarint::VarInt::decode_var_int::<_, &'static str>(|index| {
             Ok(buf.get(index).map(|v| *v))
@@ -292,7 +315,7 @@ impl<S: Buf> PacketDecoder<S> {
 }
 
 impl<S: Buf> PacketEncoder<S> {
-    fn encode_varint(&mut self, v: i32) -> Result<(), <&mut Self as Encoder>::Error> {
+    fn encode_varint(&mut self, v: i32) -> Result<(), <Self as Encoder>::Error> {
         VarInt::from(v)
             .encode_var_int(|v| self.buffer.try_write(v))
             .map_err(|()| PacketEncodingError::FullOfCapacityInBuffer)?;
@@ -314,20 +337,20 @@ const fn is_sized<T: 'static>() -> bool {
 }
 
 #[cfg(feature = "fast_binary_format")]
-impl<S> const CheckPrimitiveTypeSize for &mut PacketEncoder<S> {
+impl<S> const CheckPrimitiveTypeSize for PacketEncoder<S> {
     fn is_sized<T: 'static>() -> bool {
         is_sized::<T>()
     }
 }
 
 #[cfg(feature = "fast_binary_format")]
-impl<S> const CheckPrimitiveTypeSize for &mut PacketDecoder<S> {
+impl<S> const CheckPrimitiveTypeSize for PacketDecoder<S> {
     fn is_sized<T: 'static>() -> bool {
         is_sized::<T>()
     }
 }
 
-impl<S: Buf> BinaryEncoder for &mut PacketEncoder<S> {
+impl<S: Buf> BinaryEncoder for PacketEncoder<S> {
     fn skip_bytes(&mut self, len: usize) {
         unsafe { self.buffer.set_filled_pos(self.filled_pos() + len) };
     }
@@ -337,7 +360,7 @@ impl<S: Buf> BinaryEncoder for &mut PacketEncoder<S> {
     }
 }
 
-impl<S: Buf> BinaryDecoder for &mut PacketDecoder<S> {
+impl<S: Buf> BinaryDecoder for PacketDecoder<S> {
     fn skip_bytes(&mut self, len: usize) {
         self.buffer.advance(len);
     }

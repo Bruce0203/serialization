@@ -48,7 +48,7 @@ pub struct Address {
 
 #[test]
 fn testing() {
-    type D = &'static mut PacketDecoder<&'static mut Buffer<100>>;
+    type D = PacketDecoder<&'static mut Buffer<100>>;
     println!("logs {:?}", Logs::fields::<D>());
     println!("log {:?}", Log::fields::<D>());
     println!("address {:?}", Address::fields::<D>());

@@ -1,4 +1,4 @@
-use std::mem::MaybeUninit;
+use std::mem::{ManuallyDrop, MaybeUninit};
 
 use concat_idents_bruce0203::concat_idents;
 
@@ -20,14 +20,14 @@ pub trait BinaryDecoder {
 }
 
 pub trait Encode {
-    fn encode<E: Encoder>(&self, encoder: E) -> Result<(), E::Error>;
+    fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error>;
 }
 
-pub trait Decode<'de>: Sized {
-    fn decode<D: Decoder<'de>>(decoder: D, place: &mut MaybeUninit<Self>) -> Result<(), D::Error>;
+pub trait Decode: Sized {
+    fn decode<D: Decoder>(decoder: &mut D, place: &mut MaybeUninit<Self>) -> Result<(), D::Error>;
 
-    fn decode_placed<D: Decoder<'de>>(decoder: D) -> Result<Self, D::Error> {
-        let mut place = unsafe { MaybeUninit::uninit().assume_init() };
+    fn decode_placed<D: Decoder>(decoder: &mut D) -> Result<Self, D::Error> {
+        let mut place: MaybeUninit<Self> = unsafe { MaybeUninit::uninit().assume_init() };
         Self::decode(decoder, &mut place)?;
         Ok(unsafe { place.assume_init() })
     }
@@ -36,7 +36,7 @@ pub trait Decode<'de>: Sized {
 pub trait CompositeEncoder: BinaryEncoder {
     type Error;
     fn encode_element<E: Encode>(&mut self, v: &E) -> Result<(), Self::Error>;
-    fn end(self) -> Result<(), Self::Error>;
+    fn end(&mut self) -> Result<(), Self::Error>;
 }
 
 macro_rules! encode_value {
@@ -68,9 +68,9 @@ macro_rules! declare_encoder_supertrait {
                 bool, u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, usize, isize, f32, f64
             );
 
-            fn encode_tuple(self) -> Result<Self::TupleEncoder, Self::Error>;
-            fn encode_struct(self) -> Result<Self::StructEncoder, Self::Error>;
-            fn encode_seq(self, len: usize) -> Result<Self::SequenceEncoder, Self::Error>;
+            fn encode_tuple(&mut self) -> Result<&mut Self::TupleEncoder, Self::Error>;
+            fn encode_struct(&mut self) -> Result<&mut Self::StructEncoder, Self::Error>;
+            fn encode_seq(&mut self, len: usize) -> Result<&mut Self::SequenceEncoder, Self::Error>;
 
             fn encode_enum_variant_key(
                 &mut self,
@@ -93,13 +93,10 @@ declare_encoder_supertrait!(CheckPrimitiveTypeSize);
 #[cfg(not(feature = "fast_binary_format"))]
 declare_encoder_supertrait!();
 
-pub trait CompositeDecoder<'de>: BinaryDecoder + Sized {
+pub trait CompositeDecoder: BinaryDecoder + Sized {
     type Error;
-    fn decode_element<D: Decode<'de>>(
-        &mut self,
-        place: &mut MaybeUninit<D>,
-    ) -> Result<(), Self::Error>;
-    fn end(self) -> Result<(), Self::Error>;
+    fn decode_element<D: Decode>(&mut self, place: &mut MaybeUninit<D>) -> Result<(), Self::Error>;
+    fn end(&mut self) -> Result<(), Self::Error>;
 }
 
 pub enum EnumIdentifier {
@@ -119,26 +116,29 @@ pub trait DecodeError {
     fn invalid_enum_variant_name() -> Self;
     fn invalid_enum_variant_index() -> Self;
     fn custom() -> Self;
+    fn invalid_utf8() -> Self;
+    fn nonmax_but_max() -> Self;
+    fn nonzero_but_zero() -> Self;
 }
 
 macro_rules! declare_decoder_supertrait {
     ($($value:ident),*) => {
         #[cfg_attr(feature = "fast_binary_format", const_trait)]
-        pub trait Decoder<'de>: Sized + BinaryDecoder $(+ const $value)* {
+        pub trait Decoder: Sized + BinaryDecoder $(+ const $value)* {
             type Error: DecodeError;
-            type TupleDecoder: CompositeDecoder<'de, Error = Self::Error>;
-            type StructDecoder: CompositeDecoder<'de, Error = Self::Error>;
-            type SequenceDecoder: CompositeDecoder<'de, Error = Self::Error>;
+            type TupleDecoder: CompositeDecoder< Error = Self::Error>;
+            type StructDecoder: CompositeDecoder< Error = Self::Error>;
+            type SequenceDecoder: CompositeDecoder< Error = Self::Error>;
 
             decode_value!(bool, u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, usize, isize, f32, f64);
 
-            fn decode_str(&mut self, place: &mut MaybeUninit<&'de str>) -> Result<(), Self::Error>;
+            fn decode_str(&mut self, place: &mut MaybeUninit<& str>) -> Result<(), Self::Error>;
             fn decode_bytes(&mut self) -> Result<&[u8], Self::Error>;
             fn decode_var_i32(&mut self, place: &mut MaybeUninit<i32>) -> Result<(), Self::Error>;
 
-            fn decode_tuple(self) -> Result<Self::TupleDecoder, Self::Error>;
-            fn decode_struct(self) -> Result<Self::StructDecoder, Self::Error>;
-            fn decode_seq(self) -> Result<Self::SequenceDecoder, Self::Error>;
+            fn decode_tuple(&mut self) -> Result<&mut Self::TupleDecoder, Self::Error>;
+            fn decode_struct(&mut self) -> Result<&mut Self::StructDecoder, Self::Error>;
+            fn decode_seq(&mut self) -> Result<&mut Self::SequenceDecoder, Self::Error>;
 
             fn decode_seq_len(&mut self) -> Result<usize, Self::Error>;
             fn decode_enum(&mut self, enum_name: &'static str) -> Result<EnumIdentifier, Self::Error>;

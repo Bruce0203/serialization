@@ -8,6 +8,7 @@ use std::str::FromStr;
 use fastbuf::Buffer;
 use serialization_minecraft::PacketEncoder;
 
+
 #[repr(C)]
 #[derive(Debug, serialization::Serializable, PartialEq, PartialOrd, Ord, Eq)]
 pub struct TestA {
@@ -15,6 +16,7 @@ pub struct TestA {
     value2: String,
 }
 
+#[repr(C)]
 #[derive(Debug, serialization::Serializable, PartialEq, PartialOrd, Ord, Eq, Clone)]
 struct Foo {
     value2: String,
@@ -37,15 +39,18 @@ fn testA() {
                 value: 123,
                 value2: unsafe { String::from_str("bruce").unwrap() }
             };
-            10
+            1
         ],
         value2: String::from_str("ABCD").unwrap(),
     };
     serialization::Encode::encode(&value, &mut enc).unwrap();
     // println!("{:?}", &buf);
     // println!("{:?}", buf.remaining());
+    println!("{:?}", buf);
     let mut dec = serialization_minecraft::PacketDecoder::new(&mut buf);
-    let decoded = <T as serialization::Decode>::decode_placed(&mut dec).unwrap();
+    let decoded = <T as serialization::Decode>::decode_placed(&mut dec);
+    println!("{:?}", buf);
+    let decoded = decoded.unwrap();
     // println!("{:?}", &decoded.value5);
     // println!("{:?}", decoded);
     assert_eq!(decoded, value);
