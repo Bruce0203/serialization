@@ -113,11 +113,9 @@ fn encode(bencher: Bencher) {
     let mut buf = Buffer::<1000000>::new();
     let model = &model();
     bencher.bench_local(|| {
-        for _i in 0..100 {
-            let mut enc = PacketEncoder::new(&mut buf);
-            black_box(&model.encode(&mut enc).unwrap());
-            unsafe { buf.set_filled_pos(0) };
-        }
+        let mut enc = PacketEncoder::new(&mut buf);
+        black_box(&model.encode(&mut enc).unwrap());
+        unsafe { buf.set_filled_pos(0) };
     });
 }
 
@@ -128,11 +126,9 @@ fn decode(bencher: Bencher) {
     let model = &model();
     black_box(model.encode(&mut enc)).unwrap();
     bencher.bench_local(|| {
-        for _i in 0..100 {
-            let mut dec = PacketDecoder::new(&mut buf);
-            black_box(&Model::decode_placed(&mut dec).unwrap());
-            unsafe { buf.set_pos(0) };
-        }
+        let mut dec = PacketDecoder::new(&mut buf);
+        black_box(&Model::decode_placed(&mut dec).unwrap());
+        unsafe { buf.set_pos(0) };
     });
 }
 
@@ -145,9 +141,7 @@ fn bitcode_encode(bencher: Bencher) {
     let mut buf = bitcode::Buffer::default();
     let model = &model();
     bencher.bench_local(|| {
-        for _i in 0..100 {
-            black_box(&buf.encode(model));
-        }
+        black_box(&buf.encode(model));
     });
 }
 
@@ -158,9 +152,7 @@ fn bitcode_decode(bencher: Bencher) {
     let bytes = bitcode::encode(&model);
     let bytes = bytes.as_slice();
     bencher.bench_local(|| {
-        for _i in 0..100 {
-            black_box(&buf.decode::<Model>(bytes).unwrap());
-        }
+        black_box(&buf.decode::<Model>(bytes).unwrap());
     });
 }
 
