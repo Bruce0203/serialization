@@ -102,7 +102,7 @@ fn model() -> Logs {
 }
 
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
-fn encode(bencher: Bencher) {
+fn encode_serialization(bencher: Bencher) {
     let mut buf = Buffer::<1000000>::new();
     let model = &model();
     bencher.bench_local(|| {
@@ -113,7 +113,7 @@ fn encode(bencher: Bencher) {
 }
 
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
-fn decode(bencher: Bencher) {
+fn decode_serialization(bencher: Bencher) {
     let mut buf = Buffer::<1000000>::new();
     let mut enc = PacketEncoder::new(&mut buf);
     let model = &model();
@@ -130,7 +130,7 @@ fn main() {
 }
 
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
-fn bitcode_encode(bencher: Bencher) {
+fn encode_bitcode(bencher: Bencher) {
     let mut buf = bitcode::Buffer::default();
     let model = &model();
     bencher.bench_local(|| {
@@ -139,7 +139,7 @@ fn bitcode_encode(bencher: Bencher) {
 }
 
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
-fn bitcode_decode(bencher: Bencher) {
+fn decode_bitcode(bencher: Bencher) {
     let mut buf = bitcode::Buffer::default();
     let model = model();
     let bytes = bitcode::encode(&model);
@@ -163,25 +163,9 @@ pub struct A2 {
     value: u8,
 }
 
-#[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
-fn a_test11(bencher: Bencher) {
-    let mut buf = Buffer::<1000>::new();
-    let mut enc = PacketEncoder::new(&mut buf);
-    let result = AA {
-        value2: vec![A2 { value: 123 }],
-    }
-    .encode(&mut enc);
-    result.unwrap();
-    bencher.bench_local(|| {
-        unsafe { buf.set_pos(0) };
-        let mut dec = PacketDecoder::new(&mut buf);
-        let result = AA::decode_placed(&mut dec);
-        result.unwrap();
-    });
-}
 
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
-fn rkyv_encode(bencher: Bencher) {
+fn encode_rkyv(bencher: Bencher) {
     let model = &model();
     bencher.bench_local(|| {
         black_box(&rkyv::to_bytes::<rancor::Error>(black_box(model)).unwrap());
@@ -189,7 +173,7 @@ fn rkyv_encode(bencher: Bencher) {
 }
 
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
-fn rkyv_decode(bencher: Bencher) {
+fn decode_rkyv(bencher: Bencher) {
     let bytes = black_box(rkyv::to_bytes::<rancor::Error>(black_box(&model())).unwrap());
     let bytes = bytes.as_slice();
     bencher.bench_local(|| {
