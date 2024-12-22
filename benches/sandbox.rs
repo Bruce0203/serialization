@@ -13,7 +13,7 @@ use serialization_minecraft::{PacketDecoder, PacketEncoder};
 const SAMPLE_COUNT: u32 = 1000;
 const SAMPLE_SIZE: u32 = 1000;
 
-#[derive(serde::Serialize, serde::Deserialize, bitcode::Decode, bitcode::Encode)]
+#[derive(bitcode::Decode, bitcode::Encode)]
 enum A {
     A,
     B,
@@ -31,6 +31,9 @@ enum A {
     Clone,
     bitcode::Decode,
     bitcode::Encode,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    rkyv::Archive,
 )]
 pub struct Log {
     pub address: Address,
@@ -43,6 +46,9 @@ pub struct Log {
 }
 
 #[derive(
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    rkyv::Archive,
     bitcode::Decode,
     bitcode::Encode,
     Debug,
@@ -58,6 +64,9 @@ pub struct Logs {
 }
 
 #[derive(
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    rkyv::Archive,
     Debug,
     serialization::Serializable,
     PartialEq,
@@ -101,25 +110,29 @@ fn model() -> Logs {
 
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
 fn encode(bencher: Bencher) {
-    let mut buf = Buffer::<1000>::new();
+    let mut buf = Buffer::<1000000>::new();
     let model = &model();
     bencher.bench_local(|| {
-        let mut enc = PacketEncoder::new(&mut buf);
-        black_box(&model.encode(&mut enc).unwrap());
-        unsafe { buf.set_filled_pos(0) };
+        for _i in 0..100 {
+            let mut enc = PacketEncoder::new(&mut buf);
+            black_box(&model.encode(&mut enc).unwrap());
+            unsafe { buf.set_filled_pos(0) };
+        }
     });
 }
 
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
 fn decode(bencher: Bencher) {
-    let mut buf = Buffer::<1000>::new();
+    let mut buf = Buffer::<1000000>::new();
     let mut enc = PacketEncoder::new(&mut buf);
     let model = &model();
     black_box(model.encode(&mut enc)).unwrap();
     bencher.bench_local(|| {
-        let mut dec = PacketDecoder::new(&mut buf);
-        black_box(&Model::decode_placed(&mut dec).unwrap());
-        unsafe { buf.set_pos(0) };
+        for _i in 0..100 {
+            let mut dec = PacketDecoder::new(&mut buf);
+            black_box(&Model::decode_placed(&mut dec).unwrap());
+            unsafe { buf.set_pos(0) };
+        }
     });
 }
 
@@ -132,7 +145,9 @@ fn bitcode_encode(bencher: Bencher) {
     let mut buf = bitcode::Buffer::default();
     let model = &model();
     bencher.bench_local(|| {
-        black_box(&buf.encode(model));
+        for _i in 0..100 {
+            black_box(&buf.encode(model));
+        }
     });
 }
 
@@ -143,7 +158,9 @@ fn bitcode_decode(bencher: Bencher) {
     let bytes = bitcode::encode(&model);
     let bytes = bytes.as_slice();
     bencher.bench_local(|| {
-        black_box(&buf.decode::<Model>(bytes).unwrap());
+        for _i in 0..100 {
+            black_box(&buf.decode::<Model>(bytes).unwrap());
+        }
     });
 }
 
@@ -175,6 +192,13 @@ fn a_test11(bencher: Bencher) {
         let mut dec = PacketDecoder::new(&mut buf);
         let result = AA::decode_placed(&mut dec);
         result.unwrap();
+    });
+}
+
+#[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
+fn rkyv_encode(bencher: Bencher) {
+    bencher.bench_local(|| {
+        let bytes = rkyv::to_bytes(&model());
     });
 }
 
