@@ -124,6 +124,25 @@ fn decode_serialization(bencher: Bencher) {
         unsafe { buf.set_pos(0) };
     });
 }
+#[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
+fn encode_bitcode(bencher: Bencher) {
+    let mut buf = bitcode::Buffer::default();
+    let model = &model();
+    bencher.bench_local(|| {
+        black_box(&buf.encode(model));
+    });
+}
+
+#[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
+fn decode_bitcode(bencher: Bencher) {
+    let mut buf = bitcode::Buffer::default();
+    let model = model();
+    let bytes = bitcode::encode(&model);
+    let bytes = bytes.as_slice();
+    bencher.bench_local(|| {
+        black_box(&buf.decode::<Model>(bytes).unwrap());
+    });
+}
 
 fn main() {
     divan::main();
