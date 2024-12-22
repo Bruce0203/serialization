@@ -288,36 +288,8 @@ fn impl_encode_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
                 }
         }
     };
-    #[cfg(not(feature = "fast_binary_format"))]
-    let part2 = quote! {};
-    #[cfg(feature = "fast_binary_format")]
-    let part2 = {
-        if has_type_generic(&item_struct.generics.params) {
-            return part1;
-        }
-        let generic_params = generic_params_with_bounds(&item_struct.generics, || {
-            parse_quote! { serialization::binary_format::EncodeField + serialization::Encode }
-        });
-        let indexes = (0..fields.len()).collect::<Vec<_>>();
-        quote! {
-        impl<#(#generic_params),*> serialization::binary_format::EncodeField
-            for #struct_name<#(#generic_params_without_bounds),*> #generic_where_clause {
-            fn encode_field<_E: serialization::Encoder>(
-                &self,
-                fields: &mut serialization::binary_format::Fields,
-                encoder: &mut _E,
-            ) -> Result<(), _E::Error> {
-                match if fields.len() == 0 { 0 } else { *fields.pop_last() as usize } {
-                    #(#indexes => #fields.encode_field(fields, encoder),)*
-                    _ => Ok(()),
-                }
-            }
-        }
-        }
-    };
     quote! {
         #part1
-        #part2
     }
 }
 

@@ -8,7 +8,6 @@ use std::str::FromStr;
 use fastbuf::Buffer;
 use serialization_minecraft::PacketEncoder;
 
-
 #[repr(C)]
 #[derive(Debug, serialization::Serializable, PartialEq, PartialOrd, Ord, Eq)]
 pub struct TestA {

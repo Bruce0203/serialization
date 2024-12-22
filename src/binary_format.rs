@@ -13,13 +13,6 @@ use crate::{
     const_transmute, CheckPrimitiveTypeSize, Decode, DecodeError, Decoder, Encode, EncodeError,
     Encoder,
 };
-pub trait EncodeField: Encode {
-    fn encode_field<E: Encoder>(
-        &self,
-        field_indexes: &mut Fields,
-        encoder: &mut E,
-    ) -> Result<(), E::Error>;
-}
 
 #[const_trait]
 pub trait OffsetAccumlator: Decode + Encode {
@@ -253,16 +246,6 @@ impl const ConstEq for SerialSize {
     }
 }
 
-impl<T: Encode> EncodeField for T {
-    default fn encode_field<E: Encoder>(
-        &self,
-        _field_indexes: &mut Fields,
-        encoder: &mut E,
-    ) -> Result<(), E::Error> {
-        self.encode(encoder)
-    }
-}
-
 macro_rules! impl_serial_descriptor {
     ($($type:ty),*) => {$(
         impl const SerialDescriptor for $type {
@@ -280,28 +263,6 @@ macro_rules! impl_serial_descriptor {
 
 impl_serial_descriptor!(u8, i8, u16, i16, u32, i32, u64, i64, f32, f64, usize, isize, i128, u128);
 
-pub struct WritableField<'a, T: EncodeField> {
-    value: &'a T,
-    fields: &'a Fields,
-}
-
-impl<'a, T: EncodeField> Encode for WritableField<'a, T> {
-    fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
-        self.value.encode_field(&mut self.fields.clone(), encoder)
-    }
-}
-
-pub struct WritingBytes<'a>(&'a [u8]);
-
-impl Encode for WritingBytes<'_> {
-    fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
-        encoder
-            .write_bytes(self.0)
-            .map_err(|()| EncodeError::not_enough_bytes_in_the_buffer())?;
-        Ok(())
-    }
-}
-
 pub fn encode2<T: const OffsetAccumlator + const SerialDescriptor + Encode, E: Encoder>(
     value: &T,
     encoder: &mut E,
@@ -316,14 +277,16 @@ where
         match commands.get(i) {
             SerialCommand::Unsized { offset, function } => {
                 function.encode_unsafe(encoder, unsafe {
-                    (value as *const _ as *const u8).byte_add(*offset)
+                    (value as *const _ as *const u8).wrapping_add(*offset)
                 })?;
             }
             SerialCommand::Sized { start, len } => {
                 let slice: *const u8 = unsafe { transmute(value) };
-                let ptr = unsafe { slice.byte_add(*start) };
+                let ptr = unsafe { slice.wrapping_add(*start) };
                 let value = unsafe { slice::from_raw_parts(ptr, *len) };
-                WritingBytes(value).encode(encoder)?;
+                encoder
+                    .write_bytes(value)
+                    .map_err(|()| EncodeError::not_enough_bytes_in_the_buffer())?;
             }
             SerialCommand::Padding => {}
         }
@@ -486,14 +449,16 @@ where
     while i < commands.len() {
         match commands.get(i) {
             SerialCommand::Unsized { offset, function } => {
-                function.decode_unsafe(decoder, unsafe {
-                    (&raw mut *place as *mut u8).byte_add(*offset)
+                function.decode_unsafe(decoder, {
+                    (&raw mut *place as *mut u8).wrapping_add(*offset)
                 })?;
             }
             SerialCommand::Sized { start, len } => {
                 unsafe {
-                    let dst =
-                        slice::from_raw_parts_mut((&raw mut *place as *mut u8).add(*start), *len);
+                    let dst = slice::from_raw_parts_mut(
+                        (&raw mut *place as *mut u8).wrapping_add(*start),
+                        *len,
+                    );
                     let src = decoder
                         .read_bytes(*len)
                         .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?;

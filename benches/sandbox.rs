@@ -3,16 +3,23 @@
 #![feature(generic_const_exprs)]
 #![feature(specialization)]
 
-use std::{hint::black_box, marker::PhantomData, mem::MaybeUninit, str::FromStr};
+use std::{hint::black_box, str::FromStr};
 
 use divan::{bench, Bencher};
-use fastbuf::{Buf, Buffer, ReadBuf, WriteBuf};
-use fastvarint::{EncodeVarInt, VarInt};
+use fastbuf::{Buf, Buffer};
 use serialization::{Decode, Encode};
 use serialization_minecraft::{PacketDecoder, PacketEncoder};
 
 const SAMPLE_COUNT: u32 = 1000;
 const SAMPLE_SIZE: u32 = 1000;
+
+#[derive(serde::Serialize, serde::Deserialize, bitcode::Decode, bitcode::Encode)]
+enum A {
+    A,
+    B,
+    C,
+    D,
+}
 
 #[derive(
     Debug,
@@ -183,4 +190,9 @@ fn asdfwqer(bencher: Bencher) {
         .encode(&mut enc);
         result.unwrap();
     });
+}
+
+#[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
+fn aaaaaaa1() {
+    let encoded = black_box(&bitcode::encode::<u32>(black_box(&123_u32)));
 }

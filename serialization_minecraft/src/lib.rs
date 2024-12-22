@@ -12,9 +12,9 @@ use concat_idents::concat_idents;
 use fastbuf::Buf;
 use fastvarint::{DecodeVarInt, EncodeVarInt, VarInt};
 use serialization::{
-    const_transmute, is_ascii_simd, BinaryDecoder, BinaryEncoder, CheckPrimitiveTypeSize,
-    CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder, Encode, EncodeError, Encoder,
-    EnumIdentifier, Serializable,
+    const_transmute, BinaryDecoder, BinaryEncoder, CheckPrimitiveTypeSize, CompositeDecoder,
+    CompositeEncoder, Decode, DecodeError, Decoder, Encode, EncodeError, Encoder, EnumIdentifier,
+    Serializable,
 };
 
 #[derive(derive_more::Deref, derive_more::DerefMut)]
@@ -258,11 +258,9 @@ impl<T: Buf> Decoder for PacketDecoder<T> {
         if read.len() != len {
             Err(DecodeError::not_enough_bytes_in_the_buffer())?;
         }
-        if !is_ascii_simd(read) {
-            return Err(DecodeError::invalid_utf8());
-        }
         *place = MaybeUninit::new(unsafe {
-            std::str::from_utf8_unchecked(std::slice::from_raw_parts(read.as_ptr(), len))
+            std::str::from_utf8(std::slice::from_raw_parts(read.as_ptr(), len))
+                .map_err(|_err| DecodeError::invalid_utf8())?
         });
         Ok(())
     }

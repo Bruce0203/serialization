@@ -1,5 +1,6 @@
 use core::slice;
 use std::{
+    alloc::{Allocator, Global, Layout},
     marker::PhantomData,
     mem::{ManuallyDrop, MaybeUninit},
 };
@@ -9,8 +10,8 @@ use nonmax::*;
 use seq_macro::seq;
 
 use crate::{
-    const_transmute, is_ascii_simd, BinaryDecoder, BinaryEncoder, CompositeDecoder,
-    CompositeEncoder, Decode, DecodeError, Decoder, Encode, EncodeError, Encoder,
+    const_transmute, BinaryDecoder, BinaryEncoder, CompositeDecoder, CompositeEncoder, Decode,
+    DecodeError, Decoder, Encode, EncodeError, Encoder,
 };
 
 macro_rules! serialize_num {
@@ -116,7 +117,7 @@ impl<T: Decode> Decode for Option<T> {
         if decoder.decode_is_some()? {
             unsafe {
                 *(place.assume_init_mut() as *mut _ as *mut u8)
-                    .byte_add(get_option_offset_of::<T>()) = 1
+                    .wrapping_add(get_option_offset_of::<T>()) = 1
             };
 
             let value_place =
@@ -149,7 +150,7 @@ impl<T: Decode, Error: Decode> Decode for Result<T, Error> {
         if decoder.decode_is_some()? {
             unsafe {
                 *(place.assume_init_mut() as *mut _ as *mut u8)
-                    .byte_add(get_result_offset_of::<T, Error>()) = 1
+                    .wrapping_add(get_result_offset_of::<T, Error>()) = 1
             };
             let value_place =
                 unsafe { const_transmute(place.assume_init_mut().as_mut().unwrap_unchecked()) };
@@ -195,15 +196,15 @@ impl<T: Decode> Decode for Vec<T> {
     ) -> Result<(), D::Error> {
         let len = decoder.decode_seq_len()?;
         let seq = decoder.decode_seq()?;
-        let mut vec: MaybeUninit<Vec<T>> = MaybeUninit::new(Vec::with_capacity(len));
-        let ptr = unsafe { vec.assume_init_mut() }.as_mut_ptr().clone();
-        unsafe { vec.assume_init_mut().set_len(len) };
-        *place = vec;
+        let mut vec: Vec<T> = Vec::with_capacity(len);
+        let ptr = vec.as_mut_ptr();
         for i in 0..len {
-            let value_place: &mut MaybeUninit<T> = unsafe { const_transmute(ptr.add(i)) };
+            let value_place: &mut MaybeUninit<T> = unsafe { const_transmute(ptr.wrapping_add(i)) };
             seq.decode_element(value_place)?;
         }
         seq.end()?;
+        unsafe { vec.set_len(len) };
+        *place = MaybeUninit::new(vec);
         Ok(())
     }
 }
@@ -215,10 +216,8 @@ impl Decode for Vec<u8> {
     ) -> Result<(), D::Error> {
         let len = decoder.decode_seq_len()?;
         let seq = decoder.decode_seq()?;
-        let mut vec = MaybeUninit::new(Vec::with_capacity(len));
-        let ptr = unsafe { vec.assume_init_mut() }.as_mut_ptr();
-        unsafe { vec.assume_init_mut().set_len(len) };
-        *place = vec;
+        let mut vec = Vec::with_capacity(len);
+        let ptr = vec.as_mut_ptr();
         unsafe {
             let src = seq
                 .read_bytes(len)
@@ -227,6 +226,8 @@ impl Decode for Vec<u8> {
             slice::from_raw_parts_mut(ptr as *mut _ as *mut u8, len).copy_from_slice(src);
         };
         seq.end()?;
+        unsafe { vec.set_len(len) };
+        *place = MaybeUninit::new(vec);
         Ok(())
     }
 }
@@ -405,10 +406,18 @@ impl Encode for String {
 impl Decode for String {
     fn decode<D: Decoder>(decoder: &mut D, place: &mut MaybeUninit<Self>) -> Result<(), D::Error> {
         let place: &mut MaybeUninit<Vec<u8>> = unsafe { const_transmute(place) };
-        Vec::<u8>::decode(decoder, place)?;
-        if !is_ascii_simd(unsafe { place.assume_init_ref() }.as_slice()) {
-            return Err(DecodeError::invalid_utf8());
-        }
+        let len = decoder.decode_seq_len()?;
+        let seq = decoder.decode_seq()?;
+        let mut vec: Vec<u8> = Vec::with_capacity(len);
+        let ptr = vec.as_mut_ptr();
+        let bytes = seq
+            .read_bytes(len)
+            .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?;
+        simdutf8::compat::from_utf8(bytes).map_err(|_err| DecodeError::invalid_utf8())?;
+        unsafe { slice::from_raw_parts_mut(ptr, len).copy_from_slice(bytes) };
+        seq.end()?;
+        unsafe { vec.set_len(len) };
+        *place = MaybeUninit::new(vec);
         Ok(())
     }
 }
