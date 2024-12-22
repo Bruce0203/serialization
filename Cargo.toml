@@ -34,7 +34,6 @@ uuid = { version = "1.11.0", optional = true }
 fastvarint = { version = "0.22.0", optional = true }
 nonmax = { version = "0.5.5", optional = true }
 constvec = "0.1.14"
-serde = { version = "1.0.216", features = ["derive"] }
 simdutf8 = { version = "0.1.5", features = [] }
 
 [dev-dependencies]
