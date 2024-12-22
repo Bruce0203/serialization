@@ -7,19 +7,12 @@ use std::{hint::black_box, str::FromStr};
 
 use divan::{bench, Bencher};
 use fastbuf::{Buf, Buffer};
+use rkyv::rancor;
 use serialization::{Decode, Encode};
 use serialization_minecraft::{PacketDecoder, PacketEncoder};
 
 const SAMPLE_COUNT: u32 = 1000;
 const SAMPLE_SIZE: u32 = 1000;
-
-#[derive(bitcode::Decode, bitcode::Encode)]
-enum A {
-    A,
-    B,
-    C,
-    D,
-}
 
 #[derive(
     Debug,
@@ -189,26 +182,17 @@ fn a_test11(bencher: Bencher) {
 
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
 fn rkyv_encode(bencher: Bencher) {
+    let model = &model();
     bencher.bench_local(|| {
-        let bytes = rkyv::to_bytes(&model());
+        black_box(&rkyv::to_bytes::<rancor::Error>(black_box(model)).unwrap());
     });
 }
 
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
-fn asdfwqer(bencher: Bencher) {
-    let mut buf = Buffer::<1000>::new();
+fn rkyv_decode(bencher: Bencher) {
+    let bytes = black_box(rkyv::to_bytes::<rancor::Error>(black_box(&model())).unwrap());
+    let bytes = bytes.as_slice();
     bencher.bench_local(|| {
-        unsafe { buf.set_filled_pos(0) };
-        let mut enc = PacketEncoder::new(&mut buf);
-        let result = AA {
-            value2: vec![A2 { value: 123 }],
-        }
-        .encode(&mut enc);
-        result.unwrap();
+        black_box(&rkyv::from_bytes::<Model, rancor::Error>(black_box(bytes)));
     });
-}
-
-#[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
-fn aaaaaaa1() {
-    let encoded = black_box(&bitcode::encode::<u32>(black_box(&123_u32)));
 }
