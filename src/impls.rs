@@ -84,7 +84,7 @@ const fn get_result_offset_of<T, Error>() -> usize {
     };
     let mut i = 0;
     while i < data.len() {
-        if data[i] == 1 {
+        if data[i] != 0 {
             return i;
         }
         i += 1;
@@ -104,7 +104,7 @@ const fn get_option_offset_of<T>() -> usize {
     };
     let mut i = 0;
     while i < data.len() {
-        if data[i] == 1 {
+        if data[i] != 0 {
             return i;
         }
         i += 1;
