@@ -413,9 +413,6 @@ impl Decode for String {
         let bytes = seq
             .read_bytes(len)
             .map_err(|()| DecodeError::not_enough_bytes_in_the_buffer())?;
-        if !bytes.is_ascii() {
-            return Err(DecodeError::invalid_utf8());
-        }
         unsafe { slice::from_raw_parts_mut(ptr, len).copy_from_slice(bytes) };
         seq.end()?;
         unsafe { vec.set_len(len) };
