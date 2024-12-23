@@ -53,7 +53,7 @@ pub struct Log {
     Clone,
 )]
 pub struct Logs {
-    pub logs: Vec<Log>,
+    pub logs: Log,
 }
 
 #[derive(
@@ -81,7 +81,7 @@ pub struct Address {
 type Model = Logs;
 fn model() -> Logs {
     Logs {
-        logs: vec![
+        logs: 
             Log {
                 address: Address {
                     x0: 11,
@@ -95,9 +95,8 @@ fn model() -> Logs {
                 request: String::from_str("asdf").unwrap(),
                 code: 55,
                 size: 66,
-            };
-            10
-        ],
+            }
+        
     }
 }
 

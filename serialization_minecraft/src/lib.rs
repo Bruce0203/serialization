@@ -6,15 +6,17 @@
 #![feature(str_from_raw_parts)]
 
 use core::str;
-use std::{intrinsics::type_id, mem::MaybeUninit};
+use std::{
+    intrinsics::type_id,
+    mem::{transmute, MaybeUninit},
+};
 
 use concat_idents::concat_idents;
 use fastbuf::Buf;
 use fastvarint::{DecodeVarInt, EncodeVarInt, VarInt};
 use serialization::{
-    const_transmute, BinaryDecoder, BinaryEncoder, CheckPrimitiveTypeSize, CompositeDecoder,
-    CompositeEncoder, Decode, DecodeError, Decoder, Encode, EncodeError, Encoder, EnumIdentifier,
-    Serializable,
+    BinaryDecoder, BinaryEncoder, CheckPrimitiveTypeSize, CompositeDecoder, CompositeEncoder,
+    Decode, DecodeError, Decoder, Encode, EncodeError, Encoder, EnumIdentifier, Serializable,
 };
 
 #[derive(derive_more::Deref, derive_more::DerefMut)]
@@ -243,9 +245,9 @@ impl<T: Buf> Decoder for PacketDecoder<T> {
     }
 
     fn decode_bool(&mut self, place: &mut MaybeUninit<bool>) -> Result<(), Self::Error> {
-        let place: &mut MaybeUninit<u8> = unsafe { const_transmute(place) };
+        let place: &mut MaybeUninit<u8> = unsafe { transmute(place) };
         self.decode_u8(place)?;
-        if unsafe { const_transmute::<_, u8>(*place) } > 1 {
+        if unsafe { transmute::<_, u8>(*place) } > 1 {
             *place = MaybeUninit::new(1);
         } else {
         }

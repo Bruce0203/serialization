@@ -2,10 +2,8 @@
 #![feature(const_trait_impl)]
 #![feature(inline_const_pat)]
 
-use std::intrinsics::type_id;
-
 use fastbuf::Buf;
-use serialization::{BinaryEncoder, CheckPrimitiveTypeSize, EncodeError, Encoder};
+use serialization::{BinaryEncoder, EncodeError};
 
 pub struct NbtEncoder<S> {
     buffer: S,

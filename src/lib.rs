@@ -32,7 +32,7 @@ pub mod constvec {
 #[cfg(feature = "fast_binary_format")]
 pub mod binary_format;
 
-pub const unsafe fn const_transmute<A, B>(a: A) -> B {
+pub(crate) const unsafe fn const_transmute<A, B>(a: A) -> B {
     if std::mem::size_of::<A>() != std::mem::size_of::<B>() {
         panic!("Size mismatch for generic_array::const_transmute");
     }

@@ -13,7 +13,6 @@ use std::{
 };
 
 use fastbuf::{Buf, Buffer, ReadBuf, WriteBuf};
-use serialization::binary_format::SerialDescriptor;
 use serialization_minecraft::{PacketDecoder, PacketEncoder};
 
 #[derive(Debug, serialization::Serializable, PartialEq, PartialOrd, Ord, Eq, Clone)]
@@ -44,17 +43,6 @@ pub struct Address {
     pub x1: u8,
     pub x2: u8,
     pub x3: u8,
-}
-
-#[test]
-fn testing() {
-    type D = PacketDecoder<&'static mut Buffer<100>>;
-    println!("logs {:?}", Logs::fields::<D>());
-    println!("log {:?}", Log::fields::<D>());
-    println!("address {:?}", Address::fields::<D>());
-    for i in 0..10 {
-        test_log();
-    }
 }
 
 fn test_log() {

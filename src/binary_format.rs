@@ -304,9 +304,10 @@ pub enum SerialCommand<F> {
 impl<F> Debug for SerialCommand<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Unsized { offset, function } => {
-                f.debug_struct("Unsized").field("offset", offset).finish()
-            }
+            Self::Unsized {
+                offset,
+                function: _,
+            } => f.debug_struct("Unsized").field("offset", offset).finish(),
             Self::Sized { start, len } => f
                 .debug_struct("Sized")
                 .field("start", start)
