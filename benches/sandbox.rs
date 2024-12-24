@@ -81,22 +81,20 @@ pub struct Address {
 type Model = Logs;
 fn model() -> Logs {
     Logs {
-        logs: 
-            Log {
-                address: Address {
-                    x0: 11,
-                    x1: 22,
-                    x2: 33,
-                    x3: 44,
-                },
-                identity: String::from_str("asdf").unwrap(),
-                userid: String::from_str("asdf").unwrap(),
-                date: String::from_str("asdf").unwrap(),
-                request: String::from_str("asdf").unwrap(),
-                code: 55,
-                size: 66,
-            }
-        
+        logs: Log {
+            address: Address {
+                x0: 11,
+                x1: 22,
+                x2: 33,
+                x3: 44,
+            },
+            identity: String::from_str("asdf").unwrap(),
+            userid: String::from_str("asdf").unwrap(),
+            date: String::from_str("asdf").unwrap(),
+            request: String::from_str("asdf").unwrap(),
+            code: 55,
+            size: 66,
+        },
     }
 }
 
@@ -163,6 +161,12 @@ pub struct A2 {
 
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
 fn encode_rkyv(bencher: Bencher) {
+    {
+        println!(
+            "{:?}",
+            rkyv::to_bytes::<rkyv::rancor::Error>(&123_u32).unwrap()
+        )
+    }
     let model = &model();
     bencher.bench_local(|| {
         black_box(&rkyv::to_bytes::<rancor::Error>(black_box(model)).unwrap());

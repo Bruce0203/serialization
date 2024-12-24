@@ -89,3 +89,4 @@ fn test_log() {
     drop(buf);
     std::mem::forget(value);
 }
+
