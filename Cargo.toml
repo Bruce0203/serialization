@@ -1,0 +1,55 @@
+[package]
+name = "serialization"
+version.workspace = true  
+edition.workspace = true
+author.workspace = true 
+description.workspace = true
+repository.workspace = true 
+license.workspace = true
+
+[workspace]
+members = [
+    "derive", 
+    "minecraft", 
+    "descriptor", 
+    "core"
+]
+
+[workspace.package]
+version = "0.2.13"
+description = "encode and decode your struct"
+edition = "2021"
+author = "Bruce0203 <brucefreedy@gmail.com>"
+repository = "https://github.com/Bruce0203/serialization"
+license = "MIT"
+
+[workspace.dependencies]
+serialization_derive = { path = "./derive", version = "0.2.13" }
+serialization_descriptor = { path = "./descriptor", version = "0.2.13" }
+serialization_minecraft = { path = "./minecraft", features = ["std"] }
+serialization_core = { path = "./core", features = ["std"] }
+nonmax = "0.5.5"
+
+[dependencies]
+fastbuf = { git = "https://github.com/Bruce0203/fastbuf" }
+serialization_derive.workspace = true
+serialization_descriptor.workspace = true
+serialization_core.workspace = true
+concat-idents-bruce0203 = "1.1.6"
+const_for = "0.1.5"
+
+[features]
+default = ["std"]
+std = []
+
+[dev-dependencies]
+serialization_minecraft.workspace = true
+divan = "0.1.17"
+bitcode = "0.6.3"
+
+[[bench]]
+name = "sandbox"
+harness = false
+
+[profile.bench]
+lto = true

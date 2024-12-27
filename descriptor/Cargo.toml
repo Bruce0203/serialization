@@ -1,0 +1,19 @@
+[package]
+name = "serialization_descriptor"
+version.workspace = true  
+edition.workspace = true
+author.workspace = true 
+description.workspace = true
+repository.workspace = true 
+license.workspace = true
+readme = "../README.md"
+include = [
+    "**/*.rs",
+    "Cargo.toml",
+]
+
+[dependencies]
+fastbuf = { git = "https://github.com/Bruce0203/fastbuf", features = ["const-trait", "impl_copy_for_buffer"] }
+serialization_core = { path = "../core", version = "0.2.13" }
+nonmax.workspace = true
+const_for = "0.1.5"

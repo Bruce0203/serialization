@@ -1,0 +1,24 @@
+[package]
+name = "serialization_minecraft"
+version.workspace = true  
+edition.workspace = true
+author.workspace = true 
+description.workspace = true
+repository.workspace = true 
+license.workspace = true
+readme = "../README.md"
+include = [
+    "**/*.rs",
+    "Cargo.toml",
+]
+
+[dependencies]
+derive_more = { version = "1.0.0", features = ["full"] }
+fastbuf = { git = "https://github.com/Bruce0203/fastbuf" }
+fastvarint = "0.22.0"
+serialization = { path = "../", version = "0.2.13" }
+concat-idents = "1.1.5"
+
+[features]
+default = ["std"]
+std = []
