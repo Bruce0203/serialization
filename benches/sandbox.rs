@@ -70,7 +70,7 @@ fn model() -> Logs {
                 code: 55,
                 size: 66,
             };
-            20
+            1
         ],
     }
 }
@@ -119,24 +119,4 @@ fn bench_decode_bitcode(bencher: Bencher) {
     bencher.bench_local(|| {
         black_box(&buf.decode::<Model>(bytes).unwrap());
     });
-}
-
-#[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
-fn copy_slice() {
-    let mut slice: [u8; 10] = [const { unsafe { MaybeUninit::zeroed().assume_init() } }; 10];
-    let mut slice2 = [const { unsafe { MaybeUninit::zeroed().assume_init() } }; 10];
-    slice.copy_from_slice(&slice2);
-    black_box(&slice);
-    black_box(&slice2);
-}
-
-#[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
-fn new_string_heap_alloc() {
-    let s = String::from_str("asdf").unwrap();
-    black_box(&s);
-}
-
-#[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
-fn new__heap_alloc() {
-    black_box(&Vec::<u8>::with_capacity(112));
 }
