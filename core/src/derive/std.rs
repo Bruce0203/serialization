@@ -1,9 +1,14 @@
 use core::{
     marker::PhantomData,
-    mem::{transmute, ManuallyDrop, MaybeUninit},
+    mem::{transmute, transmute_copy, ManuallyDrop, MaybeUninit},
 };
 
-use crate::{CompositeDecoder, CompositeEncoder, Decode, Decoder, Encode, Encoder};
+use fastbuf::{ReadBuf, WriteBuf, WriteBufferError};
+
+use crate::{
+    const_transmute, CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder, Encode,
+    EncodeError, Encoder, SerialDescriptor, SerialSize,
+};
 
 impl Encode for () {
     fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
@@ -184,9 +189,32 @@ impl<'a, T: Decode + Clone> Decode for std::borrow::Cow<'a, T> {
     }
 }
 
-impl<T: Encode, const CAP: usize> Encode for [T; CAP] {
+impl<T: Encode + const SerialDescriptor, const CAP: usize> Encode for [T; CAP]
+where
+    [(); T::SIZES_LEN]:,
+{
     fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
         let tup = encoder.encode_tuple()?;
+        let sizes = const { T::serial_sizes::<E>() }.as_slice();
+        if sizes.len() == 1 {
+            match sizes[0] {
+                SerialSize::Sized(range) => {
+                    debug_assert_eq!(range.start, 0);
+                    debug_assert_eq!(range.end, size_of::<T>());
+                    tup.try_write(unsafe {
+                        core::slice::from_raw_parts(
+                            self.as_ptr() as *const u8,
+                            range.end * self.len(),
+                        )
+                    })
+                    .map_err(|WriteBufferError::BufferFull| {
+                        EncodeError::not_enough_space_in_the_buffer()
+                    })?;
+                    return tup.end();
+                }
+                _ => {}
+            }
+        }
         for v in self.iter() {
             tup.encode_element(v)?;
         }
@@ -194,12 +222,39 @@ impl<T: Encode, const CAP: usize> Encode for [T; CAP] {
     }
 }
 
-impl<T: Decode, const CAP: usize> Decode for [T; CAP] {
+impl<T: Decode + const SerialDescriptor, const CAP: usize> Decode for [T; CAP]
+where
+    [(); T::SIZES_LEN]:,
+{
     fn decode_in_place<D: Decoder>(
         decoder: &mut D,
         out: &mut MaybeUninit<Self>,
     ) -> Result<(), D::Error> {
         let tup = decoder.decode_tuple()?;
+        let sizes = const { T::serial_sizes::<D>() }.as_slice();
+        if sizes.len() == 1 {
+            match sizes[0] {
+                SerialSize::Sized(range) => {
+                    debug_assert_eq!(range.start, 0);
+                    debug_assert_eq!(range.end, size_of::<T>());
+                    let read = tup.read(range.end * CAP);
+                    if read.len() != range.end * CAP {
+                        return Err(DecodeError::not_enough_bytes_in_the_buffer());
+                    }
+                    let dst = unsafe { out.assume_init_mut() };
+                    unsafe {
+                        core::slice::from_raw_parts_mut(
+                            dst.as_mut_ptr() as *mut u8,
+                            range.end * CAP,
+                        )
+                    }
+                    .copy_from_slice(read);
+                    return tup.end();
+                }
+                _ => {}
+            }
+        }
+
         for i in 0..CAP {
             let value_place: &mut MaybeUninit<T> =
                 unsafe { transmute(out.assume_init_mut().get_unchecked_mut(i)) };

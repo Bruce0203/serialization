@@ -7,5 +7,4 @@ pub use serialization_derive::*;
 #[doc(hidden)]
 pub mod __private {
     pub use crate::*;
-    pub use serialization_descriptor::*;
 }

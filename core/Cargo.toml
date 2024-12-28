@@ -14,10 +14,12 @@ include = [
 
 [dependencies]
 derive_more = { version = "1.0.0", features = ["full"] }
-fastbuf = { git = "https://github.com/Bruce0203/fastbuf" }
+fastbuf = { version = "0.43.0", features = ["const-trait", "impl_copy_for_buffer"] }
 fastvarint = "0.22.0"
 concat-idents-bruce0203 = "1.1.6"
 seq-macro = "0.3.5"
+const_for = "0.1.5"
+nonmax = "0.5.5"
 
 [features]
 default = ["std"]

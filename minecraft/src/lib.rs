@@ -9,7 +9,7 @@ use core::str;
 use std::mem::{transmute, MaybeUninit};
 
 use concat_idents::concat_idents;
-use fastbuf::{Buf, Chunk, ReadBuf, WriteBuf, WriteBufferError};
+use serialization::fastbuf::{Buf, Chunk, ReadBuf, WriteBuf, WriteBufferError};
 use fastvarint::{DecodeVarInt, EncodeVarInt, VarInt};
 use serialization::{
     CompositeDecoder, CompositeEncoder, Decode, DecodeError, Decoder, Encode, EncodeError, Encoder,

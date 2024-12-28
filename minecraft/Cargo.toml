@@ -14,7 +14,6 @@ include = [
 
 [dependencies]
 derive_more = { version = "1.0.0", features = ["full"] }
-fastbuf = { git = "https://github.com/Bruce0203/fastbuf" }
 fastvarint = "0.22.0"
 serialization = { path = "../", version = "0.2.13" }
 concat-idents = "1.1.5"

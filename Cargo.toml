@@ -11,7 +11,6 @@ license.workspace = true
 members = [
     "derive", 
     "minecraft", 
-    "descriptor", 
     "core"
 ]
 
@@ -25,18 +24,16 @@ license = "MIT"
 
 [workspace.dependencies]
 serialization_derive = { path = "./derive", version = "0.2.13" }
-serialization_descriptor = { path = "./descriptor", version = "0.2.13" }
 serialization_minecraft = { path = "./minecraft", features = ["std"] }
 serialization_core = { path = "./core", features = ["std"] }
-nonmax = "0.5.5"
+
 
 [dependencies]
-fastbuf = { git = "https://github.com/Bruce0203/fastbuf" }
+fastbuf = "0.43.0"
 serialization_derive.workspace = true
-serialization_descriptor.workspace = true
 serialization_core.workspace = true
 concat-idents-bruce0203 = "1.1.6"
-const_for = "0.1.5"
+bitcode = { version = "0.6.3", features = ["serde"] }
 
 [features]
 default = ["std"]
@@ -46,10 +43,11 @@ std = []
 serialization_minecraft.workspace = true
 divan = "0.1.17"
 bitcode = "0.6.3"
+serde = { version = "1.0.216", features = ["derive"] }
 
 [[bench]]
 name = "sandbox"
 harness = false
 
-[profile.bench]
-lto = true
+# [profile.bench]
+# lto = true

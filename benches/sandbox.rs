@@ -9,7 +9,7 @@ use std::{
 };
 
 use divan::{bench, Bencher};
-use fastbuf::{ByteBuffer, ReadBuf, WriteBuf};
+use fastbuf::{BoxedByteBuffer, ByteBuffer, ReadBuf, WriteBuf};
 use serialization::{Decode, Encode, Serializable};
 use serialization_minecraft::{PacketDecoder, PacketEncoder};
 
@@ -24,6 +24,7 @@ fn main() {
 )]
 pub struct Log {
     pub address: Address,
+
     pub identity: String,
     pub userid: String,
     pub date: String,
@@ -36,8 +37,9 @@ pub struct Log {
     Serializable, Debug, PartialEq, PartialOrd, Ord, Eq, Clone, bitcode::Encode, bitcode::Decode,
 )]
 pub struct Logs {
-    pub logs: [Log; 100],
+    pub logs: Vec<Log>,
 }
+const N: usize = 20;
 
 #[derive(
     Serializable, Debug, PartialEq, PartialOrd, Ord, Eq, Clone, bitcode::Encode, bitcode::Decode,
@@ -51,37 +53,35 @@ pub struct Address {
 
 type Model = Logs;
 fn model() -> Logs {
-    let log = Log {
-        address: Address {
-            x0: 11,
-            x1: 22,
-            x2: 33,
-            x3: 44,
-        },
-        identity: String::from_str("asdf").unwrap(),
-        userid: String::from_str("asdf").unwrap(),
-        date: String::from_str("asdf").unwrap(),
-        request: String::from_str("asdf").unwrap(),
-        code: 55,
-        size: 66,
-    };
-    #[allow(invalid_value)]
-    let mut slice: [MaybeUninit<Log>; 100] = unsafe { MaybeUninit::uninit().assume_init() };
-    for i in 0..100 {
-        slice[i] = MaybeUninit::new(log.clone());
-    }
-    let slice: [Log; 100] = unsafe { transmute(slice) };
+    Logs {
+        logs: vec![
+            Log {
+                address: Address {
+                    x0: 11,
+                    x1: 22,
+                    x2: 33,
+                    x3: 44,
+                },
 
-    Logs { logs: slice }
+                identity: String::from_str("asdf").unwrap(),
+                userid: String::from_str("asdf").unwrap(),
+                date: String::from_str("asdf").unwrap(),
+                request: String::from_str("asdf").unwrap(),
+                code: 55,
+                size: 66,
+            };
+            20
+        ],
+    }
 }
 
 #[bench(sample_size = 1000, sample_count = 1000)]
 fn bench_encode(bencher: Bencher) {
-    let mut buf = ByteBuffer::<100000>::new();
+    let mut buf = ByteBuffer::<10000>::new();
     let ref model = model();
     bencher.bench_local(|| {
         let mut enc = PacketEncoder::new(&mut buf);
-        let _ = black_box(model.encode(&mut enc));
+        let _ = black_box(black_box(model).encode(&mut enc));
         unsafe { buf.set_filled_pos(0) };
     });
     let mut enc = PacketEncoder::new(&mut buf);
@@ -90,7 +90,7 @@ fn bench_encode(bencher: Bencher) {
 
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
 fn bench_decode(bencher: Bencher) {
-    let mut buf = ByteBuffer::<100000>::new();
+    let mut buf = ByteBuffer::<10000>::new();
     let ref model = model();
     let mut enc = PacketEncoder::new(&mut buf);
     let _ = black_box(model.encode(&mut enc));
@@ -106,7 +106,7 @@ fn bench_encode_bitcode(bencher: Bencher) {
     let mut buf = bitcode::Buffer::default();
     let model = &model();
     bencher.bench_local(|| {
-        black_box(&buf.encode(model));
+        black_box(&buf.encode(black_box(model)));
     });
 }
 

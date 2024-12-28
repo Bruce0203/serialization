@@ -39,11 +39,11 @@ pub fn impl_serial_descriptor(
         impl #impl_generics const #crate_path::SerialDescriptor for #ident #type_generics #where_clause {
             const SIZES_LEN: usize = 0
                 #(+ <#field_types as #crate_path::SerialDescriptor>::SIZES_LEN)*;
-            fn serial_sizes<S: const #crate_path::PrimitiveTypeSizeChecker>(
+            fn serial_sizes<__S: const #crate_path::PrimitiveTypeSizeChecker>(
             ) ->#crate_path::fastbuf::Buffer<#crate_path::SerialSize, { Self::SIZES_LEN }> {
                 pub use #crate_path::fastbuf::WriteBuf;
-                #crate_path::order_sizes_by_repr_and_calc_offset::<Self,S, { Self::SIZES_LEN }>(
-                    &[#(<#field_types as #crate_path::SerialDescriptor>::serial_sizes::<S>().as_slice(),)*]
+                #crate_path::order_sizes_by_repr_and_calc_offset::<Self, __S, { Self::SIZES_LEN }>(
+                    &[#(<#field_types as #crate_path::SerialDescriptor>::serial_sizes::<__S>().as_slice(),)*]
                 )
             }
         }
@@ -73,9 +73,12 @@ pub fn impl_field_path_finder(
     let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
     quote! {
         impl #impl_generics const #crate_path::FieldPathFinder for #ident #type_generics #where_clause {
-            fn find_encode<'a, E: #crate_path::Encoder>(
+            fn find_encode<'__a, E: #crate_path::Encoder>(
                 mut path: #crate_path::FieldPath,
-            ) -> &'a dyn #crate_path::CompositableEncode<E> {
+            ) -> &'__a dyn #crate_path::CompositableEncode<E>
+                where
+                    Self: '__a
+            {
                 if path.remaining() == 0 {
                     return &#crate_path::CompositableWrapper::<()>(core::marker::PhantomData);
                 }
@@ -86,9 +89,13 @@ pub fn impl_field_path_finder(
                 }
             }
 
-            fn find_decode<'a, D: #crate_path::Decoder>(
+            fn find_decode<'__a, D: #crate_path::Decoder>(
                 mut path: #crate_path::FieldPath,
-            ) -> &'a dyn #crate_path::CompositableDecode<D> {
+            ) -> &'__a dyn #crate_path::CompositableDecode<D>
+                where
+                    Self: '__a
+
+            {
                 if path.remaining() == 0 {
                     return &#crate_path::CompositableWrapper::<()>(core::marker::PhantomData);
                 }

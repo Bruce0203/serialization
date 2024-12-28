@@ -15,13 +15,29 @@
 
 extern crate self as serialization;
 
-pub use derive::*;
 pub use traits::*;
 
-mod derive;
 pub(crate) mod macros;
 mod traits;
+mod derive;
+mod descriptor;
+pub use descriptor::*;
 
 pub mod fastbuf {
     pub use fastbuf::*;
+}
+
+pub(crate) const unsafe fn const_transmute<A, B>(a: A) -> B {
+    if std::mem::size_of::<A>() != std::mem::size_of::<B>() {
+        panic!("Size mismatch for generic_array::const_transmute");
+    }
+
+    #[repr(C)]
+    union Union<A, B> {
+        a: std::mem::ManuallyDrop<A>,
+        b: std::mem::ManuallyDrop<B>,
+    }
+
+    let a = std::mem::ManuallyDrop::new(a);
+    std::mem::ManuallyDrop::into_inner(Union { a }.b)
 }

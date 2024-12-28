@@ -11,9 +11,7 @@ use const_for::const_for;
 use fastbuf::{Buffer, WriteBuf, WriteBufferError};
 use nonmax::NonMaxU16;
 
-use serialization_core::{
-    Decode, DecodeError, Decoder, Encode, EncodeError, Encoder, PrimitiveTypeSizeChecker,
-};
+use crate::{Decode, DecodeError, Decoder, Encode, EncodeError, Encoder, PrimitiveTypeSizeChecker};
 
 #[const_trait]
 pub trait SerialDescriptor: Sized + 'static {
@@ -74,17 +72,27 @@ impl<T: Encode, E: Encoder> CompositableEncode<E> for CompositableWrapper<T> {
 
 #[const_trait]
 pub trait FieldPathFinder {
-    fn find_encode<'a, E: Encoder>(path: FieldPath) -> &'a dyn CompositableEncode<E>;
-    fn find_decode<'a, D: Decoder>(path: FieldPath) -> &'a dyn CompositableDecode<D>;
+    fn find_encode<'a, E: Encoder>(path: FieldPath) -> &'a dyn CompositableEncode<E>
+    where
+        Self: 'a;
+    fn find_decode<'a, D: Decoder>(path: FieldPath) -> &'a dyn CompositableDecode<D>
+    where
+        Self: 'a;
     fn calc_offset(path: FieldPath) -> usize;
 }
 
-impl<T: Encode + Decode + 'static> const FieldPathFinder for T {
-    default fn find_encode<'a, E: Encoder>(_path: FieldPath) -> &'a dyn CompositableEncode<E> {
+impl<T: Encode + Decode> const FieldPathFinder for T {
+    default fn find_encode<'a, E: Encoder>(_path: FieldPath) -> &'a dyn CompositableEncode<E>
+    where
+        Self: 'a,
+    {
         &CompositableWrapper::<T>(PhantomData)
     }
 
-    default fn find_decode<'a, D: Decoder>(_path: FieldPath) -> &'a dyn CompositableDecode<D> {
+    default fn find_decode<'a, D: Decoder>(_path: FieldPath) -> &'a dyn CompositableDecode<D>
+    where
+        Self: 'a,
+    {
         &CompositableWrapper::<T>(PhantomData)
     }
 
@@ -97,7 +105,7 @@ pub trait FieldPathDrop: Sized {
     fn drop_fields(value: &mut MaybeUninit<Self>, fields: FieldPath);
 }
 
-impl<T: Sized + 'static> FieldPathDrop for T {
+impl<T: Sized> FieldPathDrop for T {
     default fn drop_fields(value: &mut MaybeUninit<Self>, _fields: FieldPath) {
         unsafe { value.assume_init_drop() }
     }
