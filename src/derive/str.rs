@@ -41,9 +41,9 @@ impl Decode for String {
         if bytes.len() != len {
             return Err(DecodeError::not_enough_bytes_in_the_buffer());
         }
-        // if !bytes.is_ascii() {
-        //     return Err(DecodeError::invalid_utf8());
-        // }
+        if !bytes.is_ascii() {
+            return Err(DecodeError::invalid_utf8());
+        }
         unsafe { core::slice::from_raw_parts_mut(ptr, len).copy_from_slice(bytes) };
         seq.end()?;
         unsafe { vec.set_len(len) };
