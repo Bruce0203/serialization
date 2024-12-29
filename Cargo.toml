@@ -6,16 +6,20 @@ author.workspace = true
 description.workspace = true
 repository.workspace = true 
 license.workspace = true
+readme = "../README.md"
+include = [
+    "**/*.rs",
+    "Cargo.toml",
+]
 
 [workspace]
 members = [
     "derive", 
     "minecraft", 
-    "core"
 ]
 
 [workspace.package]
-version = "0.2.13"
+version = "0.2.14"
 description = "encode and decode your struct"
 edition = "2021"
 author = "Bruce0203 <brucefreedy@gmail.com>"
@@ -23,17 +27,18 @@ repository = "https://github.com/Bruce0203/serialization"
 license = "MIT"
 
 [workspace.dependencies]
-serialization_derive = { path = "./derive", version = "0.2.13" }
+serialization_derive = { path = "./derive", version = "0.2.14" }
 serialization_minecraft = { path = "./minecraft", features = ["std"] }
-serialization_core = { path = "./core", features = ["std"] }
 
 
 [dependencies]
-fastbuf = "0.43.0"
+fastbuf = { git = "https://github.com/Bruce0203/fastbuf", features = ["const-trait", "impl_copy_for_buffer"] }
 serialization_derive.workspace = true
-serialization_core.workspace = true
 concat-idents-bruce0203 = "1.1.6"
 bitcode = { version = "0.6.3", features = ["serde"] }
+const_for = "0.1.5"
+nonmax = "0.5.5"
+seq-macro = "0.3.5"
 
 [features]
 default = ["std"]

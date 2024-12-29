@@ -4,8 +4,7 @@
 
 use std::{hint::black_box, str::FromStr};
 
-use bitcode::Buffer;
-use fastbuf::ByteBuffer;
+use fastbuf::Buffer;
 use serialization::{Decode, Encode, Serializable};
 use serialization_minecraft::{PacketDecoder, PacketEncoder};
 
@@ -26,7 +25,7 @@ pub struct Bar {
 }
 #[test]
 fn asdf() {
-    let mut buf = ByteBuffer::<1000>::new();
+    let mut buf = Buffer::<[u8; 1000]>::new();
     let mut enc = PacketEncoder::new(&mut buf);
     let model = Foo {
         value: vec![

@@ -1,11 +1,16 @@
 [package]
 name = "serialization_derive"
-version = "0.2.13"
-edition = "2021"
-description = ""
-author = "Bruce0203 <brucefreedy@gmail.com>"
-repository = "https://github.com/Bruce0203/serialization"
-license = "MIT"
+version.workspace = true  
+edition.workspace = true
+author.workspace = true 
+description.workspace = true
+repository.workspace = true 
+license.workspace = true
+readme = "../README.md"
+include = [
+    "**/*.rs",
+    "Cargo.toml",
+]
 
 [features]
 default = ["std"]

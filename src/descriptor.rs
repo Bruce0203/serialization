@@ -5,7 +5,7 @@
 #![feature(const_trait_impl)]
 #![feature(new_range_api)]
 
-use core::{fmt::Debug, marker::PhantomData, mem::MaybeUninit, range::Range};
+use core::{fmt::Debug, marker::PhantomData, mem::MaybeUninit, range::Range, usize};
 
 use const_for::const_for;
 use fastbuf::{Buffer, WriteBuf, WriteBufferError};
@@ -13,17 +13,19 @@ use nonmax::NonMaxU16;
 
 use crate::{Decode, DecodeError, Decoder, Encode, EncodeError, Encoder, PrimitiveTypeSizeChecker};
 
+const FIELDS_AMOUNT_THRESHOLD: usize = 256;
+
 #[const_trait]
 pub trait SerialDescriptor: Sized + 'static {
     const SIZES_LEN: usize;
-    fn serial_sizes<S: const PrimitiveTypeSizeChecker>() -> Buffer<SerialSize, { Self::SIZES_LEN }>;
+    fn serial_sizes<S: const PrimitiveTypeSizeChecker>() -> Buffer<[SerialSize; Self::SIZES_LEN]>;
 }
 
 impl<T: 'static> const SerialDescriptor for T {
     default const SIZES_LEN: usize = 1;
 
     default fn serial_sizes<S: const PrimitiveTypeSizeChecker>(
-    ) -> Buffer<SerialSize, { Self::SIZES_LEN }> {
+    ) -> Buffer<[SerialSize; Self::SIZES_LEN]> {
         let mut out = Buffer::new_zeroed();
         out.write(&[match S::size_of::<Self>() {
             true => SerialSize::Sized(Range {
@@ -46,7 +48,7 @@ pub enum SerialSize {
 }
 
 pub type FieldIndex = u16;
-pub type FieldPath = Buffer<FieldIndex, 64>;
+pub type FieldPath = Buffer<[FieldIndex; 64]>;
 
 pub trait CompositableDecode<D: Decoder> {
     fn decode_in_place(&self, decoder: &mut D, out: *mut u8) -> Result<(), D::Error>;
@@ -227,10 +229,9 @@ pub const fn order_sizes_by_repr_and_calc_offset<
     const N: usize,
 >(
     sizes: &[&[SerialSize]],
-) -> Buffer<SerialSize, N>
+) -> Buffer<[SerialSize; N]>
 where
     [(); size_of::<T>()]:,
-    [(); T::SIZES_LEN]:,
 {
     let mut board = [Option::<NonMaxU16>::None; size_of::<T>()];
     const_for!(i in 0..sizes.len() as FieldIndex => {
@@ -264,14 +265,17 @@ where
 pub const fn concatenated_neighboring_sized_of<
     T: const SerialDescriptor,
     S: const PrimitiveTypeSizeChecker,
->() -> Buffer<SerialSize, { T::SIZES_LEN }> {
-    let sizes = T::serial_sizes::<S>();
+>() -> Buffer<[SerialSize; FIELDS_AMOUNT_THRESHOLD]>
+where
+    [(); T::SIZES_LEN]:,
+{
+    let sizes = const { T::serial_sizes::<S>() };
     concat_neighboring_sized(sizes.as_slice())
 }
 
 pub const fn concat_neighboring_sized<const N: usize>(
     sizes: &[SerialSize],
-) -> Buffer<SerialSize, N> {
+) -> Buffer<[SerialSize; N]> {
     let mut buffer = Buffer::new_zeroed();
     let mut sized_acc = Range { start: 0, end: 0 };
     macro_rules! flush {
@@ -332,7 +336,7 @@ const fn commands_of_encode<
     'a,
     T: const SerialDescriptor + const FieldPathFinder + Encode,
     E: Encoder,
->() -> Buffer<SerialCommand<&'a dyn CompositableEncode<E>>, { T::SIZES_LEN }>
+>() -> Buffer<[SerialCommand<&'a dyn CompositableEncode<E>>; FIELDS_AMOUNT_THRESHOLD]>
 where
     [(); T::SIZES_LEN]:,
 {
@@ -351,10 +355,7 @@ const fn commands_of_decode<
     'a,
     T: const SerialDescriptor + const FieldPathFinder + Decode,
     E: Decoder,
->() -> Buffer<SerialCommand<&'a dyn CompositableDecode<E>>, { T::SIZES_LEN }>
-where
-    [(); T::SIZES_LEN]:,
-{
+>() -> Buffer<[SerialCommand<&'a dyn CompositableDecode<E>>; T::SIZES_LEN]> {
     let sizes = &const { concatenated_neighboring_sized_of::<T, E>() }.as_slice();
     let mut buf = Buffer::new_zeroed();
     const_for!(i in 0..sizes.len() => {

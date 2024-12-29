@@ -4,12 +4,12 @@ use fastbuf::{ReadBuf, WriteBuf, WriteBufferError};
 
 use crate::{
     concatenated_neighboring_sized_of, CompositeDecoder, CompositeEncoder, Decode, DecodeError,
-    Decoder, Encode, EncodeError, Encoder, SerialDescriptor, SerialSize,
+    Decoder, Encode, EncodeError, Encoder, FieldPathFinder, SerialDescriptor, SerialSize,
 };
 
-impl<T: Encode + const SerialDescriptor> Encode for Vec<T>
+impl<T: 'static + Encode> Encode for Vec<T>
 where
-    [(); T::SIZES_LEN]:,
+    [(); <T as SerialDescriptor>::SIZES_LEN]:,
 {
     default fn encode<E>(&self, encoder: &mut E) -> Result<(), E::Error>
     where

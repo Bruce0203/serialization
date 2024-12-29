@@ -1,27 +1,32 @@
-use coder::{impl_decode, impl_encode};
+//TODO remove warning suppression
+#![allow(warnings)]
+#![feature(extend_one)]
+
+use proc_macro2::TokenStream;
 use quote::quote;
-use serial::{impl_field_path_drop, impl_field_path_finder, impl_serial_descriptor};
-use state::SerializableInput;
-use syn::parse_macro_input;
+use syn::{parse_macro_input, Data, DeriveInput};
 
 mod coder;
 mod serial;
-mod shared;
 mod state;
+use coder::*;
+use serial::*;
+use state::*;
 
 #[proc_macro_derive(Serializable)]
 pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let ref state = parse_macro_input!(input as SerializableInput);
+    let ref input = parse_macro_input!(input as DeriveInput);
+    let ref input = SerializableInput::new(input);
     [
-        impl_encode(state),
-        impl_decode(state),
-        impl_serial_descriptor(state),
-        impl_field_path_finder(state),
-        impl_field_path_drop(state),
+        impl_encode(input),
+        impl_decode(input),
+        impl_serial_descriptor(input),
+        impl_field_path_drop(input),
+        impl_field_path_finder(input),
     ]
     .into_iter()
-    .fold(quote!(), |mut acc, v| {
-        acc.extend(v);
+    .fold(quote!(), |mut acc, token_stream| {
+        acc.extend(token_stream);
         acc
     })
     .into()

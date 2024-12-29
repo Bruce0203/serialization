@@ -2,14 +2,10 @@
 #![feature(generic_const_exprs)]
 #![feature(const_trait_impl)]
 
-use std::{
-    hint::black_box,
-    mem::{transmute, MaybeUninit},
-    str::FromStr,
-};
+use std::{hint::black_box, str::FromStr};
 
 use divan::{bench, Bencher};
-use fastbuf::{BoxedByteBuffer, ByteBuffer, ReadBuf, WriteBuf};
+use fastbuf::{Buffer, ReadBuf, WriteBuf};
 use serialization::{Decode, Encode, Serializable};
 use serialization_minecraft::{PacketDecoder, PacketEncoder};
 
@@ -39,7 +35,6 @@ pub struct Log {
 pub struct Logs {
     pub logs: Vec<Log>,
 }
-const N: usize = 20;
 
 #[derive(
     Serializable, Debug, PartialEq, PartialOrd, Ord, Eq, Clone, bitcode::Encode, bitcode::Decode,
@@ -70,14 +65,14 @@ fn model() -> Logs {
                 code: 55,
                 size: 66,
             };
-            1
+            100
         ],
     }
 }
 
 #[bench(sample_size = 1000, sample_count = 1000)]
 fn bench_encode(bencher: Bencher) {
-    let mut buf = ByteBuffer::<10000>::new();
+    let mut buf = Buffer::<[u8; 10000]>::new();
     let ref model = model();
     bencher.bench_local(|| {
         let mut enc = PacketEncoder::new(&mut buf);
@@ -90,7 +85,7 @@ fn bench_encode(bencher: Bencher) {
 
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
 fn bench_decode(bencher: Bencher) {
-    let mut buf = ByteBuffer::<10000>::new();
+    let mut buf = Buffer::<[u8; 10000]>::new();
     let ref model = model();
     let mut enc = PacketEncoder::new(&mut buf);
     let _ = black_box(model.encode(&mut enc));
