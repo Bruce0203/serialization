@@ -11,6 +11,7 @@ use serialization_minecraft::{PacketDecoder, PacketEncoder};
 
 const SAMPLE_COUNT: u32 = 1000;
 const SAMPLE_SIZE: u32 = 1000;
+
 fn main() {
     divan::main();
 }
@@ -58,10 +59,10 @@ fn model() -> Logs {
                     x3: 44,
                 },
 
-                identity: String::from_str("asdf").unwrap(),
-                userid: String::from_str("asdf").unwrap(),
-                date: String::from_str("asdf").unwrap(),
-                request: String::from_str("asdf").unwrap(),
+                identity: String::from_str("abcd").unwrap(),
+                userid: String::from_str("efgh").unwrap(),
+                date: String::from_str("ijkl").unwrap(),
+                request: String::from_str("abcd").unwrap(),
                 code: 55,
                 size: 66,
             };
@@ -72,20 +73,19 @@ fn model() -> Logs {
 
 #[bench(sample_size = 1000, sample_count = 1000)]
 fn bench_encode(bencher: Bencher) {
-    let mut buf = Buffer::<[u8; 10000]>::new();
+    let mut buf = Buffer::<[u8; 1000]>::new();
     let ref model = model();
     bencher.bench_local(|| {
         let mut enc = PacketEncoder::new(&mut buf);
         let _ = black_box(black_box(model).encode(&mut enc));
         unsafe { buf.set_filled_pos(0) };
     });
-    let mut enc = PacketEncoder::new(&mut buf);
-    let _ = black_box(model.encode(&mut enc));
 }
 
+#[ignore]
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
 fn bench_decode(bencher: Bencher) {
-    let mut buf = Buffer::<[u8; 10000]>::new();
+    let mut buf = Buffer::<[u8; 1000]>::new();
     let ref model = model();
     let mut enc = PacketEncoder::new(&mut buf);
     let _ = black_box(model.encode(&mut enc));
@@ -105,6 +105,7 @@ fn bench_encode_bitcode(bencher: Bencher) {
     });
 }
 
+#[ignore]
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
 fn bench_decode_bitcode(bencher: Bencher) {
     let mut buf = bitcode::Buffer::default();

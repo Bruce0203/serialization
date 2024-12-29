@@ -15,7 +15,8 @@ where
     where
         E: Encoder,
     {
-        let col = encoder.encode_seq(self.len())?;
+        let len = self.len();
+        let col = encoder.encode_seq(len)?;
         let sizes = const { concatenated_neighboring_sized_of::<T, E>() }.as_slice();
         if sizes.len() == 1 {
             match sizes[0] {
@@ -37,8 +38,10 @@ where
                 _ => {}
             }
         }
-        for v in self.iter() {
-            col.encode_element(v)?;
+        let mut ptr = self.as_ptr();
+        for _i in (0..self.len()) {
+            col.encode_element(unsafe { &*ptr })?;
+            ptr = ptr.wrapping_add(1);
         }
         col.end()?;
         Ok(())
