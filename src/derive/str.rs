@@ -23,14 +23,7 @@ impl Encode for &str {
 
 impl Encode for String {
     fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
-        let bytes = self.as_bytes();
-        let col = encoder.encode_seq(bytes.len())?;
-        col.try_write(bytes)
-            .map_err(|WriteBufferError::BufferFull| {
-                EncodeError::not_enough_space_in_the_buffer()
-            })?;
-        col.end()?;
-        Ok(())
+        self.as_str().encode(encoder)
     }
 }
 
@@ -48,9 +41,9 @@ impl Decode for String {
         if bytes.len() != len {
             return Err(DecodeError::not_enough_bytes_in_the_buffer());
         }
-        if !bytes.is_ascii() {
-            return Err(DecodeError::invalid_utf8());
-        }
+        // if !bytes.is_ascii() {
+        //     return Err(DecodeError::invalid_utf8());
+        // }
         unsafe { core::slice::from_raw_parts_mut(ptr, len).copy_from_slice(bytes) };
         seq.end()?;
         unsafe { vec.set_len(len) };

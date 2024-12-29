@@ -35,13 +35,17 @@ serialization_minecraft = { path = "./minecraft", features = ["std"] }
 fastbuf = { git = "https://github.com/Bruce0203/fastbuf", features = ["const-trait", "impl_copy_for_buffer"] }
 serialization_derive.workspace = true
 concat-idents-bruce0203 = "1.1.6"
-bitcode = { version = "0.6.3", features = ["serde"] }
+bitcode = { version = "0.6.3", features = ["arrayvec", "serde"] }
 const_for = "0.1.5"
 nonmax = "0.5.5"
 seq-macro = "0.3.5"
+arrayvec = "0.7.6"
+zstd = "0.13.2"
+lz4 = "1.28.0"
 
 [features]
 default = ["std"]
+arrayvec = []
 std = []
 
 [dev-dependencies]

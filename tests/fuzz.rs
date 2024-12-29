@@ -102,10 +102,26 @@ enum A22 {
 struct A23 {
     value: Vec<u8>,
 }
+#[derive(serialization::Serializable, Debug, Eq, PartialEq)]
+struct A24 {
+    value: Vec<String>,
+}
+#[repr(C)]
+#[derive(serialization::Serializable, Debug, Eq, PartialEq)]
+struct A25 {
+    value: Vec<A26>,
+}
+#[repr(C)]
+#[derive(serialization::Serializable, Debug, Eq, PartialEq)]
+struct A26 {
+    value1: u32,
+    value2: String,
+    value3: u8,
+}
 
 #[cfg(test)]
 mod tests {
-    use std::{any::type_name, convert::Infallible, fmt::Debug, marker::PhantomData};
+    use std::{any::type_name, convert::Infallible, fmt::Debug, marker::PhantomData, str::FromStr};
 
     use crate::*;
     use fastbuf::Buffer;
@@ -138,6 +154,19 @@ mod tests {
         test(A21 { value: "hi" });
         test(A22::A { value: 123 });
         test(A23 { value: vec![123] });
+        test(A24 {
+            value: vec![String::from_str("hi").unwrap()],
+        });
+
+        // [4, 104, 105, 104, 105, 11, 0, 0, 0, 22]
+        // [11, 0, 0, 0, 4, 104, 105, 104, 105, 22]
+        test(A25 {
+            value: vec![A26 {
+                value1: 11,
+                value2: String::from_str("hihi").unwrap(),
+                value3: 22,
+            }],
+        });
     }
 
     fn test<T: Encode + Decode + Eq + Debug>(value: T) {
@@ -145,6 +174,7 @@ mod tests {
         let ref mut enc = PacketEncoder::new(&mut buf);
         T::encode(&value, enc).expect(format!("{value:?}").as_str());
         println!("encode passed");
+        println!("{:?}", buf);
         let ref mut dec = PacketDecoder::new(&mut buf);
         let decoded_value = T::decode(dec).unwrap();
         assert_eq!(value, decoded_value);

@@ -2,8 +2,9 @@
 #![feature(generic_const_exprs)]
 #![feature(const_trait_impl)]
 
-use std::{hint::black_box, str::FromStr};
+use std::{hint::black_box, io::Cursor, str::FromStr};
 
+use arrayvec::ArrayVec;
 use divan::{bench, Bencher};
 use fastbuf::{Buffer, ReadBuf, WriteBuf};
 use serialization::{Decode, Encode, Serializable};
@@ -60,13 +61,13 @@ fn model() -> Logs {
                 },
 
                 identity: String::from_str("abcd").unwrap(),
-                userid: String::from_str("efgh").unwrap(),
-                date: String::from_str("ijkl").unwrap(),
-                request: String::from_str("abcd").unwrap(),
+                userid: String::from_str("a").unwrap(),
+                date: String::from_str("wijkl").unwrap(),
+                request: String::from_str("mnop").unwrap(),
                 code: 55,
                 size: 66,
             };
-            10
+            100
         ],
     }
 }
@@ -77,11 +78,12 @@ fn bench_encode(bencher: Bencher) {
     let ref model = model();
     bencher.bench_local(|| {
         let mut enc = PacketEncoder::new(&mut buf);
-        let _ = black_box(black_box(model).encode(&mut enc).unwrap());
+        let _ = black_box(&black_box(model).encode(&mut enc).unwrap());
         unsafe { buf.set_filled_pos(0) };
     });
 }
 
+#[ignore]
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
 fn bench_decode(bencher: Bencher) {
     let mut buf = Buffer::<[u8; 10000]>::new();
@@ -90,7 +92,7 @@ fn bench_decode(bencher: Bencher) {
     let _ = black_box(model.encode(&mut enc));
     bencher.bench_local(|| {
         let mut dec = PacketDecoder::new(&mut buf);
-        black_box(Model::decode(&mut dec).unwrap());
+        black_box(&Model::decode(&mut dec).unwrap());
         unsafe { buf.set_pos(0) };
     });
 }
@@ -104,6 +106,7 @@ fn bench_encode_bitcode(bencher: Bencher) {
     });
 }
 
+#[ignore]
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
 fn bench_decode_bitcode(bencher: Bencher) {
     let mut buf = bitcode::Buffer::default();

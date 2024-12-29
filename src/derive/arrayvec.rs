@@ -1,3 +1,9 @@
+use core::{mem::MaybeUninit, str::FromStr};
+
+use arrayvec::ArrayString;
+
+use crate::{Decode, Decoder, Encode, Encoder};
+
 #[cfg(feature = "arrayvec")]
 impl<T: Encode, const CAP: usize> Encode for arrayvec::ArrayVec<T, CAP> {
     default fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
@@ -46,5 +52,20 @@ impl<const CAP: usize> Encode for arrayvec::ArrayString<CAP> {
     fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
         let vec = arrayvec::ArrayVec::<u8, CAP>::try_from(self.as_bytes()).unwrap();
         vec.encode(encoder)
+    }
+}
+
+impl<const CAP: usize> Encode for ArrayString<CAP> {
+    fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
+        Ok(())
+    }
+}
+
+impl<const CAP: usize> Decode for ArrayString<CAP> {
+    fn decode_in_place<D: Decoder>(
+        decoder: &mut D,
+        out: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
+        Ok(())
     }
 }

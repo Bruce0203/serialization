@@ -332,7 +332,7 @@ impl<F> Debug for SerialCommand<F> {
     }
 }
 
-const fn commands_of_encode<
+pub const fn commands_of_encode<
     'a,
     T: const SerialDescriptor + const FieldPathFinder + Encode,
     E: Encoder,
@@ -351,7 +351,7 @@ where
     buf
 }
 
-const fn commands_of_decode<
+pub const fn commands_of_decode<
     'a,
     T: const SerialDescriptor + const FieldPathFinder + Decode,
     E: Decoder,
