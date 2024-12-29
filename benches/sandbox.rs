@@ -66,26 +66,25 @@ fn model() -> Logs {
                 code: 55,
                 size: 66,
             };
-            100
+            10
         ],
     }
 }
 
 #[bench(sample_size = 1000, sample_count = 1000)]
 fn bench_encode(bencher: Bencher) {
-    let mut buf = Buffer::<[u8; 1000]>::new();
+    let mut buf = Buffer::<[u8; 10000]>::new();
     let ref model = model();
     bencher.bench_local(|| {
         let mut enc = PacketEncoder::new(&mut buf);
-        let _ = black_box(black_box(model).encode(&mut enc));
+        let _ = black_box(black_box(model).encode(&mut enc).unwrap());
         unsafe { buf.set_filled_pos(0) };
     });
 }
 
-#[ignore]
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
 fn bench_decode(bencher: Bencher) {
-    let mut buf = Buffer::<[u8; 1000]>::new();
+    let mut buf = Buffer::<[u8; 10000]>::new();
     let ref model = model();
     let mut enc = PacketEncoder::new(&mut buf);
     let _ = black_box(model.encode(&mut enc));
@@ -105,7 +104,6 @@ fn bench_encode_bitcode(bencher: Bencher) {
     });
 }
 
-#[ignore]
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
 fn bench_decode_bitcode(bencher: Bencher) {
     let mut buf = bitcode::Buffer::default();
