@@ -16,13 +16,32 @@ pub trait Node {}
 pub struct PhantomEdge<S, T>(PhantomData<(S, T)>);
 
 /// newtype of `PhantomEdge<S, T>` that represents its the root of a struct
-pub struct Compound<S, T>(PhantomEdge<S, T>);
+pub struct Compound<S, T>(PhantomData<(S, T)>);
+
+/// Generic type `S` represents a struct containing a edges.
+pub struct PhantomLeaf<S, T>(PhantomData<(S, T)>);
 
 /// Unit type for end of the `Edge` chain
 pub struct End;
 
 impl<S> FieldOffset<S> for End {
     const OFFSET: usize = 0;
+}
+
+impl<S, T> Edge for PhantomLeaf<S, T>
+where
+    T: Edge,
+{
+    type First = T::First;
+
+    type Second = T::Second;
+}
+
+impl<S, T, S2> CompoundWrapper<S2> for PhantomLeaf<S, T>
+where
+    T: CompoundWrapper<S2>,
+{
+    type Compound = T::Compound;
 }
 
 pub trait CompoundWrapper<S> {
@@ -77,23 +96,23 @@ impl<S, A, B> Add<B> for PhantomEdge<S, A> {
     }
 }
 
-impl<S, S2, S3, A, B, C> Add<PhantomEdge<S3, C>> for Compound<S, PhantomEdge<S2, (A, B)>>
+impl<S, S2, A, B, C> Add<C> for Compound<S, PhantomEdge<S2, (A, B)>>
 where
-    A: Edge + FieldOffset<S>,
-    B: Edge + FieldOffset<S>,
-    Compound<S, B>: Add<PhantomEdge<S3, C>>,
+    A: Edge,
+    B: Edge,
+    Compound<S, B>: Add<C>,
 {
-    type Output = PhantomEdge<S, (A, <Compound<S, B> as Add<PhantomEdge<S3, C>>>::Output)>;
+    type Output = PhantomEdge<S, (A, <Compound<S, B> as Add<C>>::Output)>;
 
-    fn add(self, _rhs: PhantomEdge<S3, C>) -> Self::Output {
+    fn add(self, _rhs: C) -> Self::Output {
         unreachable!()
     }
 }
 
-impl<S, S2, S3, B> Add<PhantomEdge<S3, B>> for Compound<S, PhantomEdge<S2, End>> {
-    type Output = PhantomEdge<S, B>;
+impl<S, B> Add<B> for Compound<S, End> {
+    type Output = B;
 
-    fn add(self, _rhs: PhantomEdge<S3, B>) -> Self::Output {
+    fn add(self, _rhs: B) -> Self::Output {
         unreachable!()
     }
 }

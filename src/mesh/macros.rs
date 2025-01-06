@@ -48,7 +48,7 @@ macro_rules! impl_field_offset {
 
 #[macro_export]
 macro_rules! meshup {
-    ($index:expr, $type:ty;) => { $crate::PhantomEdge<$type, $crate::End> };
+    ($index:expr, $type:ty;) => { $crate::End };
     ($index:expr, $type:ty; $first:ty, $($field:ty,)*) => {
         <<$crate::PhantomField<$type, $first, $index> as $crate::CompoundWrapper<$type>>::Compound as core::ops::Add<
             $crate::meshup!({ ($index) + 1 }, $type; $($field,)*)
