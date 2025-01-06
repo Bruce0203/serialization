@@ -50,7 +50,7 @@ macro_rules! impl_field_offset {
 macro_rules! meshup {
     ($index:expr, $type:ty;) => { $crate::PhantomEdge<$type, $crate::End> };
     ($index:expr, $type:ty; $first:ty, $($field:ty,)*) => {
-        <<$first as $crate::CompoundWrapper<$type>>::Compound as core::ops::Add<
+        <<$crate::PhantomField<$type, $first, $index> as $crate::CompoundWrapper<$type>>::Compound as core::ops::Add<
             $crate::meshup!({ ($index) + 1 }, $type; $($field,)*)
         >>::Output
     };
@@ -106,7 +106,7 @@ mod tests {
 
     use test::Bencher;
 
-    use crate::{CompoundWrapper, Edge};
+    use crate::{CompoundWrapper, Edge, mesh::actor::Actor, trim};
 
     struct Model {
         field0: u8,
@@ -132,19 +132,17 @@ mod tests {
     impl_meshup!(Bar; field0: u8, field1: u8);
 
     #[test]
+    fn actor() {
+        <Model as Actor>::run_at(20);
+    }
+
+    #[test]
     fn sandbox() {
-        println!("{}", type_name::<<Model as Edge>::Second>().replace(
-                 "serialization::mesh::edge::PhantomEdge<serialization::mesh::macros::tests::Model, ",
-                 ""
-             ).replace("serialization::mesh::edge::Compound<serialization::mesh::macros::tests::Model, ", "").replace("serialization::mesh::edge::Compound<serialization::mesh::macros::tests::Foo, ", "").replace("serialization::mesh::edge::PhantomEdge<serialization::mesh::macros::tests::Foo, ", "").replace("serialization::mesh::edge::Compound<serialization::mesh::macros::tests::Bar, ", "").replace("serialization::mesh::edge::PhantomEdge<serialization::mesh::macros::tests::Bar, ", "")
-);
+        println!("{}", trim!(type_name::<<Model as Edge>::Second>()));
         println!(
-             "{}",
-             type_name::<<Model as CompoundWrapper<Model>>::Compound>().replace(
-                 "serialization::mesh::edge::PhantomEdge<serialization::mesh::macros::tests::Model, ",
-                 ""
-             ).replace("serialization::mesh::edge::Compound<serialization::mesh::macros::tests::Model, ", "").replace("serialization::mesh::edge::Compound<serialization::mesh::macros::tests::Foo, ", "").replace("serialization::mesh::edge::PhantomEdge<serialization::mesh::macros::tests::Foo, ", "").replace("serialization::mesh::edge::Compound<serialization::mesh::macros::tests::Bar, ", "").replace("serialization::mesh::edge::PhantomEdge<serialization::mesh::macros::tests::Bar, ", "")
-         );
+            "{}",
+            trim!(type_name::<<Model as CompoundWrapper<Model>>::Compound>())
+        );
     }
 
     #[bench]

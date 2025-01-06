@@ -10,6 +10,8 @@ pub trait Edge {
     type Second: Edge = End;
 }
 
+pub trait Node {}
+
 /// Generic type `S` represents a struct containing a edges.
 pub struct PhantomEdge<S, T>(PhantomData<(S, T)>);
 
@@ -26,6 +28,13 @@ impl<S> FieldOffset<S> for End {
 pub trait CompoundWrapper<S> {
     /// Convert `Edge` to be wrapped as `Compound` or just `Self`
     type Compound;
+}
+
+impl<T, S> CompoundWrapper<S> for T
+where
+    T: Node,
+{
+    type Compound = PhantomEdge<S, Self>;
 }
 
 impl Edge for End {
@@ -47,18 +56,18 @@ where
     First: Edge,
     Second: Edge,
 {
-    type First = PhantomEdge<S, First>;
+    type First = First;
 
-    type Second = PhantomEdge<S, Second>;
+    type Second = Second;
 }
 
 impl<S, T> Edge for PhantomEdge<S, T>
 where
     T: Edge,
 {
-    type First = PhantomEdge<S, <T as Edge>::First>;
+    type First = <T as Edge>::First;
 
-    type Second = PhantomEdge<S, <T as Edge>::Second>;
+    type Second = <T as Edge>::Second;
 }
 
 impl<S, A, B> Add<B> for PhantomEdge<S, A> {
@@ -70,8 +79,8 @@ impl<S, A, B> Add<B> for PhantomEdge<S, A> {
 
 impl<S, S2, S3, A, B, C> Add<PhantomEdge<S3, C>> for Compound<S, PhantomEdge<S2, (A, B)>>
 where
-    A: Edge,
-    B: Edge,
+    A: Edge + FieldOffset<S>,
+    B: Edge + FieldOffset<S>,
     Compound<S, B>: Add<PhantomEdge<S3, C>>,
 {
     type Output = PhantomEdge<S, (A, <Compound<S, B> as Add<PhantomEdge<S3, C>>>::Output)>;
@@ -90,7 +99,7 @@ impl<S, S2, S3, B> Add<PhantomEdge<S3, B>> for Compound<S, PhantomEdge<S2, End>>
 }
 
 impl<S, T> Edge for Compound<S, T> {
-    type First = Self;
+    type First = ();
 
     type Second = Self;
 }
