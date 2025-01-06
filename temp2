@@ -1,0 +1,61 @@
+use std::any::type_name;
+
+use crate::Size;
+
+use super::Edge;
+
+pub trait Finder: Edge {
+    fn run_at(index: usize) -> Result<usize, ()>;
+}
+
+pub trait Actor {
+    fn run();
+}
+
+impl<T> Finder for T
+where
+    T: Edge<First = (), Second = Self>,
+{
+    default fn run_at(index: usize) -> Result<usize, ()> {
+        if index == 0 {
+            T::run();
+            return Err(());
+        }
+        Ok(index - 1)
+    }
+}
+
+impl<T> Finder for T
+where
+    T: Edge,
+{
+    default fn run_at(index: usize) -> Result<usize, ()> {
+        println!("Node(len={}) {}", <T as Size>::SIZE, type_name::<Self>().replace(
+                 "serialization::mesh::edge::PhantomEdge<serialization::mesh::macros::tests::Model, ",
+                 ""
+             ).replace("serialization::mesh::edge::Compound<serialization::mesh::macros::tests::Model, ", "")
+);
+        let index = T::First::run_at(index)?;
+        let index = T::Second::run_at(index)?;
+        Ok(index)
+    }
+}
+
+impl Finder for () {
+    default fn run_at(index: usize) -> Result<usize, ()> {
+        Ok(index)
+    }
+}
+
+impl<T> Actor for T
+where
+    T: Edge,
+{
+    fn run() {
+        println!("Node(len={}) {}", <T as Size>::SIZE, type_name::<Self>().replace(
+                 "serialization::mesh::edge::PhantomEdge<serialization::mesh::macros::tests::Model, ",
+                 ""
+             ).replace("serialization::mesh::edge::Compound<serialization::mesh::macros::tests::Model, ", "")
+);
+    }
+}
