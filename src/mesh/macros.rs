@@ -23,6 +23,7 @@ macro_rules! impl_meshup {
         }
         impl<S> $crate::CompoundWrapper<S> for $type {
             type Compound = $crate::Compound<S, $crate::PhantomEdge<S, (<Self as $crate::Edge>::First, <Self as $crate::Edge>::Second)>>;
+            // type Compound = $crate::PhantomLeaf<S, Self>;
         }
         impl<S> $crate::FieldOffset<S> for $type {
             const OFFSET: usize = 0;
@@ -48,7 +49,7 @@ macro_rules! impl_field_offset {
 
 #[macro_export]
 macro_rules! meshup {
-    ($index:expr, $type:ty;) => { $crate::End };
+    ($index:expr, $type:ty;) => { ! };
     ($index:expr, $type:ty; $first:ty, $($field:ty,)*) => {
         <<$crate::PhantomField<$type, $first, $index> as $crate::CompoundWrapper<$type>>::Compound as core::ops::Add<
             $crate::meshup!({ ($index) + 1 }, $type; $($field,)*)
@@ -138,6 +139,9 @@ mod tests {
 
     #[test]
     fn sandbox() {
+        //2 1 3 4 0
+        //Vec Foo u32 Bar u8
+
         println!("{}", trim!(type_name::<<Model as Edge>::Second>()));
         println!(
             "{}",

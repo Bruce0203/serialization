@@ -1,3 +1,4 @@
+#![feature(generic_const_exprs)]
 #![feature(never_type)]
 #![feature(ptr_sub_ptr)]
 #![feature(const_ptr_sub_ptr)]

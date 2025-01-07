@@ -1,0 +1,17 @@
+use std::convert::Infallible;
+
+use crate::FieldOffset;
+
+use super::{Edge, Node};
+
+impl Node for ! {}
+
+impl Edge for ! {
+    type First = Self;
+
+    type Second = Self;
+}
+
+impl<S> FieldOffset<S> for ! {
+    const OFFSET: usize = 0;
+}

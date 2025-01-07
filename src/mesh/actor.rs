@@ -2,7 +2,7 @@ use std::any::type_name;
 
 use crate::trim;
 
-use super::{Edge, End};
+use super::Edge;
 
 pub trait Actor {
     fn run_at(index: usize) -> Result<(), ()>;
@@ -28,6 +28,16 @@ where
     default fn run() {}
 }
 
+impl Actor for ! {
+    default fn run_at(_index: usize) -> Result<(), ()> {
+        Ok(())
+    }
+
+    default fn run() {
+        unreachable!()
+    }
+}
+
 impl Actor for () {
     default fn run_at(_index: usize) -> Result<(), ()> {
         Ok(())
@@ -38,12 +48,3 @@ impl Actor for () {
     }
 }
 
-impl Actor for End {
-    default fn run_at(_index: usize) -> Result<(), ()> {
-        Ok(())
-    }
-
-    default fn run() {
-        unreachable!()
-    }
-}

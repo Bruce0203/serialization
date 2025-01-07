@@ -1,0 +1,4 @@
+serialization::mesh::add::compound::Compound<Model, ((), (((alloc::vec::Vec<u8>, 2>, (((, u32, 5>)>, Bar, 4>)>, u32, 3>)>)>, Foo, 1>)>, u8, 0>)>)>
+serialization::mesh::add::compound::Compound<Model, ((), (((alloc::vec::Vec<u8>, 2>, (((, u32, 5>)>, Bar, 4>)>, u32, 3>)>)>, Foo, 1>)>, u8, 0>)>)>
+>
+
