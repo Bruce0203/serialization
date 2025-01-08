@@ -107,7 +107,7 @@ mod tests {
 
     use test::Bencher;
 
-    use crate::{Edge, mesh::actor::Actor, trim};
+    use crate::{Edge, FieldOffset, mesh::actor::Actor, trim};
 
     struct Model {
         field0: u8,
@@ -141,6 +141,36 @@ mod tests {
     fn sandbox() {
         //2 1 3 4 0
         //Vec Foo u32 Bar u8
+        println!(
+            "{}",
+            <crate::PhantomField::<Model, u8, 0> as FieldOffset<Model>>::OFFSET
+        );
+        println!(
+            "{}",
+            <crate::PhantomField::<Model, Foo, 1> as FieldOffset<Model>>::OFFSET
+        );
+        println!(
+            "{}",
+            <crate::PhantomField::<Model, Vec<u8>, 2> as FieldOffset<Model>>::OFFSET
+        );
+        println!(
+            "{}",
+            <crate::PhantomField::<Model, u32, 3> as FieldOffset<Model>>::OFFSET
+        );
+        println!(
+            "{}",
+            <crate::PhantomField::<Model, Bar, 4> as FieldOffset<Model>>::OFFSET
+        );
+        println!(
+            "{}",
+            <crate::PhantomField::<Model, u32, 5> as FieldOffset<Model>>::OFFSET
+        );
+        // 0  2
+        // 24 1
+        // 36 3
+        // 40 5
+        // 44 4
+        // 46 0
 
         println!("{}", trim!(type_name::<<Model as Edge>::Second>()));
         // println!(
@@ -157,5 +187,5 @@ mod tests {
 
     // (u8, serialization::mesh::macros::tests::Foo>)>)>, alloc::vec::Vec<u8>, u32>)>)>, u8, u8>)>)>, u32>)>)>)>)
 }
-// ((), (u8, ((), (u32, (u32, ((), (u8, (u8, (alloc::vec::Vec<u8>, (u32, ((), (u8, (u8, (u32, serialization::mesh::edge::End>)>)>)>)>)>)>)>)>)>)>)>)>
-// ((), (u8, ((), (u32, (u32, ((), (u8, (u8, (alloc::vec::Vec<u8>, (u32, ((), (u8, (u8, (u32, serialization::mesh::edge::End>)>)>)>)>)>)>)>)>)>)>)>)>)>)>>
+
+// test mesh::macros::tests::sandbox ... ((((alloc::vec::Vec<u8>, 2>, (u32, 3>, u32, 5>>)>)>, Foo, 1>)>, u8, 0>)>, Bar, 4>)>

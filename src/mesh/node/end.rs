@@ -1,8 +1,6 @@
-use std::convert::Infallible;
-
 use crate::FieldOffset;
 
-use super::{Edge};
+use super::Edge;
 
 impl Edge for ! {
     type First = Self;

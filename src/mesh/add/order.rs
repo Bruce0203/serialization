@@ -33,7 +33,7 @@ pub trait OrderingWrapper<S> {
 }
 
 impl<S, B> Add<B> for Ordering<S, !> {
-    type Output = B;
+    type Output = PhantomEdge<S, (!, B)>;
 
     fn add(self, _rhs: B) -> Self::Output {
         unreachable!()
@@ -49,22 +49,8 @@ where
     const OFFSET: usize = T::OFFSET;
 }
 
-impl<S, S2, A, B, C> Add<C> for Ordering<S, PhantomEdge<S2, (A, B)>>
-where
-    A: Edge + FieldOffset<S>,
-    B: Edge,
-    C: FieldOffset<S>,
-    PhantomEdge<S, (A, C)>: Order<{ <PhantomEdge<S, (A, C)> as IsGreaterOrEqual>::OUTPUT }>,
-{
-    type Output = PhantomEdge<
-        S,
-        (
-            <PhantomEdge<S, (A, C)> as Order<
-                { <PhantomEdge<S, (A, C)> as IsGreaterOrEqual>::OUTPUT },
-            >>::Output,
-            B,
-        ),
-    >;
+impl<S, S2, A, B, C> Add<C> for Ordering<S, PhantomEdge<S2, (A, B)>> {
+    type Output = PhantomEdge<S, (C, PhantomEdge<S, (A, B)>)>;
 
     fn add(self, _rhs: C) -> Self::Output {
         unreachable!()
@@ -75,11 +61,11 @@ impl<S, T, const I: usize, C> Add<C> for Ordering<S, PhantomField<S, T, I>>
 where
     PhantomField<S, T, I>: FieldOffset<S>,
     C: FieldOffset<S>,
-    PhantomEdge<S, (Ordering<S, PhantomField<S, T, I>>, C)>:
-        Order<{ <PhantomEdge<S, (Self, C)> as IsGreaterOrEqual>::OUTPUT }>,
+    PhantomEdge<S, (PhantomField<S, T, I>, C)>:
+        Order<{ <PhantomEdge<S, (PhantomField<S, T, I>, C)> as IsGreaterOrEqual>::OUTPUT }>,
 {
-    type Output = <PhantomEdge<S, (Self, C)> as Order<
-        { <PhantomEdge<S, (Self, C)> as IsGreaterOrEqual>::OUTPUT },
+    type Output = <PhantomEdge<S, (PhantomField<S, T, I>, C)> as Order<
+        { <PhantomEdge<S, (PhantomField<S, T, I>, C)> as IsGreaterOrEqual>::OUTPUT },
     >>::Output;
 
     fn add(self, _rhs: C) -> Self::Output {
@@ -90,3 +76,23 @@ where
 impl<T, S> OrderingWrapper<S> for T {
     type Ordering = PhantomLeaf<S, Self>;
 }
+//A, B, C
+//
+//A > C
+//C, A, B
+//B < C
+//
+//(B, (A, C Not Orderd)::Second)
+//
+//
+//1  2  3
+//A  B  C
+//
+//
+//1  3  2
+//A  C  B
+//
+//2  3  1
+//C  A  B
+//
+//

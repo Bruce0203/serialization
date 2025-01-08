@@ -1,14 +1,10 @@
 use super::{CompoundWrapper, Edge, FieldOffset, PhantomLeaf};
 
-impl Edge for () {}
 impl Edge for u32 {}
 impl Edge for u8 {}
 impl Edge for Vec<u8> {}
 
-impl<S> FieldOffset<S> for () {
-    const OFFSET: usize = 0;
-}
-
+//TODO try remove
 impl<S> FieldOffset<S> for u8 {
     const OFFSET: usize = 0;
 }
