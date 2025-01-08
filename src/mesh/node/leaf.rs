@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, ops::Add};
 
-use crate::{FieldOffset, IsGreaterOrEqual, Order};
+use crate::FieldOffset;
 
 use super::{Edge, PhantomEdge};
 
@@ -28,5 +28,5 @@ impl<S, S2, T> FieldOffset<S> for PhantomLeaf<S2, T>
 where
     T: FieldOffset<S>,
 {
-    const OFFSET: usize = T::OFFSET;
+    type Offset = T::Offset;
 }

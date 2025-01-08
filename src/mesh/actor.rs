@@ -47,4 +47,3 @@ impl Actor for () {
         unreachable!()
     }
 }
-

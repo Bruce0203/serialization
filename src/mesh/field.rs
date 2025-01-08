@@ -1,9 +1,11 @@
 use std::marker::PhantomData;
 
+use typenum::Unsigned;
+
 use super::{Compound, CompoundWrapper, Edge, PhantomEdge, PhantomLeaf};
 
 pub trait FieldOffset<S> {
-    const OFFSET: usize;
+    type Offset;
 }
 
 pub struct PhantomField<S, T, const I: usize>(PhantomData<(S, T)>);
@@ -12,7 +14,7 @@ impl<S, S2, A, B> FieldOffset<S> for PhantomEdge<S2, (A, B)>
 where
     A: FieldOffset<S>,
 {
-    const OFFSET: usize = A::OFFSET;
+    type Offset = A::Offset;
 }
 
 impl<S, T, const I: usize> Edge for PhantomField<S, T, I>

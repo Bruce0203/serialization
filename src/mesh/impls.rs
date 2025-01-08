@@ -1,3 +1,5 @@
+use typenum::U0;
+
 use super::{CompoundWrapper, Edge, FieldOffset, PhantomLeaf};
 
 impl Edge for u32 {}
@@ -6,15 +8,15 @@ impl Edge for Vec<u8> {}
 
 //TODO try remove
 impl<S> FieldOffset<S> for u8 {
-    const OFFSET: usize = 0;
+    type Offset = U0;
 }
 
 impl<S> FieldOffset<S> for u32 {
-    const OFFSET: usize = 0;
+    type Offset = U0;
 }
 
 impl<S> FieldOffset<S> for Vec<u8> {
-    const OFFSET: usize = 0;
+    type Offset = U0;
 }
 
 impl<S> CompoundWrapper<S> for () {

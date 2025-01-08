@@ -19,14 +19,15 @@ macro_rules! offset_of {
 macro_rules! impl_meshup {
     ($type:ty; $($field_ident:ident: $field:ty),*) => {
         impl $crate::Edge for $type {
-            type Second = $crate::meshup!(0, $type; $($field,)*);
+            // type Second = <$crate::Compound<$type, $crate::meshup!(0, $type; $($field,)*)> as $crate::Flatten>::Output;
+            type Second = $crate::Compound<$type, $crate::meshup!(0, $type; $($field,)*)>;
         }
         impl<S, const I: usize> $crate::CompoundWrapper<S> for $crate::PhantomField<S, $type, I> {
-            // type Compound = $crate::Compound<S, $crate::PhantomEdge<S, (<Self as $crate::Edge>::First, <Self as $crate::Edge>::Second)>>;
+            // /type Compound = $crate::Compound<S, $crate::PhantomEdge<S, (<Self as $crate::Edge>::First, <Self as $crate::Edge>::Second)>>;
             type Compound = $crate::PhantomLeaf<S, Self>;
         }
         impl<S> $crate::FieldOffset<S> for $type {
-            const OFFSET: usize = 0;
+            type Offset = typenum::U0;
         }
         $crate::impl_field_offset!(0, $type; $($field_ident: $field),*);
     };
@@ -48,7 +49,7 @@ macro_rules! impl_field_offset {
     };
     ($index:expr, $type:ty; $first_field_ident:ident: $first_field:ty) => {
         impl $crate::FieldOffset<$type> for $crate::PhantomField<$type, $first_field, $index> {
-            const OFFSET: usize = $crate::offset_of!($type, $first_field_ident);
+            type Offset = typenum::U< { $crate::offset_of!($type, $first_field_ident)} >;
         }
     };
     ($index:expr, $type:ty; $first_field_ident:ident: $first_field:ty, $($field_ident:ident: $field:ty),*) => {
@@ -106,6 +107,7 @@ mod tests {
     use std::any::type_name;
 
     use test::Bencher;
+    use typenum::{ToUInt, Unsigned};
 
     use crate::{Edge, FieldOffset, mesh::actor::Actor, trim};
 
@@ -143,28 +145,35 @@ mod tests {
         //Vec Foo u32 Bar u8
         println!(
             "{}",
-            <crate::PhantomField::<Model, u8, 0> as FieldOffset<Model>>::OFFSET
+            <<crate::PhantomField::<Model, u8, 0> as FieldOffset<Model>>::Offset as Unsigned>::to_usize()
         );
         println!(
             "{}",
-            <crate::PhantomField::<Model, Foo, 1> as FieldOffset<Model>>::OFFSET
+            <<crate::PhantomField::<Model, Foo, 1> as FieldOffset<Model>>::Offset as Unsigned>::to_usize()
         );
         println!(
             "{}",
-            <crate::PhantomField::<Model, Vec<u8>, 2> as FieldOffset<Model>>::OFFSET
+            <<crate::PhantomField::<Model, Vec<u8>, 2> as FieldOffset<Model>>::Offset as Unsigned>::to_usize()
         );
         println!(
             "{}",
-            <crate::PhantomField::<Model, u32, 3> as FieldOffset<Model>>::OFFSET
+            <<crate::PhantomField::<Model, u32, 3> as FieldOffset<Model>>::Offset as Unsigned>::to_usize()
         );
         println!(
             "{}",
-            <crate::PhantomField::<Model, Bar, 4> as FieldOffset<Model>>::OFFSET
+            <<crate::PhantomField::<Model, Bar, 4> as FieldOffset<Model>>::Offset as Unsigned>::to_usize()
         );
         println!(
             "{}",
-            <crate::PhantomField::<Model, u32, 5> as FieldOffset<Model>>::OFFSET
+            <<crate::PhantomField::<Model, u32, 5> as FieldOffset<Model>>::Offset as Unsigned>::to_usize()
         );
+        // 0  2
+        // 24 1
+        // 36 3
+        // 40 5
+        // 44 4
+        // 46 0
+
         // 0  2
         // 24 1
         // 36 3

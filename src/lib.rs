@@ -6,7 +6,7 @@
 #![feature(auto_traits)]
 #![feature(min_specialization)]
 #![feature(associated_type_defaults)]
-#![feature(generic_const_exprs)]
+// #![feature(generic_const_exprs)]
 
 mod mesh;
 

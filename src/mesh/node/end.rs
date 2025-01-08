@@ -1,3 +1,5 @@
+use typenum::{U, U0};
+
 use crate::FieldOffset;
 
 use super::Edge;
@@ -9,5 +11,5 @@ impl Edge for ! {
 }
 
 impl<S> FieldOffset<S> for ! {
-    const OFFSET: usize = 0;
+    type Offset = U<{ i64::MAX as usize + 1 }>;
 }
