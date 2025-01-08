@@ -16,15 +16,8 @@ where
     type Second = T::Second;
 }
 
-impl<S, A, B> Add<B> for PhantomLeaf<S, A>
-where
-    A: FieldOffset<S>,
-    B: FieldOffset<S>,
-    PhantomEdge<S, (A, B)>: Order<{ <PhantomEdge<S, (A, B)> as IsGreaterOrEqual>::OUTPUT }>,
-{
-    type Output = <PhantomEdge<S, (A, B)> as Order<
-        { <PhantomEdge<S, (A, B)> as IsGreaterOrEqual>::OUTPUT },
-    >>::Output;
+impl<S, A, B> Add<B> for PhantomLeaf<S, A> {
+    type Output = PhantomEdge<S, (A, B)>;
 
     fn add(self, _rhs: B) -> Self::Output {
         unreachable!()

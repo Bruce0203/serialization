@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, ops::Add};
 
-use crate::{Edge, FieldOffset, Node, PhantomEdge, PhantomLeaf};
+use crate::{Edge, FieldOffset, PhantomEdge, PhantomField, PhantomLeaf};
 
 pub trait IsGreaterOrEqual {
     const OUTPUT: bool;
@@ -23,7 +23,7 @@ where
     A: FieldOffset<S>,
     B: FieldOffset<S>,
 {
-    const OUTPUT: bool = true; //A::OFFSET <= B::OFFSET;
+    const OUTPUT: bool = A::OFFSET <= B::OFFSET;
 }
 
 pub struct Ordering<S, T>(PhantomData<(S, T)>);
@@ -42,22 +42,51 @@ impl<S, B> Add<B> for Ordering<S, !> {
 
 impl<S, T> Edge for Ordering<S, T> {}
 
+impl<S, T> FieldOffset<S> for Ordering<S, T>
+where
+    T: FieldOffset<S>,
+{
+    const OFFSET: usize = T::OFFSET;
+}
+
 impl<S, S2, A, B, C> Add<C> for Ordering<S, PhantomEdge<S2, (A, B)>>
 where
-    A: Edge,
+    A: Edge + FieldOffset<S>,
     B: Edge,
-    Ordering<S, B>: Add<C>,
+    C: FieldOffset<S>,
+    PhantomEdge<S, (A, C)>: Order<{ <PhantomEdge<S, (A, C)> as IsGreaterOrEqual>::OUTPUT }>,
 {
-    type Output = PhantomEdge<S, (A, <Ordering<S, B> as Add<C>>::Output)>;
+    type Output = PhantomEdge<
+        S,
+        (
+            <PhantomEdge<S, (A, C)> as Order<
+                { <PhantomEdge<S, (A, C)> as IsGreaterOrEqual>::OUTPUT },
+            >>::Output,
+            B,
+        ),
+    >;
 
     fn add(self, _rhs: C) -> Self::Output {
         unreachable!()
     }
 }
 
-impl<T, S> OrderingWrapper<S> for T
+impl<S, T, const I: usize, C> Add<C> for Ordering<S, PhantomField<S, T, I>>
 where
-    T: Node,
+    PhantomField<S, T, I>: FieldOffset<S>,
+    C: FieldOffset<S>,
+    PhantomEdge<S, (Ordering<S, PhantomField<S, T, I>>, C)>:
+        Order<{ <PhantomEdge<S, (Self, C)> as IsGreaterOrEqual>::OUTPUT }>,
 {
+    type Output = <PhantomEdge<S, (Self, C)> as Order<
+        { <PhantomEdge<S, (Self, C)> as IsGreaterOrEqual>::OUTPUT },
+    >>::Output;
+
+    fn add(self, _rhs: C) -> Self::Output {
+        unreachable!()
+    }
+}
+
+impl<T, S> OrderingWrapper<S> for T {
     type Ordering = PhantomLeaf<S, Self>;
 }

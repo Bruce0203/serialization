@@ -2,9 +2,7 @@ use std::convert::Infallible;
 
 use crate::FieldOffset;
 
-use super::{Edge, Node};
-
-impl Node for ! {}
+use super::{Edge};
 
 impl Edge for ! {
     type First = Self;

@@ -1,12 +1,12 @@
 use std::{marker::PhantomData, ops::Add};
 
-use crate::{Edge, Node, PhantomEdge, PhantomLeaf};
+use crate::{Edge, PhantomEdge, PhantomLeaf};
 
 /// newtype of `PhantomEdge<S, T>` that represents its the root of a struct
 pub struct Compound<S, T>(PhantomData<(S, T)>);
 
 pub trait CompoundWrapper<S> {
-    /// Convert `Edge` to be wrapped as `Compound` or just `Self`
+    /// Convert `Edge` to be wrapped as `Compound` or not
     type Compound;
 }
 
@@ -31,11 +31,4 @@ where
     fn add(self, _rhs: C) -> Self::Output {
         unreachable!()
     }
-}
-
-impl<T, S> CompoundWrapper<S> for T
-where
-    T: Node,
-{
-    type Compound = PhantomLeaf<S, Self>;
 }

@@ -1,4 +1,3 @@
-#![feature(generic_const_exprs)]
 #![feature(never_type)]
 #![feature(ptr_sub_ptr)]
 #![feature(const_ptr_sub_ptr)]
@@ -7,6 +6,7 @@
 #![feature(auto_traits)]
 #![feature(min_specialization)]
 #![feature(associated_type_defaults)]
+#![feature(generic_const_exprs)]
 
 mod mesh;
 

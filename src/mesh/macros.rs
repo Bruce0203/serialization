@@ -21,14 +21,24 @@ macro_rules! impl_meshup {
         impl $crate::Edge for $type {
             type Second = $crate::meshup!(0, $type; $($field,)*);
         }
-        impl<S> $crate::CompoundWrapper<S> for $type {
-            type Compound = $crate::Compound<S, $crate::PhantomEdge<S, (<Self as $crate::Edge>::First, <Self as $crate::Edge>::Second)>>;
-            // type Compound = $crate::PhantomLeaf<S, Self>;
+        impl<S, const I: usize> $crate::CompoundWrapper<S> for $crate::PhantomField<S, $type, I> {
+            // type Compound = $crate::Compound<S, $crate::PhantomEdge<S, (<Self as $crate::Edge>::First, <Self as $crate::Edge>::Second)>>;
+            type Compound = $crate::PhantomLeaf<S, Self>;
         }
         impl<S> $crate::FieldOffset<S> for $type {
             const OFFSET: usize = 0;
         }
         $crate::impl_field_offset!(0, $type; $($field_ident: $field),*);
+    };
+}
+
+#[macro_export]
+macro_rules! meshup {
+    ($index:expr, $type:ty;) => { ! };
+    ($index:expr, $type:ty; $first:ty, $($field:ty,)*) => {
+        <$crate::Ordering<$type, $crate::meshup!({ ($index) + 1 }, $type; $($field,)*)> as core::ops::Add<
+            $crate::PhantomField<$type, $first, $index>
+        >>::Output
     };
 }
 
@@ -44,16 +54,6 @@ macro_rules! impl_field_offset {
     ($index:expr, $type:ty; $first_field_ident:ident: $first_field:ty, $($field_ident:ident: $field:ty),*) => {
         $crate::impl_field_offset!($index, $type; $first_field_ident: $first_field);
         $crate::impl_field_offset!({ ($index) + 1 }, $type; $($field_ident: $field),*);
-    };
-}
-
-#[macro_export]
-macro_rules! meshup {
-    ($index:expr, $type:ty;) => { ! };
-    ($index:expr, $type:ty; $first:ty, $($field:ty,)*) => {
-        <<$crate::PhantomField<$type, $first, $index> as $crate::CompoundWrapper<$type>>::Compound as core::ops::Add<
-            $crate::meshup!({ ($index) + 1 }, $type; $($field,)*)
-        >>::Output
     };
 }
 
@@ -107,7 +107,7 @@ mod tests {
 
     use test::Bencher;
 
-    use crate::{CompoundWrapper, Edge, mesh::actor::Actor, trim};
+    use crate::{Edge, mesh::actor::Actor, trim};
 
     struct Model {
         field0: u8,
@@ -143,10 +143,10 @@ mod tests {
         //Vec Foo u32 Bar u8
 
         println!("{}", trim!(type_name::<<Model as Edge>::Second>()));
-        println!(
-            "{}",
-            trim!(type_name::<<Model as CompoundWrapper<Model>>::Compound>())
-        );
+        // println!(
+        //     "{}",
+        //     trim!(type_name::<<Model as CompoundWrapper<Model>>::Compound>())
+        // );
     }
 
     #[bench]
