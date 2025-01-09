@@ -24,15 +24,15 @@ where
     type Output = <<A as CompoundWrapper<S>>::Compound as Add<<B as Flatten>::Output>>::Output;
 }
 
-impl Flatten for ! {
-    type Output = !;
+impl Flatten for () {
+    type Output = ();
 }
 
-impl<S> Flatten for PhantomLeaf<S, !> {
-    type Output = !;
+impl<S> Flatten for PhantomLeaf<S, ()> {
+    type Output = ();
 }
 
-impl<S, B> Add<B> for Compound<S, !> {
+impl<S, B> Add<B> for Compound<S, ()> {
     type Output = B;
 
     fn add(self, _rhs: B) -> Self::Output {
@@ -64,15 +64,6 @@ where
         unreachable!()
     }
 }
-
-//TODO try remove
-// impl<S, A, const I: usize> Add<!> for Compound<S, PhantomField<S, A, I>> {
-//     type Output = PhantomEdge<S, (A, !)>;
-//
-//     fn add(self, _rhs: !) -> Self::Output {
-//         unreachable!()
-//     }
-// }
 
 impl<S, S2, T> FieldOffset<S> for Compound<S2, T> {
     type Offset = U0;

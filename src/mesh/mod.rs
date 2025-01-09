@@ -6,16 +6,14 @@ mod field;
 mod impls;
 mod macros;
 mod node;
-// mod size;
+mod size;
 
 pub use actor::*;
 pub use add::*;
 pub use field::*;
 pub use macros::*;
 pub use node::*;
-// pub use size::*;
-//
-//
+pub use size::*;
 
 #[macro_export]
 macro_rules! trim {

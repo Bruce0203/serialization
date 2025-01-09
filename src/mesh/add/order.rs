@@ -27,8 +27,8 @@ where
     type Offset = T::Offset;
 }
 
-impl<S, B> Add<B> for PhantomOrder<S, !> {
-    type Output = PhantomEdge<S, (B, !)>;
+impl<S, B> Add<B> for PhantomOrder<S, ()> {
+    type Output = PhantomEdge<S, (B, ())>;
 
     fn add(self, _rhs: B) -> Self::Output {
         unreachable!()

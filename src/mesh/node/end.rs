@@ -10,6 +10,6 @@ impl Edge for ! {
     type Second = Self;
 }
 
-impl<S> FieldOffset<S> for ! {
+impl<S> FieldOffset<S> for () {
     type Offset = U<{ i64::MAX as usize + 1 }>;
 }

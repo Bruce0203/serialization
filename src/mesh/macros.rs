@@ -38,7 +38,7 @@ macro_rules! impl_meshup {
 
 #[macro_export]
 macro_rules! meshup {
-    ($index:expr, $type:ty;) => { ! };
+    ($index:expr, $type:ty;) => { () };
     ($index:expr, $type:ty; $first:ty, $($field:ty,)*) => {
         <$crate::PhantomOrder<$type, $crate::meshup!({ ($index) + 1 }, $type; $($field,)*)> as core::ops::Add<
             $crate::PhantomField<$type, $first, $index>
@@ -67,43 +67,6 @@ macro_rules! count_items {
     ($head:expr, $($tail:expr,)*) => {
         1 + count_items!($($tail,)*)
     };
-}
-
-#[cfg(feature = "non")]
-#[cfg(test)]
-mod tests2 {
-    use std::{any::type_name, ops::Add};
-
-    use typenum::{U0, U10};
-
-    use crate::{
-        Compound, CompoundWrapper, Edge, FieldOffset, Flatten, PhantomEdge, PhantomField,
-        PhantomLeaf,
-    };
-
-    pub struct Model;
-    impl FieldOffset<Model> for PhantomField<Model, u8, 0> {
-        type Offset = U0;
-    }
-
-    impl<S, const I: usize> CompoundWrapper<S> for PhantomField<S, u8, I> {
-        // type Compound = Compound<Model, PhantomLeaf<Model, u8>>;
-        type Compound = Compound<S, PhantomLeaf<S, u8>>;
-    }
-
-    extern crate test;
-    #[test]
-    fn test() {
-        // type Result = <Compound<Model, PhantomEdge<Model, (PhantomField<Model, u8, 0>, !)>> as Add<!>>::Output;
-        type Result = <PhantomEdge<
-            Model,
-            (
-                PhantomField<Model, u8, 0>,
-                PhantomEdge<Model, (PhantomField<Model, u8, 0>, !)>,
-            ),
-        > as Flatten>::Output;
-        println!("{}", type_name::<Result>());
-    }
 }
 
 #[cfg(test)]
@@ -143,57 +106,6 @@ mod tests {
     #[test]
     fn actor() {
         <Model as Actor>::run_at(20);
-    }
-
-    #[test]
-    fn sandbox() {
-        //2 1 3 4 0
-        //Vec Foo u32 Bar u8
-        println!(
-            "{}",
-            <<crate::PhantomField::<Model, u8, 0> as FieldOffset<Model>>::Offset as Unsigned>::to_usize()
-        );
-        println!(
-            "{}",
-            <<crate::PhantomField::<Model, Foo, 1> as FieldOffset<Model>>::Offset as Unsigned>::to_usize()
-        );
-        println!(
-            "{}",
-            <<crate::PhantomField::<Model, Vec<u8>, 2> as FieldOffset<Model>>::Offset as Unsigned>::to_usize()
-        );
-        println!(
-            "{}",
-            <<crate::PhantomField::<Model, u32, 3> as FieldOffset<Model>>::Offset as Unsigned>::to_usize()
-        );
-        println!(
-            "{}",
-            <<crate::PhantomField::<Model, Bar, 4> as FieldOffset<Model>>::Offset as Unsigned>::to_usize()
-        );
-        println!(
-            "{}",
-            <<crate::PhantomField::<Model, u32, 5> as FieldOffset<Model>>::Offset as Unsigned>::to_usize()
-        );
-        // 0  2
-        // 24 1
-        // 36 3
-        // 40 5
-        // 44 4
-        // 46 0
-        //
-        // (alloc::vec::Vec<u8>, (u32, (u32, (u8, (u8, (u32, (u32, (u8, (u8, (u8, !)>)>)>)>)>)>)>)>)>)>
-
-        // 0  2
-        // 24 1
-        // 36 3
-        // 40 5
-        // 44 4
-        // 46 0
-
-        println!("{}", trim!(type_name::<<Model as Edge>::Second>()));
-        // println!(
-        //     "{}",
-        //     trim!(type_name::<<Model as CompoundWrapper<Model>>::Compound>())
-        // );
     }
 
     #[bench]

@@ -1,16 +1,18 @@
-use super::Edge;
+use super::{Edge, PhantomEdge};
+
+const UNSIZED: usize = usize::MAX;
 
 pub trait Size: Edge {
     const SIZE: usize;
 }
 
-impl<T> Size for T
+impl<S, A, B> Size for PhantomEdge<S, (A, B)>
 where
-    T: Edge,
+    Self: Edge<First: Size, Second: Size>,
 {
-    default const SIZE: usize = {
-        let a = T::First::SIZE;
-        let b = T::Second::SIZE;
+    const SIZE: usize = {
+        let a = Self::First::SIZE;
+        let b = Self::Second::SIZE;
         if b == usize::MAX {
             0
         } else if a == usize::MAX {
@@ -20,12 +22,3 @@ where
         }
     };
 }
-
-impl<T> Size for T
-where
-    T: Edge<First = (), Second = Self>,
-{
-    default const SIZE: usize = UNSIZED;
-}
-
-const UNSIZED: usize = usize::MAX;

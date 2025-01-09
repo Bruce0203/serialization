@@ -1,60 +1,19 @@
-use typenum::U0;
+use super::{CompoundWrapper, Edge, PhantomField, PhantomLeaf};
 
-use super::{CompoundWrapper, Edge, FieldOffset, PhantomField, PhantomLeaf};
+macro_rules! impl_serializable {
+    ($($type:ty),*) => {
+        $(
+        impl Edge for $type {}
 
-impl Edge for u32 {}
-impl Edge for u8 {}
-impl Edge for Vec<u8> {}
+        impl<S> CompoundWrapper<S> for $type {
+            type Compound = PhantomLeaf<S, Self>;
+        }
 
-//TODO try remove
-impl<S> FieldOffset<S> for u8 {
-    type Offset = U0;
-}
-
-impl<S> FieldOffset<S> for u32 {
-    type Offset = U0;
-}
-
-impl<S> FieldOffset<S> for Vec<u8> {
-    type Offset = U0;
+        impl<S, const I: usize> CompoundWrapper<S> for PhantomField<S, $type, I> {
+            type Compound = PhantomLeaf<S, $type>;
+        }
+        )*
+    };
 }
 
-impl<S> CompoundWrapper<S> for () {
-    type Compound = PhantomLeaf<S, Self>;
-}
-impl<S> CompoundWrapper<S> for u8 {
-    type Compound = PhantomLeaf<S, Self>;
-}
-impl<S> CompoundWrapper<S> for u32 {
-    type Compound = PhantomLeaf<S, Self>;
-}
-
-impl<S> CompoundWrapper<S> for Vec<u8> {
-    type Compound = PhantomLeaf<S, Self>;
-}
-
-impl<S, const I: usize> CompoundWrapper<S> for PhantomField<S, u8, I> {
-    type Compound = PhantomLeaf<S, u8>;
-}
-impl<S, const I: usize> CompoundWrapper<S> for PhantomField<S, u32, I> {
-    type Compound = PhantomLeaf<S, u32>;
-}
-impl<S, const I: usize> CompoundWrapper<S> for PhantomField<S, Vec<u8>, I> {
-    type Compound = PhantomLeaf<S, Vec<u8>>;
-}
-impl<S, const I: usize> CompoundWrapper<S> for PhantomField<S, (), I> {
-    type Compound = PhantomLeaf<S, ()>;
-}
-
-//
-// impl Size for () {
-//     const SIZE: usize = 0;
-// }
-//
-// impl Size for u32 {
-//     const SIZE: usize = size_of::<Self>();
-// }
-//
-// impl Size for u8 {
-//     const SIZE: usize = size_of::<Self>();
-// }
+impl_serializable!(u8, u32, Vec<u8>, ());
