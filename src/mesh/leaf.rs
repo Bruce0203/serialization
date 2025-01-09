@@ -1,8 +1,6 @@
 use std::{marker::PhantomData, ops::Add};
 
-use crate::FieldOffset;
-
-use super::{Edge, PhantomEdge};
+use super::edge::{Edge, PhantomEdge};
 
 /// Generic type `S` represents a struct containing a edges.
 pub struct PhantomLeaf<S, T>(PhantomData<(S, T)>);
@@ -22,11 +20,4 @@ impl<S, A, B> Add<B> for PhantomLeaf<S, A> {
     fn add(self, _rhs: B) -> Self::Output {
         unreachable!()
     }
-}
-
-impl<S, S2, T> FieldOffset<S> for PhantomLeaf<S2, T>
-where
-    T: FieldOffset<S>,
-{
-    type Offset = T::Offset;
 }

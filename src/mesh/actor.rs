@@ -1,39 +1,50 @@
 use std::any::type_name;
 
-use crate::trim;
-
-use super::Edge;
+use super::{edge::PhantomEdge, end::End, size::Size};
 
 pub trait Actor {
-    fn run_at(index: usize) -> Result<(), ()>;
+    fn run_at(_index: usize) -> Continuous;
+
     fn run();
 }
 
-impl<T> Actor for T
-where
-    T: Edge,
-{
-    default fn run_at(index: usize) -> Result<(), ()> {
-        println!("{}", trim!(type_name::<T>()));
-        if index == 0 {
-            T::run();
-            return Err(());
-        }
-        let index = index - 1;
-        T::First::run_at(index)?;
-        T::Second::run_at(index)?;
-        Ok(())
-    }
-
-    default fn run() {}
+pub enum Continuous {
+    Continue,
+    Break,
 }
 
-impl Actor for () {
-    default fn run_at(_index: usize) -> Result<(), ()> {
-        Ok(())
+impl<S, A, B> Actor for PhantomEdge<S, (A, B)>
+where
+    Self: Size,
+    A: Actor,
+    B: Actor,
+{
+    fn run_at(index: usize) -> Continuous {
+        #[cfg(debug_assertions)]
+        println!(
+            "size({}) = {}",
+            Self::SIZE,
+            crate::trim!(type_name::<Self>())
+        );
+        if index == 0 {
+            Self::run();
+            return Continuous::Break;
+        }
+        let index = index - 1;
+        if let Continuous::Continue = A::run_at(index) {
+            B::run_at(index)
+        } else {
+            Continuous::Break
+        }
     }
 
-    default fn run() {
-        unreachable!()
+    fn run() {}
+}
+
+impl Actor for End {
+    fn run_at(_index: usize) -> Continuous {
+        Continuous::Continue
     }
+
+    fn run() {}
 }

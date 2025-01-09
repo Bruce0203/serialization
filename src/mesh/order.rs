@@ -2,7 +2,12 @@ use std::{marker::PhantomData, ops::Add};
 
 use typenum::{B0, B1, IsLess};
 
-use crate::{Edge, FieldOffset, PhantomEdge, PhantomField, PhantomLeaf};
+use super::{
+    edge::{Edge, PhantomEdge},
+    end::End,
+    field::{FieldOffset, PhantomField},
+    leaf::PhantomLeaf,
+};
 
 pub trait Order<T> {
     type Output;
@@ -18,8 +23,8 @@ impl<S, A, B> Order<B0> for PhantomEdge<S, (A, B)> {
     type Output = PhantomEdge<S, (B, A)>;
 }
 
-impl<S, B> Add<B> for PhantomOrder<S, ()> {
-    type Output = PhantomEdge<S, (B, ())>;
+impl<S, B> Add<B> for PhantomOrder<S, End> {
+    type Output = PhantomEdge<S, (B, End)>;
 
     fn add(self, _rhs: B) -> Self::Output {
         unreachable!()

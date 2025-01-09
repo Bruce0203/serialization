@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use super::{CompoundWrapper, Edge};
+use super::{compound::CompoundWrapper, edge::Edge};
 
 pub trait FieldOffset<S> {
     type Offset;

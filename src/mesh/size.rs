@@ -1,8 +1,8 @@
-use super::{Edge, PhantomEdge};
+use super::edge::{Edge, PhantomEdge};
 
-const UNSIZED: usize = usize::MAX;
+pub const UNSIZED: usize = usize::MAX;
 
-pub trait Size: Edge {
+pub trait Size {
     const SIZE: usize;
 }
 
@@ -11,12 +11,10 @@ where
     Self: Edge<First: Size, Second: Size>,
 {
     const SIZE: usize = {
-        let a = Self::First::SIZE;
-        let b = Self::Second::SIZE;
-        if b == usize::MAX {
+        let a = <Self as Edge>::First::SIZE;
+        let b = <Self as Edge>::Second::SIZE;
+        if a == UNSIZED || b == UNSIZED {
             0
-        } else if a == usize::MAX {
-            b
         } else {
             a + b
         }

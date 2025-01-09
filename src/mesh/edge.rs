@@ -2,10 +2,10 @@ use std::marker::PhantomData;
 
 pub trait Edge {
     /// Indicate leaf
-    type First: Edge = ();
+    type First: Edge;
 
     /// Indicate another edge
-    type Second: Edge = ();
+    type Second: Edge;
 }
 
 /// Generic type `S` represents a struct containing a edges.
