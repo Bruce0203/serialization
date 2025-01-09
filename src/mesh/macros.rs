@@ -19,12 +19,12 @@ macro_rules! offset_of {
 macro_rules! impl_meshup {
     ($type:ty; $($field_ident:ident: $field:ty),*) => {
         impl $crate::Edge for $type {
-            // type Second = <$crate::Compound<$type, $crate::meshup!(0, $type; $($field,)*)> as $crate::Flatten>::Output;
-            type Second = $crate::Compound<$type, $crate::meshup!(0, $type; $($field,)*)>;
+            type Second = <$crate::Compound<$type, $crate::meshup!(0, $type; $($field,)*)> as core::ops::Add<!>>::Output;
+            // type Second = $crate::Compound<$type, $crate::meshup!(0, $type; $($field,)*)>;
         }
         impl<S, const I: usize> $crate::CompoundWrapper<S> for $crate::PhantomField<S, $type, I> {
-            // /type Compound = $crate::Compound<S, $crate::PhantomEdge<S, (<Self as $crate::Edge>::First, <Self as $crate::Edge>::Second)>>;
-            type Compound = $crate::PhantomLeaf<S, Self>;
+            type Compound = $crate::Compound<S, $crate::PhantomEdge<S, (<Self as $crate::Edge>::First, <Self as $crate::Edge>::Second)>>;
+            // type Compound = $crate::PhantomLeaf<S, Self>;
         }
         impl<S> $crate::FieldOffset<S> for $type {
             type Offset = typenum::U0;
@@ -37,7 +37,7 @@ macro_rules! impl_meshup {
 macro_rules! meshup {
     ($index:expr, $type:ty;) => { ! };
     ($index:expr, $type:ty; $first:ty, $($field:ty,)*) => {
-        <$crate::Ordering<$type, $crate::meshup!({ ($index) + 1 }, $type; $($field,)*)> as core::ops::Add<
+        <$crate::PhantomOrder<$type, $crate::meshup!({ ($index) + 1 }, $type; $($field,)*)> as core::ops::Add<
             $crate::PhantomField<$type, $first, $index>
         >>::Output
     };
