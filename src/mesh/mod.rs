@@ -1,18 +1,22 @@
 //! TODO try use mir for macro implementation
 
 mod actor;
-mod add;
+mod compound;
+mod edge;
 mod field;
 mod impls;
+mod leaf;
 mod macros;
-mod node;
+mod order;
 mod size;
 
 pub use actor::*;
-pub use add::*;
+pub use compound::*;
+pub use edge::*;
 pub use field::*;
+pub use leaf::*;
 pub use macros::*;
-pub use node::*;
+pub use order::*;
 pub use size::*;
 
 #[macro_export]

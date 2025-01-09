@@ -28,16 +28,6 @@ where
     default fn run() {}
 }
 
-impl Actor for ! {
-    default fn run_at(_index: usize) -> Result<(), ()> {
-        Ok(())
-    }
-
-    default fn run() {
-        unreachable!()
-    }
-}
-
 impl Actor for () {
     default fn run_at(_index: usize) -> Result<(), ()> {
         Ok(())

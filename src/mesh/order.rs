@@ -18,15 +18,6 @@ impl<S, A, B> Order<B0> for PhantomEdge<S, (A, B)> {
     type Output = PhantomEdge<S, (B, A)>;
 }
 
-impl<S, T> Edge for PhantomOrder<S, T> {}
-
-impl<S, T> FieldOffset<S> for PhantomOrder<S, T>
-where
-    T: FieldOffset<S>,
-{
-    type Offset = T::Offset;
-}
-
 impl<S, B> Add<B> for PhantomOrder<S, ()> {
     type Output = PhantomEdge<S, (B, ())>;
 

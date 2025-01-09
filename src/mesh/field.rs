@@ -1,8 +1,6 @@
 use std::marker::PhantomData;
 
-use typenum::Unsigned;
-
-use super::{Compound, CompoundWrapper, Edge, PhantomEdge, PhantomLeaf};
+use super::{CompoundWrapper, Edge};
 
 pub trait FieldOffset<S> {
     type Offset;
@@ -19,10 +17,9 @@ where
     type Second = T::Second;
 }
 
-pub trait UnwrapField {
-    type Output;
-}
-
-impl<S, T, const I: usize> UnwrapField for PhantomField<S, T, I> {
-    type Output = T;
+impl<S, T, const I: usize> CompoundWrapper<S> for PhantomField<S, T, I>
+where
+    T: CompoundWrapper<S>,
+{
+    type Compound = T::Compound;
 }

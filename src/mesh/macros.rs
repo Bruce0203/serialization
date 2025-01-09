@@ -21,12 +21,8 @@ macro_rules! impl_meshup {
     ($type:ty; $($field_ident:ident: $field:ty),*) => {
         impl $crate::Edge for $type {
             type Second = <$crate::meshup!(0, $type; $($field,)*) as $crate::Flatten>::Output;
-            // type Second = $crate::Compound<$type, $crate::meshup!(0, $type; $($field,)*)>;
         }
-        impl<S, const I: usize> $crate::CompoundWrapper<S> for $crate::PhantomField<S, $type, I> {
-            // type Compound = $crate::Compound<S, $crate::PhantomEdge<S, (<Self as $crate::Edge>::First, <Self as $crate::Edge>::Second)>>;
-            // type Compound = $crate::PhantomLeaf<S, Self>;
-            // type Compound = $type;
+        impl<S> $crate::CompoundWrapper<S> for $type {
             type Compound = $crate::Compound<S, <$type as $crate::Edge>::Second>;
         }
         impl<S> $crate::FieldOffset<S> for $type {

@@ -1,4 +1,4 @@
-use super::{CompoundWrapper, Edge, PhantomField, PhantomLeaf};
+use super::{CompoundWrapper, Edge, PhantomLeaf};
 
 macro_rules! impl_serializable {
     ($($type:ty),*) => {
@@ -7,10 +7,6 @@ macro_rules! impl_serializable {
 
         impl<S> CompoundWrapper<S> for $type {
             type Compound = PhantomLeaf<S, Self>;
-        }
-
-        impl<S, const I: usize> CompoundWrapper<S> for PhantomField<S, $type, I> {
-            type Compound = PhantomLeaf<S, $type>;
         }
         )*
     };
