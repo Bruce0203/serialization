@@ -1,6 +1,6 @@
 use typenum::U0;
 
-use super::{CompoundWrapper, Edge, FieldOffset, PhantomLeaf};
+use super::{CompoundWrapper, Edge, FieldOffset, PhantomField, PhantomLeaf};
 
 impl Edge for u32 {}
 impl Edge for u8 {}
@@ -31,6 +31,19 @@ impl<S> CompoundWrapper<S> for u32 {
 
 impl<S> CompoundWrapper<S> for Vec<u8> {
     type Compound = PhantomLeaf<S, Self>;
+}
+
+impl<S, const I: usize> CompoundWrapper<S> for PhantomField<S, u8, I> {
+    type Compound = PhantomLeaf<S, u8>;
+}
+impl<S, const I: usize> CompoundWrapper<S> for PhantomField<S, u32, I> {
+    type Compound = PhantomLeaf<S, u32>;
+}
+impl<S, const I: usize> CompoundWrapper<S> for PhantomField<S, Vec<u8>, I> {
+    type Compound = PhantomLeaf<S, Vec<u8>>;
+}
+impl<S, const I: usize> CompoundWrapper<S> for PhantomField<S, (), I> {
+    type Compound = PhantomLeaf<S, ()>;
 }
 
 //

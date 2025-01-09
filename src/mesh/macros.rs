@@ -15,16 +15,19 @@ macro_rules! offset_of {
         }
     }};
 }
+
 #[macro_export]
 macro_rules! impl_meshup {
     ($type:ty; $($field_ident:ident: $field:ty),*) => {
         impl $crate::Edge for $type {
-            type Second = <$crate::Compound<$type, $crate::meshup!(0, $type; $($field,)*)> as core::ops::Add<!>>::Output;
+            type Second = <$crate::meshup!(0, $type; $($field,)*) as $crate::Flatten>::Output;
             // type Second = $crate::Compound<$type, $crate::meshup!(0, $type; $($field,)*)>;
         }
         impl<S, const I: usize> $crate::CompoundWrapper<S> for $crate::PhantomField<S, $type, I> {
-            type Compound = $crate::Compound<S, $crate::PhantomEdge<S, (<Self as $crate::Edge>::First, <Self as $crate::Edge>::Second)>>;
+            // type Compound = $crate::Compound<S, $crate::PhantomEdge<S, (<Self as $crate::Edge>::First, <Self as $crate::Edge>::Second)>>;
             // type Compound = $crate::PhantomLeaf<S, Self>;
+            // type Compound = $type;
+            type Compound = $crate::Compound<S, <$type as $crate::Edge>::Second>;
         }
         impl<S> $crate::FieldOffset<S> for $type {
             type Offset = typenum::U0;
@@ -69,34 +72,37 @@ macro_rules! count_items {
 #[cfg(feature = "non")]
 #[cfg(test)]
 mod tests2 {
-    use std::{convert::Infallible, ops::Add};
+    use std::{any::type_name, ops::Add};
 
-    use crate::{Compound, Edge, End, PhantomEdge};
+    use typenum::{U0, U10};
+
+    use crate::{
+        Compound, CompoundWrapper, Edge, FieldOffset, Flatten, PhantomEdge, PhantomField,
+        PhantomLeaf,
+    };
+
+    pub struct Model;
+    impl FieldOffset<Model> for PhantomField<Model, u8, 0> {
+        type Offset = U0;
+    }
+
+    impl<S, const I: usize> CompoundWrapper<S> for PhantomField<S, u8, I> {
+        // type Compound = Compound<Model, PhantomLeaf<Model, u8>>;
+        type Compound = Compound<S, PhantomLeaf<S, u8>>;
+    }
 
     extern crate test;
     #[test]
     fn test() {
-        type T = <PhantomEdge<Infallible, u8> as Add<PhantomEdge<Infallible, End>>>::Output;
-        type T2 = <PhantomEdge<Infallible, u32> as Add<T>>::Output;
-        type T3 = <PhantomEdge<Infallible, u32> as Add<T2>>::Output;
-        pub struct A;
-        impl Edge for A {
-            type First = ();
-
-            type Second = T3;
-        }
-
-        type T4 = <Compound<
-            Infallible,
-            PhantomEdge<Infallible, (<A as Edge>::First, <A as Edge>::Second)>,
-        > as Add<PhantomEdge<Infallible, u8>>>::Output;
-        println!(
-            "{}",
-            std::any::type_name::<T4>().replace(
-                "serialization::mesh::edge::PhantomEdge<core::convert::Infallible, ",
-                ""
-            )
-        );
+        // type Result = <Compound<Model, PhantomEdge<Model, (PhantomField<Model, u8, 0>, !)>> as Add<!>>::Output;
+        type Result = <PhantomEdge<
+            Model,
+            (
+                PhantomField<Model, u8, 0>,
+                PhantomEdge<Model, (PhantomField<Model, u8, 0>, !)>,
+            ),
+        > as Flatten>::Output;
+        println!("{}", type_name::<Result>());
     }
 }
 
@@ -173,6 +179,8 @@ mod tests {
         // 40 5
         // 44 4
         // 46 0
+        //
+        // (alloc::vec::Vec<u8>, (u32, (u32, (u8, (u8, (u32, (u32, (u8, (u8, (u8, !)>)>)>)>)>)>)>)>)>)>
 
         // 0  2
         // 24 1

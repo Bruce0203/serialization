@@ -10,7 +10,22 @@ pub trait FieldOffset<S> {
 
 pub struct PhantomField<S, T, const I: usize>(PhantomData<(S, T)>);
 
-impl<S, T, const I: usize> Edge for PhantomField<S, T, I> where T: Edge {}
+impl<S, T, const I: usize> Edge for PhantomField<S, T, I>
+where
+    T: Edge,
+{
+    type First = T::First;
+
+    type Second = T::Second;
+}
+
+pub trait UnwrapField {
+    type Output;
+}
+
+impl<S, T, const I: usize> UnwrapField for PhantomField<S, T, I> {
+    type Output = T;
+}
 
 //TODO compound를 마친 후에 field offset sorting을 하자 즉 compound를 함과 동시에 field offset
 //sorting을 하는 것이다. 깊이가 0을 초과하면 field offset ordering에 영향을 주지 않게끔 S타입을

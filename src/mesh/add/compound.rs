@@ -12,6 +12,26 @@ pub trait CompoundWrapper<S> {
     type Compound;
 }
 
+pub trait Flatten {
+    type Output;
+}
+
+impl<S, A, B> Flatten for PhantomEdge<S, (A, B)>
+where
+    A: CompoundWrapper<S, Compound: Add<<B as Flatten>::Output>>,
+    B: Flatten,
+{
+    type Output = <<A as CompoundWrapper<S>>::Compound as Add<<B as Flatten>::Output>>::Output;
+}
+
+impl Flatten for ! {
+    type Output = !;
+}
+
+impl<S> Flatten for PhantomLeaf<S, !> {
+    type Output = !;
+}
+
 impl<S, B> Add<B> for Compound<S, !> {
     type Output = B;
 
@@ -24,8 +44,6 @@ impl<S, T> Edge for Compound<S, T> {}
 
 impl<S, S2, A, B, C> Add<C> for Compound<S, PhantomEdge<S2, (A, B)>>
 where
-    A: Edge,
-    B: Edge,
     Compound<S, B>: Add<C>,
 {
     type Output = PhantomEdge<S, (A, <Compound<S, B> as Add<C>>::Output)>;
@@ -35,19 +53,27 @@ where
     }
 }
 
-impl<S, S2, A, B, const I: usize> Add<B> for Compound<S, PhantomField<S2, A, I>>
+impl<S, A, B> Add<B> for Compound<S, PhantomLeaf<S, A>>
 where
     A: Edge,
     B: Edge,
-    Compound<S, B>: Add<B>,
 {
-    type Output = PhantomEdge<S, (A, <Compound<S, B> as Add<B>>::Output)>;
+    type Output = PhantomEdge<S, (A, B)>;
 
     fn add(self, _rhs: B) -> Self::Output {
         unreachable!()
     }
 }
 
+//TODO try remove
+// impl<S, A, const I: usize> Add<!> for Compound<S, PhantomField<S, A, I>> {
+//     type Output = PhantomEdge<S, (A, !)>;
+//
+//     fn add(self, _rhs: !) -> Self::Output {
+//         unreachable!()
+//     }
+// }
+
 impl<S, S2, T> FieldOffset<S> for Compound<S2, T> {
     type Offset = U0;
-
+}
