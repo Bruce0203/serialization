@@ -19,18 +19,14 @@ where
     A: Actor,
     B: Actor,
 {
-    fn run_at(index: usize) -> Continuous {
+    fn run_at(mut index: usize) -> Continuous {
         #[cfg(debug_assertions)]
-        println!(
-            "size({}) = {}",
-            Self::SIZE,
-            crate::trim!(type_name::<Self>())
-        );
+        println!("size({}) {}", Self::SIZE, crate::trim!(type_name::<Self>()));
         if index == 0 {
             Self::run();
             return Continuous::Break;
         }
-        let index = index - 1;
+        index -= 1;
         if let Continuous::Continue = A::run_at(index) {
             B::run_at(index)
         } else {
