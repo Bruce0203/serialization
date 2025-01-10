@@ -22,7 +22,7 @@ impl<S> FieldOffset for End<S>
 where
     S: Size,
 {
-    type Offset = S::Size;
+    type Offset = typenum::U0;
 }
 
 impl<S> Len for End<S> {

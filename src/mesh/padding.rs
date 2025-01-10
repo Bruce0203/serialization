@@ -7,8 +7,11 @@ use super::{
 
 pub struct Padding<S, FrontOffset>(PhantomData<(S, FrontOffset)>);
 
-impl<S, FrontOffset> FieldOffset for Padding<S, FrontOffset> {
-    type Offset = FrontOffset;
+impl<S, FrontOffset> FieldOffset for Padding<S, FrontOffset>
+where
+    FrontOffset: FieldOffset,
+{
+    type Offset = FrontOffset::Offset;
 }
 
 impl<S, FrontOffset> Edge for Padding<S, FrontOffset> {

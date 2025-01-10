@@ -21,7 +21,7 @@ macro_rules! meshup {
     ($index:expr, $type:ty;) => { $crate::__private::End<$type> };
     ($index:expr, $type:ty; $first:ty, $($field:ty,)*) => {
         <$crate::__private::PhantomOrder<$type, <$crate::__private::PhantomOrder<$type, $crate::meshup!({ ($index) + 1 }, $type; $($field,)*)>
-            as core::ops::Add<$crate::__private::Padding<$type, <$crate::__private::PhantomField<$type, $first, $index> as $crate::__private::FieldOffset>::Offset>>>::Output>
+            as core::ops::Add<$crate::__private::Padding<$type, $crate::__private::PhantomField<$type, $first, $index>>>>::Output>
             as core::ops::Add<$crate::__private::PhantomField<$type, $first, $index>>>::Output
     };
 }

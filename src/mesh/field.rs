@@ -5,6 +5,7 @@ use super::{
     compound::{Compound, CompoundWrapper},
     edge::{Edge, PhantomEdge},
     len::Len,
+    size::Size,
 };
 
 pub trait FieldOffset {
@@ -40,4 +41,11 @@ where
     fn run() {
         T::run()
     }
+}
+
+impl<S, T, const I: usize> Size for PhantomField<S, T, I>
+where
+    T: Size,
+{
+    type Size = T::Size;
 }
