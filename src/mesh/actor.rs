@@ -1,6 +1,6 @@
 use std::any::type_name;
 
-use super::{edge::PhantomEdge, end::End, size::Size};
+use super::{edge::PhantomEdge, end::End, len::Len, padding::Padding};
 
 pub trait Actor {
     fn run_at(_index: usize) -> Continuous;
@@ -15,7 +15,7 @@ pub enum Continuous {
 
 impl<S, A, B> Actor for PhantomEdge<S, (A, B)>
 where
-    Self: Size,
+    Self: Len,
     A: Actor,
     B: Actor,
 {
@@ -37,7 +37,15 @@ where
     fn run() {}
 }
 
-impl Actor for End {
+impl<S> Actor for End<S> {
+    fn run_at(_index: usize) -> Continuous {
+        Continuous::Continue
+    }
+
+    fn run() {}
+}
+
+impl<S, FrontOffset> Actor for Padding<S, FrontOffset> {
     fn run_at(_index: usize) -> Continuous {
         Continuous::Continue
     }

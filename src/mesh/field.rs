@@ -1,8 +1,13 @@
 use std::marker::PhantomData;
 
-use super::{compound::CompoundWrapper, edge::Edge};
+use super::{
+    actor::Actor,
+    compound::{Compound, CompoundWrapper},
+    edge::{Edge, PhantomEdge},
+    len::Len,
+};
 
-pub trait FieldOffset<S> {
+pub trait FieldOffset {
     type Offset;
 }
 
@@ -17,9 +22,22 @@ where
     type Second = T::Second;
 }
 
-impl<S, T, const I: usize> CompoundWrapper<S> for PhantomField<S, T, I>
+impl<S, T, const I: usize> Len for PhantomField<S, T, I>
 where
-    T: CompoundWrapper<S>,
+    T: Len,
 {
-    type Compound = T::Compound;
+    const SIZE: usize = T::SIZE;
+}
+
+impl<S, T, const I: usize> Actor for PhantomField<S, T, I>
+where
+    T: Actor,
+{
+    fn run_at(index: usize) -> super::actor::Continuous {
+        T::run_at(index)
+    }
+
+    fn run() {
+        T::run()
+    }
 }

@@ -1,6 +1,9 @@
 use std::{marker::PhantomData, ops::Add};
 
-use super::edge::{Edge, PhantomEdge};
+use super::{
+    edge::{Edge, PhantomEdge},
+    len::Len,
+};
 
 /// Generic type `S` represents a struct containing a edges.
 pub struct PhantomLeaf<S, T>(PhantomData<(S, T)>);

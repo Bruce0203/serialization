@@ -7,6 +7,7 @@ use super::{
     end::End,
     field::{FieldOffset, PhantomField},
     leaf::PhantomLeaf,
+    padding::Padding,
 };
 
 pub trait Order<T> {
@@ -23,8 +24,8 @@ impl<S, A, B> Order<B0> for PhantomEdge<S, (A, B)> {
     type Output = PhantomEdge<S, (B, A)>;
 }
 
-impl<S, B> Add<B> for PhantomOrder<S, End> {
-    type Output = PhantomEdge<S, (B, End)>;
+impl<S, S2, B> Add<B> for PhantomOrder<S, End<S2>> {
+    type Output = PhantomEdge<S, (B, End<S2>)>;
 
     fn add(self, _rhs: B) -> Self::Output {
         unreachable!()
@@ -33,11 +34,11 @@ impl<S, B> Add<B> for PhantomOrder<S, End> {
 
 impl<S, A, B> Add<B> for PhantomOrder<S, PhantomLeaf<S, A>>
 where
-    A: FieldOffset<S>,
-    B: FieldOffset<S>,
-    <A as FieldOffset<S>>::Offset: IsLess<<B as FieldOffset<S>>::Offset>,
+    A: FieldOffset,
+    B: FieldOffset,
+    <A as FieldOffset>::Offset: IsLess<<B as FieldOffset>::Offset>,
     PhantomEdge<S, (A, B)>:
-        Order<<<A as FieldOffset<S>>::Offset as IsLess<<B as FieldOffset<S>>::Offset>>::Output>,
+        Order<<<A as FieldOffset>::Offset as IsLess<<B as FieldOffset>::Offset>>::Output>,
 {
     type Output =
         <PhantomEdge<S, (A, B)> as Order<<A::Offset as IsLess<B::Offset>>::Output>>::Output;
@@ -49,17 +50,18 @@ where
 
 impl<S, A, B, const I: usize> Add<B> for PhantomOrder<S, PhantomField<S, A, I>>
 where
-    B: FieldOffset<S>,
-    PhantomField<S, A, I>: FieldOffset<S>,
-    <PhantomField<S, A, I> as FieldOffset<S>>::Offset: IsLess<<B as FieldOffset<S>>::Offset>,
-    PhantomEdge<S, (PhantomField<S, A, I>, B)>: Order<
-        <<PhantomField<S, A, I> as FieldOffset<S>>::Offset as IsLess<
-            <B as FieldOffset<S>>::Offset,
-        >>::Output,
-    >,
+    B: FieldOffset,
+    PhantomField<S, A, I>: FieldOffset,
+    <PhantomField<S, A, I> as FieldOffset>::Offset: IsLess<<B as FieldOffset>::Offset>,
+    PhantomEdge<S, (PhantomField<S, A, I>, B)>:
+        Order<
+            <<PhantomField<S, A, I> as FieldOffset>::Offset as IsLess<
+                <B as FieldOffset>::Offset,
+            >>::Output,
+        >,
 {
     type Output = <PhantomEdge<S, (PhantomField<S, A, I>, B)> as Order<
-        <<PhantomField<S, A, I> as FieldOffset<S>>::Offset as IsLess<B::Offset>>::Output,
+        <<PhantomField<S, A, I> as FieldOffset>::Offset as IsLess<B::Offset>>::Output,
     >>::Output;
 
     fn add(self, _rhs: B) -> Self::Output {
@@ -69,16 +71,16 @@ where
 
 impl<S, A, B, C> Add<C> for PhantomOrder<S, PhantomEdge<S, (A, B)>>
 where
-    A: FieldOffset<S>,
-    C: FieldOffset<S>,
-    <A as FieldOffset<S>>::Offset: IsLess<<C as FieldOffset<S>>::Offset>,
+    A: FieldOffset,
+    C: FieldOffset,
+    <A as FieldOffset>::Offset: IsLess<<C as FieldOffset>::Offset>,
     PhantomEdge<S, (A, C)>: Order<
-            <<A as FieldOffset<S>>::Offset as IsLess<<C as FieldOffset<S>>::Offset>>::Output,
+            <<A as FieldOffset>::Offset as IsLess<<C as FieldOffset>::Offset>>::Output,
             Output: Edge,
         >,
     PhantomOrder<S, B>: Add<
         <<PhantomEdge<S, (A, C)> as Order<
-            <<A as FieldOffset<S>>::Offset as IsLess<<C as FieldOffset<S>>::Offset>>::Output,
+            <<A as FieldOffset>::Offset as IsLess<<C as FieldOffset>::Offset>>::Output,
         >>::Output as Edge>::Second,
     >,
 {

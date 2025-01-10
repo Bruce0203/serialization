@@ -26,11 +26,11 @@ where
     type Output = <<A as CompoundWrapper<S>>::Compound as Add<<B as Flatten>::Output>>::Output;
 }
 
-impl Flatten for End {
-    type Output = End;
+impl<S> Flatten for End<S> {
+    type Output = End<S>;
 }
 
-impl<S, B> Add<B> for Compound<S, End> {
+impl<S, S2, B> Add<B> for Compound<S, End<S2>> {
     type Output = B;
 
     fn add(self, _rhs: B) -> Self::Output {
