@@ -15,7 +15,7 @@ impl<S> Size for End<S>
 where
     S: Size,
 {
-    type Size = typenum::U0;
+    type Size = S::Size;
 }
 
 impl<S> FieldOffset for End<S>

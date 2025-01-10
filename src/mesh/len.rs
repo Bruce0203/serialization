@@ -1,4 +1,4 @@
-use std::ops::Sub;
+use typenum::Unsigned;
 
 use super::{
     edge::{Edge, PhantomEdge},
@@ -30,7 +30,6 @@ impl<S, S2, S3, FrontOffset, B, C> Len
     for PhantomEdge<S, (Padding<S2, FrontOffset>, PhantomEdge<S3, (B, C)>)>
 where
     Self: Edge<First: Len, Second: Len>,
-    B: FieldOffset<Offset: Sub<FrontOffset>>,
 {
     const SIZE: usize = field_size_of::<Self>();
 }
