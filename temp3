@@ -1,38 +1,25 @@
-test mesh::macros::tests::actor ... size(0) PhantomEdge<serialization::mesh::macros::tests::Model, (serialization::mesh
-::field::PhantomField<serialization::mesh::macros::tests::Model, alloc::vec::Vec<u8>, 2>, PhantomEdge<serialization::me
-sh::macros::tests::Model, (serialization::mesh::padding::Padding<serialization::mesh::macros::tests::Model, serialization::mesh::field::PhantomFie
-ld<serialization::mesh::macros::tests::Model, alloc::vec::Vec<u8>, 2>>, PhantomEdge<serialization::mesh::macros::tests:
-:Model, (serialization::mesh::field::PhantomField<serialization::mesh::macros::tests::Foo, u32, 0>, PhantomEdge<seriali
-zation::mesh::macros::tests::Model, (serialization::mesh::padding::Padding<serialization::mesh::macros::tests::Foo, serialization::mesh::field::Ph
-antomField<serialization::mesh::macros::tests::Foo, u32, 0>>, PhantomEdge<serialization::mesh::macros::tests::Model, (s
-erialization::mesh::field::PhantomField<serialization::mesh::macros::tests::Foo, u32, 1>, PhantomEdge<serialization::me
-sh::macros::tests::Model, (serialization::mesh::padding::Padding<serialization::mesh::macros::tests::Foo, serialization::mesh::field::PhantomField
-<serialization::mesh::macros::tests::Foo, u32, 1>>, PhantomEdge<serialization::mesh::macros::tests::Model, (serializati
-on::mesh::field::PhantomField<serialization::mesh::macros::tests::Bar, u8, 0>, PhantomEdge<serialization::mesh::macros:
-:tests::Model, (serialization::mesh::padding::Padding<serialization::mesh::macros::tests::Bar, serialization::mesh::field::PhantomField<serializat
-ion::mesh::macros::tests::Bar, u8, 0>>, PhantomEdge<serialization::mesh::macros::tests::Model, (serialization::mesh::fi
-eld::PhantomField<serialization::mesh::macros::tests::Bar, u8, 1>, PhantomEdge<serialization::mesh::macros::tests::Mode
-l, (serialization::mesh::padding::Padding<serialization::mesh::macros::tests::Bar, serialization::mesh::field::PhantomField<serialization::mesh::m
-acros::tests::Bar, u8, 1>>, PhantomEdge<serialization::mesh::macros::tests::Model, (serialization::mesh::padding::Paddi
-ng<serialization::mesh::macros::tests::Foo, serialization::mesh::field::PhantomField<serialization::mesh::macros::tests::Foo, serialization::mesh:
-:macros::tests::Bar, 2>>, PhantomEdge<serialization::mesh::macros::tests::Model, (serialization::mesh::padding::Padding
-<serialization::mesh::macros::tests::Model, serialization::mesh::field::PhantomField<serialization::mesh::macros::tests::Model, serialization::mes
-h::macros::tests::Foo, 1>>, PhantomEdge<serialization::mesh::macros::tests::Model, (serialization::mesh::field::Phantom
-Field<serialization::mesh::macros::tests::Model, u32, 3>, PhantomEdge<serialization::mesh::macros::tests::Model, (seria
-lization::mesh::padding::Padding<serialization::mesh::macros::tests::Model, serialization::mesh::field::PhantomField<serialization::mesh::macros::
-tests::Model, u32, 3>>, PhantomEdge<serialization::mesh::macros::tests::Model, (serialization::mesh::field::PhantomFiel
-d<serialization::mesh::macros::tests::Model, u32, 5>, PhantomEdge<serialization::mesh::macros::tests::Model, (serializa
-tion::mesh::padding::Padding<serialization::mesh::macros::tests::Model, serialization::mesh::field::PhantomField<serialization::mesh::macros::test
-s::Model, u32, 5>>, PhantomEdge<serialization::mesh::macros::tests::Model, (serialization::mesh::field::PhantomField<se
-rialization::mesh::macros::tests::Bar, u8, 0>, PhantomEdge<serialization::mesh::macros::tests::Model, (serialization::m
-esh::padding::Padding<serialization::mesh::macros::tests::Bar, serialization::mesh::field::PhantomField<serialization::mesh::macros::tests::Bar, u
-8, 0>>, PhantomEdge<serialization::mesh::macros::tests::Model, (serialization::mesh::field::PhantomField<serialization:
-:mesh::macros::tests::Bar, u8, 1>, PhantomEdge<serialization::mesh::macros::tests::Model, (serialization::mesh::padding
-::Padding<serialization::mesh::macros::tests::Bar, serialization::mesh::field::PhantomField<serialization::mesh::macros::tests::Bar, u8, 1>>, seri
-alization::mesh::edge::PhantomEdge<serialization::mesh::macros::tests::Model, (serialization::mesh::padding::Padding<serialization::mesh::macros::
-tests::Model, serialization::mesh::field::PhantomField<serialization::mesh::macros::tests::Model, serialization::mesh::macros::tests::Bar, 4>>, se
-rialization::mesh::edge::PhantomEdge<serialization::mesh::macros::tests::Model, (serialization::mesh::field::PhantomField<serialization::mesh::mac
-ros::tests::Model, u8, 0>, PhantomEdge<serialization::mesh::macros::tests::Model, (serialization::mesh::padding::Paddin
-g<serialization::mesh::macros::tests::Model, serialization::mesh::field::PhantomField<serialization::mesh::macros::tests::Model, u8, 0>>, serializ
-ation::mesh::end::End<serialization::mesh::macros::tests::Model>)>)>)>)>)>)>)>)>)>)>)>)>)>)>)>)>)>)>)>)>)>)>)>
+field 0 alloc::vec::Vec<u8>
+padding 18446744073709551615
+field 0 u32
+padding 18446744073709551615
+field 0 u32
+padding 18446744073709551615
+field 0 u8
+padding 18446744073709551615
+field 0 u8
+padding 18446744073709551615
+padding 18446744073709551615
+padding 18446744073709551615
+field 0 u32
+padding 18446744073709551615
+field 0 u32
+padding 18446744073709551615
+field 0 u8
+padding 18446744073709551615
+field 0 u8
+padding 18446744073709551615
+padding 0
+field 1 u8
+padding 0
+ok
 

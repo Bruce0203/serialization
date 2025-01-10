@@ -1,5 +1,3 @@
-use std::any::TypeId;
-
 use typenum::Unsigned;
 
 use super::{
@@ -16,12 +14,7 @@ pub trait Len {
     const SIZE: usize;
 }
 
-const fn field_size_of<T>() -> usize
-where
-    T: Edge<First: Len, Second: Len>,
-{
-    let a = <T as Edge>::First::SIZE;
-    let b = <T as Edge>::Second::SIZE;
+const fn field_size_of(a: usize, b: usize) -> usize {
     if a == UNSIZED || b == UNSIZED {
         0
     } else {
@@ -32,36 +25,29 @@ where
 impl<S, S2, S3, FrontOffset, B, C> Len
     for PhantomEdge<S, (Padding<S2, FrontOffset>, PhantomEdge<S3, (B, C)>)>
 where
-    Self: Edge<First: Len, Second: Len>,
-    B: FieldOffset<Offset: Unsigned>,
+    C: Len,
+    B: FieldOffset<Offset: Unsigned> + Size<Size: Unsigned>,
     FrontOffset: FieldOffset<Offset: Unsigned> + Size<Size: Unsigned>,
 {
     const SIZE: usize = {
-        let a = <FrontOffset::Offset as Unsigned>::USIZE;
-        let a_size = <FrontOffset::Size>::USIZE;
+        let a = <<FrontOffset as FieldOffset>::Offset as Unsigned>::USIZE;
+        let a_size = <<FrontOffset as Size>::Size as Unsigned>::USIZE;
         let b = <B::Offset as Unsigned>::USIZE;
-        if a == UNSIZED || b == UNSIZED {
-            UNSIZED
-        } else {
-            let a = a as isize;
-            let b = b as isize;
-            let a_size = a_size as isize;
-            let offset = b + a_size - a;
-            if offset != 0 { UNSIZED } else { 0 }
-        }
+        let result = if a_size + a == b { 0 } else { UNSIZED };
+        field_size_of(result, field_size_of(<B as Size>::Size::USIZE, <C as Len>::SIZE))
     };
 }
 
-impl<S, S2, FrontOffset> Len for PhantomEdge<S, (Padding<S, FrontOffset>, End<S2>)>
-where
-    Self: Edge<First: Len, Second: Len>,
-{
-    const SIZE: usize = field_size_of::<Self>();
+impl<S, S2, FrontOffset> Len for PhantomEdge<S, (Padding<S, FrontOffset>, End<S2>)> {
+    const SIZE: usize = 0;
 }
 
 impl<S, S2, A, B, const I: usize> Len for PhantomEdge<S, (PhantomField<S2, A, I>, B)>
 where
-    Self: Edge<First: Len, Second: Len>,
+    Self: Edge<First: Size<Size: Unsigned>, Second: Len>,
 {
-    const SIZE: usize = field_size_of::<Self>();
+    const SIZE: usize = field_size_of(
+        <<Self as Edge>::First as Size>::Size::USIZE,
+        <<Self as Edge>::Second as Len>::SIZE,
+    );
 }

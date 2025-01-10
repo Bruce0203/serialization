@@ -9,8 +9,8 @@ macro_rules! impl_meshup {
             type Compound = $crate::__private::Compound<S, <$type as $crate::__private::Edge>::Second>;
         }
 
-        impl $crate::__private::Size for $type {
-            type Size = $crate::__private::typenum::U<{ core::mem::size_of::<Self>() }>;
+        impl<S, const I: usize> $crate::__private::Size for $crate::__private::PhantomField<S, $type, I> {
+            type Size = $crate::__private::typenum::U<{ core::mem::size_of::<$type>() }>;
         }
         $crate::impl_field_offset!(0, $type; $($field_ident: $field),*);
     };
@@ -88,8 +88,8 @@ macro_rules! impl_serializable {
             type Compound = $crate::__private::PhantomLeaf<S, Self>;
         }
 
-        impl $crate::__private::Size for $type {
-            type Size = $crate::__private::typenum::U<{ core::mem::size_of::<Self>() }>;
+        impl<S, const I: usize> $crate::__private::Size for $crate::__private::PhantomField<S, $type, I> {
+            type Size = $crate::__private::typenum::U<{ core::mem::size_of::<$type>() }>;
         }
         )*
     };
@@ -151,7 +151,9 @@ mod tests {
 
     #[test]
     fn actor() {
-        <<Model as crate::__private::Edge>::Second as crate::__private::Actor>::run_at(20);
+        for i in 0..100 {
+            <<Model as crate::__private::Edge>::Second as crate::__private::Actor>::run_at(i);
+        }
     }
 
     #[cfg(not(debug_assertions))]

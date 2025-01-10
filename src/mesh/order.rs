@@ -7,7 +7,6 @@ use super::{
     end::End,
     field::{FieldOffset, PhantomField},
     leaf::PhantomLeaf,
-    padding::Padding,
 };
 
 pub trait Order<T> {
