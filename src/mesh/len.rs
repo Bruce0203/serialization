@@ -5,7 +5,6 @@ use super::{
     end::End,
     field::{FieldOffset, PhantomField},
     padding::Padding,
-    size::Size,
 };
 
 pub const UNSIZED: usize = usize::MAX;
@@ -26,15 +25,14 @@ impl<S, S2, S3, FrontOffset, B, C> Len
     for PhantomEdge<S, (Padding<S2, FrontOffset>, PhantomEdge<S3, (B, C)>)>
 where
     C: Len,
-    B: FieldOffset<Offset: Unsigned> + Size<Size: Unsigned> + Len,
-    FrontOffset: FieldOffset<Offset: Unsigned> + Size<Size: Unsigned> + Size<Size: Unsigned>,
+    B: FieldOffset<Offset: Unsigned> + Len,
+    FrontOffset: FieldOffset<Offset: Unsigned> + Len,
 {
     const SIZE: usize = {
-        let is_unsized_front_anyway = <<FrontOffset as Size>::Size as Unsigned>::USIZE == UNSIZED;
         let a = <<FrontOffset as FieldOffset>::Offset as Unsigned>::USIZE;
-        let a_size = <<FrontOffset as Size>::Size as Unsigned>::USIZE;
+        let a_size = <FrontOffset as Len>::SIZE;
         let b = <B::Offset as Unsigned>::USIZE;
-        if a_size + a == b {
+        if a_size != UNSIZED && a_size + a == b {
             field_size_of(<B as Len>::SIZE, <C as Len>::SIZE)
         } else {
             0
@@ -48,10 +46,10 @@ impl<S, S2, FrontOffset> Len for PhantomEdge<S, (Padding<S, FrontOffset>, End<S2
 
 impl<S, S2, A, B, const I: usize> Len for PhantomEdge<S, (PhantomField<S2, A, I>, B)>
 where
-    Self: Edge<First: Size<Size: Unsigned>, Second: Len>,
+    Self: Edge<First: Len, Second: Len>,
 {
     const SIZE: usize = field_size_of(
-        <<Self as Edge>::First as Size>::Size::USIZE,
+        <<Self as Edge>::First as Len>::SIZE,
         <<Self as Edge>::Second as Len>::SIZE,
     );
 }

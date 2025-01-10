@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use super::{
     compound::CompoundWrapper, edge::Edge, end::End, field::FieldOffset, leaf::PhantomLeaf,
-    len::Len, size::Size,
+    len::Len,
 };
 
 pub struct Padding<S, FrontOffset>(PhantomData<(S, FrontOffset)>);
@@ -22,11 +22,6 @@ impl<S, FrontOffset> Edge for Padding<S, FrontOffset> {
 
 impl<S, FrontOffset> CompoundWrapper<S> for Padding<S, FrontOffset> {
     type Compound = PhantomLeaf<S, Self>;
-}
-
-///TODO remove (try it)
-impl<S, FrontOffset> Size for Padding<S, FrontOffset> {
-    type Size = typenum::U0;
 }
 
 impl<S, FrontOffset> Len for Padding<S, FrontOffset> {

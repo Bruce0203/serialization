@@ -1,8 +1,7 @@
 [package]
 name = "serialization"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
-regex = "1.11.1"
 typenum = { version = "1.17.0", features = ["const-generics"] }

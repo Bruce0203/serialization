@@ -11,7 +11,6 @@ mod len;
 mod macros;
 mod order;
 mod padding;
-mod size;
 
 pub mod __private {
     pub mod typenum {
@@ -27,5 +26,4 @@ pub mod __private {
     pub use super::macros::*;
     pub use super::order::*;
     pub use super::padding::*;
-    pub use super::size::*;
 }

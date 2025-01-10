@@ -15,7 +15,8 @@ pub enum Continuous {
 
 impl<S, S2, A, B, const I: usize> Actor for PhantomEdge<S, (PhantomField<S2, A, I>, B)>
 where
-    PhantomField<S2, A, I>: Actor + Len,
+    Self: Len,
+    PhantomField<S2, A, I>: Actor,
     B: Actor,
 {
     fn run_at(mut index: usize) -> Continuous {
@@ -32,11 +33,7 @@ where
     }
 
     fn run() {
-        println!(
-            "field {} {}",
-            <PhantomField<S2, A, I> as Len>::SIZE,
-            type_name::<A>()
-        );
+        println!("field {} {}", <Self as Len>::SIZE, type_name::<A>());
     }
 }
 
@@ -46,12 +43,7 @@ where
     Padding<S2, FrontOffset>: Actor,
     B: Actor,
 {
-    fn run_at(mut index: usize) -> Continuous {
-        if index == 0 {
-            Self::run();
-            return Continuous::Break;
-        }
-        index -= 1;
+    fn run_at(index: usize) -> Continuous {
         if let Continuous::Continue = Padding::<S2, FrontOffset>::run_at(index) {
             B::run_at(index)
         } else {
