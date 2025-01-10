@@ -1,5 +1,3 @@
-//! TODO try use mir for macro implementation
-
 mod actor;
 mod compound;
 mod edge;
@@ -11,6 +9,9 @@ mod len;
 mod macros;
 mod order;
 mod padding;
+
+#[cfg(test)]
+mod fuzz;
 
 pub mod __private {
     pub mod typenum {

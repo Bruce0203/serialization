@@ -1,3 +1,4 @@
+use core::primitive::usize;
 use std::any::type_name;
 
 use super::{edge::PhantomEdge, end::End, field::PhantomField, len::Len, padding::Padding};
@@ -9,8 +10,8 @@ pub trait Actor {
 }
 
 pub enum Continuous {
-    Continue,
-    Break,
+    Next,
+    Done,
 }
 
 impl<S, S2, A, B, const I: usize> Actor for PhantomEdge<S, (PhantomField<S2, A, I>, B)>
@@ -22,13 +23,13 @@ where
     fn run_at(mut index: usize) -> Continuous {
         if index == 0 {
             Self::run();
-            return Continuous::Break;
+            return Continuous::Done;
         }
         index -= 1;
-        if let Continuous::Continue = PhantomField::<S2, A, I>::run_at(index) {
+        if let Continuous::Next = PhantomField::<S2, A, I>::run_at(index) {
             B::run_at(index)
         } else {
-            Continuous::Break
+            Continuous::Done
         }
     }
 
@@ -44,21 +45,21 @@ where
     B: Actor,
 {
     fn run_at(index: usize) -> Continuous {
-        if let Continuous::Continue = Padding::<S2, FrontOffset>::run_at(index) {
+        if let Continuous::Next = Padding::<S2, FrontOffset>::run_at(index) {
             B::run_at(index)
         } else {
-            Continuous::Break
+            Continuous::Done
         }
     }
 
     fn run() {
-        println!("padding {}", <Self as Len>::SIZE);
+        unreachable!()
     }
 }
 
 impl<S> Actor for End<S> {
     fn run_at(_index: usize) -> Continuous {
-        Continuous::Continue
+        Continuous::Next
     }
 
     fn run() {}
@@ -66,8 +67,20 @@ impl<S> Actor for End<S> {
 
 impl<S, FrontOffset> Actor for Padding<S, FrontOffset> {
     fn run_at(_index: usize) -> Continuous {
-        Continuous::Continue
+        Continuous::Next
     }
 
-    fn run() {}
+    fn run() {
+        unreachable!()
+    }
+}
+
+impl<S, T, const I: usize> Actor for PhantomField<S, T, I> {
+    fn run_at(_index: usize) -> Continuous {
+        Continuous::Next
+    }
+
+    fn run() {
+        unreachable!()
+    }
 }

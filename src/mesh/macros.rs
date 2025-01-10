@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! impl_meshup {
-    ($type:ty; $($field_ident:ident: $field:ty),*) => {
+    ($type:ty; $($field_ident:tt => $field:ty),*) => {
         impl $crate::__private::Edge for $type {
             type First = $crate::__private::End<$type>;
             type Second = <$crate::meshup!(0, $type; $($field,)*) as $crate::__private::Flatten>::Output;
@@ -10,9 +10,9 @@ macro_rules! impl_meshup {
         }
 
         impl<S, const I: usize> $crate::__private::Len for $crate::__private::PhantomField<S, $type, I> {
-            const SIZE: core::primitive::usize = core::mem::size_of::<$type>();
+            const SIZE: usize = core::mem::size_of::<$type>();
         }
-        $crate::impl_field_offset!(0, $type; $($field_ident: $field),*);
+        $crate::impl_field_offset!(0, $type; $($field_ident => $field),*);
     };
 }
 
@@ -34,14 +34,14 @@ macro_rules! field_of {
 #[macro_export]
 macro_rules! impl_field_offset {
     ($index:expr, $type:ty; ) => {};
-    ($index:expr, $type:ty; $first_field_ident:ident: $first_field:ty) => {
+    ($index:expr, $type:ty; $first_field_ident:tt => $first_field:ty) => {
         impl $crate::__private::FieldOffset for $crate::__private::PhantomField<$type, $first_field, $index> {
             type Offset = $crate::__private::typenum::U< { $crate::offset_of!($type, $first_field_ident) } >;
         }
     };
-    ($index:expr, $type:ty; $first_field_ident:ident: $first_field:ty, $($field_ident:ident: $field:ty),*) => {
-        $crate::impl_field_offset!($index, $type; $first_field_ident: $first_field);
-        $crate::impl_field_offset!({ ($index) + 1 }, $type; $($field_ident: $field),*);
+    ($index:expr, $type:ty; $first_field_ident:tt => $first_field:ty, $($field_ident:tt => $field:ty),*) => {
+        $crate::impl_field_offset!($index, $type; $first_field_ident => $first_field);
+        $crate::impl_field_offset!({ ($index) + 1 }, $type; $($field_ident => $field),*);
     };
 }
 
@@ -55,7 +55,7 @@ macro_rules! count_items {
 
 #[macro_export]
 macro_rules! offset_of {
-    ($T:ty, $field:ident) => {{
+    ($T:ty, $field:tt) => {{
         use core::mem::MaybeUninit;
         let origin: MaybeUninit<$T> = MaybeUninit::uninit();
         unsafe {
@@ -68,46 +68,41 @@ macro_rules! offset_of {
 }
 
 macro_rules! impl_serializable {
-    ($($type:ty),*) => {
-        $(
+    ($type:ty) => {
         impl $crate::__private::Edge for $type {
             type First = ();
             type Second = ();
         }
 
-        impl<S, const I: usize> $crate::__private::Actor for $crate::__private::PhantomField<S, $type, I> {
-            fn run_at(_index: core::primitive::usize) -> $crate::__private::Continuous {
-                $crate::__private::Continuous::Continue
-            }
-
-            fn run() {}
-        }
-
-
-        impl<S, const I: usize> $crate::__private::CompoundWrapper<S> for $crate::__private::PhantomField<S, $type, I> {
+        impl<S, const I: usize> $crate::__private::CompoundWrapper<S>
+            for $crate::__private::PhantomField<S, $type, I>
+        {
             type Compound = $crate::__private::PhantomLeaf<S, Self>;
         }
-        )*
     };
 }
 
 macro_rules! impl_primitives {
-    ($($type:ty),*) => {
-        $crate::__private::impl_serializable!($($type),*);
+    ($type:ty) => {
+        $crate::__private::impl_serializable!($type);
 
-        $(impl<S, const I: usize> $crate::__private::Len for $crate::__private::PhantomField<S, $type, I> {
-            const SIZE: core::primitive::usize = core::mem::size_of::<$type>();
-        })*
+        impl<S, const I: usize> $crate::__private::Len
+            for $crate::__private::PhantomField<S, $type, I>
+        {
+            const SIZE: usize = core::mem::size_of::<$type>();
+        }
     };
 }
 
 macro_rules! impl_non_primitives {
-    ($($type:ty),*) => {
-        $crate::__private::impl_serializable!($($type),*);
+    ($type:ty) => {
+        $crate::__private::impl_serializable!($type);
 
-        $(impl<S, const I: usize> $crate::__private::Len for $crate::__private::PhantomField<S, $type, I> {
-            const SIZE: core::primitive::usize = $crate::__private::UNSIZED;
-        })*
+        impl<S, const I: usize> $crate::__private::Len
+            for $crate::__private::PhantomField<S, $type, I>
+        {
+            const SIZE: usize = $crate::__private::UNSIZED;
+        }
     };
 }
 
@@ -120,10 +115,12 @@ pub const unsafe fn sub_ptr<T>(field: *const T, origin: *const T) -> usize {
 
 #[cfg(test)]
 mod tests {
+    use serialization_derive::Serializable;
+
     extern crate test;
 
-    // 0, 4, 16, 40, 44, 48
     #[repr(C)]
+    #[derive(Serializable)]
     struct Model {
         field0: u8,
         // padding 3
@@ -138,8 +135,8 @@ mod tests {
         field5: u32,
         // padding 4
     }
-    impl_meshup!(Model; field0: u8, field1: Foo, field2: Vec<u8>, field3: u32, field4: Bar, field5: u32);
 
+    #[derive(Serializable)]
     struct Foo {
         field0: u32,
         // padding 0
@@ -148,15 +145,17 @@ mod tests {
         field2: Bar,
         // padding 2
     }
-    impl_meshup!(Foo; field0: u32, field1: u32, field2: Bar);
 
+    #[derive(Serializable)]
     struct Bar {
         field0: u8,
         // padding 0
         field1: u8,
         // padding 0
     }
-    impl_meshup!(Bar; field0: u8, field1: u8);
+
+    #[derive(Serializable)]
+    struct Bar2(u8, u32);
 
     #[test]
     fn actor() {
@@ -167,7 +166,7 @@ mod tests {
 
     #[cfg(not(debug_assertions))]
     #[bench]
-    fn bench_actor(b: &mut test::Bencher) {
+    fn bench_must_0ns(b: &mut test::Bencher) {
         <<Model as crate::__private::Edge>::Second as crate::__private::Actor>::run_at(10);
     }
 }

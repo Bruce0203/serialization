@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, ops::Add};
 
-use typenum::{B0, B1, IsLess};
+use typenum::{IsLess, B0, B1};
 
 use super::{
     edge::{Edge, PhantomEdge},
@@ -74,9 +74,9 @@ where
     C: FieldOffset,
     <A as FieldOffset>::Offset: IsLess<<C as FieldOffset>::Offset>,
     PhantomEdge<S, (A, C)>: Order<
-            <<A as FieldOffset>::Offset as IsLess<<C as FieldOffset>::Offset>>::Output,
-            Output: Edge,
-        >,
+        <<A as FieldOffset>::Offset as IsLess<<C as FieldOffset>::Offset>>::Output,
+        Output: Edge,
+    >,
     PhantomOrder<S, B>: Add<
         <<PhantomEdge<S, (A, C)> as Order<
             <<A as FieldOffset>::Offset as IsLess<<C as FieldOffset>::Offset>>::Output,
@@ -84,7 +84,11 @@ where
     >,
 {
     type Output =
-        PhantomEdge<S, (<<PhantomEdge<S, (A, C)> as Order<<A::Offset as IsLess<C::Offset>>::Output>>::Output as Edge>::First, <PhantomOrder<S,  B> as Add<<<PhantomEdge<S, (A, C)> as Order<<A::Offset as IsLess<C::Offset>>::Output>>::Output as Edge>::Second>>::Output)>;
+        PhantomEdge<S, (
+            <<PhantomEdge<S, (A, C)> as Order<<A::Offset as IsLess<C::Offset>>::Output>>::Output as Edge>::First, 
+            <PhantomOrder<S,  B> 
+            as Add<<<PhantomEdge<S, (A, C)> as Order<<A::Offset as IsLess<C::Offset>>::Output>>::Output as Edge>::Second>>::Output
+        )>;
 
     fn add(self, _rhs: C) -> Self::Output {
         unreachable!()

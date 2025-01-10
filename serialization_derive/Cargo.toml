@@ -1,12 +1,8 @@
-[workspace]
-members = [
-    "serialization_derive",
-]
-
 [package]
-name = "serialization"
+name = "serialization_derive"
 version = "0.1.0"
 edition = "2021"
+description = "#[derive(Serializable)] for serialization"
 author = "Bruce0203 <brucefreedy@gmail.com>"
 repository = "https://github.com/Bruce0203/serialization"
 license = "MIT"
@@ -16,7 +12,14 @@ include = [
     "Cargo.toml",
 ]
 
+[features]
+default = ["std"]
+std = []
+
+[lib]
+proc-macro = true
 
 [dependencies]
-typenum = { version = "1.17.0", features = ["const-generics"] }
-serialization_derive = { path = "./serialization_derive" }
+quote = "1.0.36"
+syn = { version = "2.0.68", features = ["full"] }
+proc-macro2 = "1.0.86"
