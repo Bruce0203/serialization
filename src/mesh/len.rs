@@ -1,3 +1,5 @@
+use std::any::TypeId;
+
 use typenum::Unsigned;
 
 use super::{
@@ -41,6 +43,9 @@ where
         if a == UNSIZED || b == UNSIZED {
             UNSIZED
         } else {
+            let a = a as isize;
+            let b = b as isize;
+            let a_size = a_size as isize;
             let offset = b + a_size - a;
             if offset != 0 { UNSIZED } else { 0 }
         }
