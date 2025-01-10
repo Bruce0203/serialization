@@ -126,31 +126,67 @@ pub const unsafe fn sub_ptr<T>(field: *const T, origin: *const T) -> usize {
 mod tests {
     extern crate test;
 
+    // 0, 4, 16, 40, 44, 48
+    #[repr(C)]
     struct Model {
         field0: u8,
+        // padding 3
         field1: Foo,
+        // padding 8
         field2: Vec<u8>,
+        // padding 6
         field3: u32,
+        // padding 0
         field4: Bar,
+        // padding 2
         field5: u32,
+        // padding 4
     }
     impl_meshup!(Model; field0: u8, field1: Foo, field2: Vec<u8>, field3: u32, field4: Bar, field5: u32);
 
     struct Foo {
         field0: u32,
+        // padding 0
         field1: u32,
+        // padding 0
         field2: Bar,
+        // padding 2
     }
     impl_meshup!(Foo; field0: u32, field1: u32, field2: Bar);
 
     struct Bar {
         field0: u8,
+        // padding 0
         field1: u8,
+        // padding 0
     }
     impl_meshup!(Bar; field0: u8, field1: u8);
 
     #[test]
     fn actor() {
+        println!(
+            "{}, {}, {}",
+            offset_of!(Foo, field0),
+            offset_of!(Foo, field1),
+            offset_of!(Foo, field2),
+        );
+        println!(
+            "{}, {}, {}, {}, {}, {} =>total {}",
+            offset_of!(Model, field0),
+            offset_of!(Model, field1),
+            offset_of!(Model, field2),
+            offset_of!(Model, field3),
+            offset_of!(Model, field4),
+            offset_of!(Model, field5),
+            size_of::<Model>()
+        );
+
+        println!(
+            "{}, {} =>total {}",
+            offset_of!(Bar, field0),
+            offset_of!(Bar, field1),
+            size_of::<Bar>()
+        );
         for i in 0..100 {
             <<Model as crate::__private::Edge>::Second as crate::__private::Actor>::run_at(i);
         }

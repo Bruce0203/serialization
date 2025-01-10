@@ -1,4 +1,4 @@
-field 24 alloc::vec::Vec<u8>
+field 1 u8
 padding 0
 field 8 u32
 padding 4
@@ -9,8 +9,8 @@ padding 1
 field 1 u8
 padding 0
 padding 0
-padding 8
-field 8 u32
+padding 28
+field 28 alloc::vec::Vec<u8>
 padding 4
 field 4 u32
 padding 0
@@ -18,8 +18,8 @@ field 2 u8
 padding 1
 field 1 u8
 padding 0
-padding 1
-field 1 u8
+padding 0
+field 4 u32
 padding 0
 ok
 
