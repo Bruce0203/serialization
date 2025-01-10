@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use super::{actor::Actor, edge::Edge};
+use super::edge::Edge;
 
 pub trait FieldOffset {
     type Offset;
@@ -15,17 +15,4 @@ where
     type First = T::First;
 
     type Second = T::Second;
-}
-
-impl<S, T, const I: usize> Actor for PhantomField<S, T, I>
-where
-    T: Actor,
-{
-    fn run_at(index: usize) -> super::actor::Continuous {
-        T::run_at(index)
-    }
-
-    fn run() {
-        T::run()
-    }
 }

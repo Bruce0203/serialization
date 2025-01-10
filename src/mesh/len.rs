@@ -26,15 +26,19 @@ impl<S, S2, S3, FrontOffset, B, C> Len
     for PhantomEdge<S, (Padding<S2, FrontOffset>, PhantomEdge<S3, (B, C)>)>
 where
     C: Len,
-    B: FieldOffset<Offset: Unsigned> + Size<Size: Unsigned>,
-    FrontOffset: FieldOffset<Offset: Unsigned> + Size<Size: Unsigned>,
+    B: FieldOffset<Offset: Unsigned> + Size<Size: Unsigned> + Len,
+    FrontOffset: FieldOffset<Offset: Unsigned> + Size<Size: Unsigned> + Size<Size: Unsigned>,
 {
     const SIZE: usize = {
+        let is_unsized_front_anyway = <<FrontOffset as Size>::Size as Unsigned>::USIZE == UNSIZED;
         let a = <<FrontOffset as FieldOffset>::Offset as Unsigned>::USIZE;
         let a_size = <<FrontOffset as Size>::Size as Unsigned>::USIZE;
         let b = <B::Offset as Unsigned>::USIZE;
-        let result = if a_size + a == b { 0 } else { UNSIZED };
-        field_size_of(result, field_size_of(<B as Size>::Size::USIZE, <C as Len>::SIZE))
+        if a_size + a == b {
+            field_size_of(<B as Len>::SIZE, <C as Len>::SIZE)
+        } else {
+            0
+        }
     };
 }
 

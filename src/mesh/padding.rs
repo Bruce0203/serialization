@@ -28,3 +28,7 @@ impl<S, FrontOffset> CompoundWrapper<S> for Padding<S, FrontOffset> {
 impl<S, FrontOffset> Size for Padding<S, FrontOffset> {
     type Size = typenum::U0;
 }
+
+impl<S, FrontOffset> Len for Padding<S, FrontOffset> {
+    const SIZE: usize = 0;
+}

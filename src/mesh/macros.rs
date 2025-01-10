@@ -75,7 +75,7 @@ macro_rules! impl_serializable {
             type Second = ();
         }
 
-        impl $crate::__private::Actor for $type {
+        impl<S, const I: usize> $crate::__private::Actor for $crate::__private::PhantomField<S, $type, I> {
             fn run_at(_index: core::primitive::usize) -> $crate::__private::Continuous {
                 $crate::__private::Continuous::Continue
             }
@@ -99,8 +99,8 @@ macro_rules! impl_primitives {
     ($($type:ty),*) => {
         $crate::__private::impl_serializable!($($type),*);
 
-        $(impl $crate::__private::Len for $type {
-            const SIZE: core::primitive::usize = core::mem::size_of::<Self>();
+        $(impl<S, const I: usize> $crate::__private::Len for $crate::__private::PhantomField<S, $type, I> {
+            const SIZE: core::primitive::usize = core::mem::size_of::<$type>();
         })*
     };
 }
@@ -109,7 +109,7 @@ macro_rules! impl_non_primitives {
     ($($type:ty),*) => {
         $crate::__private::impl_serializable!($($type),*);
 
-        $(impl $crate::__private::Len for $type {
+        $(impl<S, const I: usize> $crate::__private::Len for $crate::__private::PhantomField<S, $type, I> {
             const SIZE: core::primitive::usize = $crate::__private::UNSIZED;
         })*
     };
@@ -164,29 +164,6 @@ mod tests {
 
     #[test]
     fn actor() {
-        println!(
-            "{}, {}, {}",
-            offset_of!(Foo, field0),
-            offset_of!(Foo, field1),
-            offset_of!(Foo, field2),
-        );
-        println!(
-            "{}, {}, {}, {}, {}, {} =>total {}",
-            offset_of!(Model, field0),
-            offset_of!(Model, field1),
-            offset_of!(Model, field2),
-            offset_of!(Model, field3),
-            offset_of!(Model, field4),
-            offset_of!(Model, field5),
-            size_of::<Model>()
-        );
-
-        println!(
-            "{}, {} =>total {}",
-            offset_of!(Bar, field0),
-            offset_of!(Bar, field1),
-            size_of::<Bar>()
-        );
         for i in 0..100 {
             <<Model as crate::__private::Edge>::Second as crate::__private::Actor>::run_at(i);
         }
