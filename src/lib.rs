@@ -1,6 +1,10 @@
+
 #![cfg_attr(test, feature(test))]
 
 mod mesh;
+
+#[cfg(test)]
+mod fuzz;
 
 pub use mesh::*;
 pub use serialization_derive::Serializable;

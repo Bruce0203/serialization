@@ -1,47 +1,55 @@
 #[macro_export]
 macro_rules! impl_meshup {
-    ($type:ty; $($field_ident:tt => $field:ty),*) => {
-        impl $crate::__private::Edge for $type {
-            type First = $crate::__private::End<$type>;
-            type Second = <$crate::meshup!(0, $type; $($field,)*) as $crate::__private::Flatten>::Output;
+    (($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt),+} ($($where_clause:tt)*); $($field_ident:tt => {$($field:tt)*}),*) => {
+    const _: () = {
+        impl<$($impl_generics),+> $crate::__private::Edge for $($type)+ $($type_generics)* $($where_clause)* {
+            type First = $crate::__private::End<$($type)+ $($type_generics)*>;
+            type Second = <$crate::meshup!(0, ($($type)+), {$($type_generics)*}; $({$($field)*})*) as $crate::__private::Flatten>::Output;
         }
-        impl<S, const I: usize> $crate::__private::CompoundWrapper<S> for $crate::__private::PhantomField<S, $type, I> {
-            type Compound = $crate::__private::Compound<S, <$type as $crate::__private::Edge>::Second>;
+        impl<$($impl_generics),+, __S, const __I: usize> $crate::__private::CompoundWrapper<__S> for $crate::__private::PhantomField<__S, $($type)+ $($type_generics)*, __I> $($where_clause)* {
+            type Compound = $crate::__private::Compound<__S, <$($type)+ $($type_generics)* as $crate::__private::Edge>::Second>;
         }
 
-        impl<S, const I: usize> $crate::__private::Len for $crate::__private::PhantomField<S, $type, I> {
-            const SIZE: usize = core::mem::size_of::<$type>();
+        impl<$($impl_generics),+, __S, const __I: usize> $crate::__private::Len for $crate::__private::PhantomField<__S, $($type)+ $($type_generics)*, __I> $($where_clause)* {
+            const SIZE: usize = core::mem::size_of::<$($type)+ $($type_generics)*>();
         }
-        $crate::impl_field_offset!(0, $type; $($field_ident => $field),*);
+        $crate::impl_field_offset!(0, ($($type)+), {$($type_generics)*}, impl {$($impl_generics),+} ($($where_clause)*); $($field_ident => {$($field)*}),*);
+    };
     };
 }
 
 #[macro_export]
 macro_rules! meshup {
-    ($index:expr, $type:ty;) => { $crate::__private::End<$type> };
-    ($index:expr, $type:ty; $first:ty, $($field:ty,)*) => {
-        <$crate::__private::PhantomOrder<$type, <$crate::__private::PhantomOrder<$type, $crate::meshup!({ ($index) + 1 }, $type; $($field,)*)>
-            as core::ops::Add<$crate::__private::Padding<$type, $crate::__private::PhantomField<$type, $first, $index>>>>::Output>
-            as core::ops::Add<$crate::__private::PhantomField<$type, $first, $index>>>::Output
+    ($index:expr, ($($type:tt)+), {$($type_generics:tt)*};) => { $crate::__private::End<$($type)+ $($type_generics)*> };
+    ($index:expr, ($($type:tt)+), {$($type_generics:tt)*}; {$($first:tt)*} $({$($field:tt)*})*) => {
+        <$crate::__private::PhantomOrder<$($type)+ $($type_generics)*, <$crate::__private::PhantomOrder<$($type)+ $($type_generics)*, $crate::meshup!({ ($index) + 1 }, ($($type)+), {$($type_generics)*}; $({$($field)*})*)>
+            as core::ops::Add<$crate::__private::Padding<$($type)+ $($type_generics)*, $crate::__private::PhantomField<$($type)+ $($type_generics)*, $($first)*, $index>>>>::Output>
+            as core::ops::Add<$crate::__private::PhantomField<$($type)+ $($type_generics)*, $($first)*, $index>>>::Output
     };
 }
 
-#[macro_export]
-macro_rules! field_of {
-    ($index:expr, $type:ty; $first:ty, $($field:ty,)*) => {};
+struct A<T> {
+    v: u8,
+    v2: T,
+}
+pub trait Ab {
+    const V: usize;
+}
+impl<T> Ab for A<T> {
+    const V: usize = serialization::offset_of!((A), { <T> }, v);
 }
 
 #[macro_export]
 macro_rules! impl_field_offset {
-    ($index:expr, $type:ty; ) => {};
-    ($index:expr, $type:ty; $first_field_ident:tt => $first_field:ty) => {
-        impl $crate::__private::FieldOffset for $crate::__private::PhantomField<$type, $first_field, $index> {
-            type Offset = $crate::__private::typenum::U< { $crate::offset_of!($type, $first_field_ident) } >;
+    ($index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt),+} ($($where_clause:tt)*); ) => {};
+    ($index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt),+} ($($where_clause:tt)*); $first_field_ident:tt => {$($first_field:tt)*}) => {
+        impl<$($impl_generics),+> $crate::__private::FieldOffset for $crate::__private::PhantomField<$($type)+ $($type_generics)*, $($first_field)*, $index> $($where_clause)* {
+            type Offset = $crate::__private::typenum::U<{ $crate::offset_of!(($($type)+), {$($type_generics)*}, $first_field_ident) }>;
         }
     };
-    ($index:expr, $type:ty; $first_field_ident:tt => $first_field:ty, $($field_ident:tt => $field:ty),*) => {
-        $crate::impl_field_offset!($index, $type; $first_field_ident => $first_field);
-        $crate::impl_field_offset!({ ($index) + 1 }, $type; $($field_ident => $field),*);
+    ($index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt),+} ($($where_clause:tt)*); $first_field_ident:tt => {$($first_field:tt)*}, $($field_ident:tt => {$($field:tt)*}),*) => {
+        $crate::impl_field_offset!($index, ($($type)+), {$($type_generics)*}, impl {$($impl_generics),+} ($($where_clause)*); $first_field_ident => {$($first_field)*});
+        $crate::impl_field_offset!({ ($index) + 1 }, ($($type)+), {$($type_generics)*}, impl {$($impl_generics),+} ($($where_clause)*); $($field_ident => {$($field)*}),*);
     };
 }
 
@@ -55,9 +63,9 @@ macro_rules! count_items {
 
 #[macro_export]
 macro_rules! offset_of {
-    ($T:ty, $field:tt) => {{
+    (($($type:tt)+), {$($type_generics:tt)*}, $field:tt) => {{
         use core::mem::MaybeUninit;
-        let origin: MaybeUninit<$T> = MaybeUninit::uninit();
+        let origin: MaybeUninit<$($type)+ $($type_generics)*> = MaybeUninit::uninit();
         unsafe {
             $crate::__private::sub_ptr(
                 &origin.assume_init_ref().$field as *const _ as *const u8,
@@ -68,38 +76,47 @@ macro_rules! offset_of {
 }
 
 macro_rules! impl_serializable {
-    ($type:ty) => {
-        impl $crate::__private::Edge for $type {
+    (($($type:tt)+), {$($type_generics:tt)*}) => {
+        $crate::__private::impl_serializable!(($($type)+), {$($type_generics)*}, impl {'__nothing} $($where_clause)*);
+    };
+    (($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt),+} ($($where_clause:tt)*)) => {
+        impl<$($impl_generics),+> $crate::__private::Edge for $($type)+ $($type_generics)* $($where_clause)* {
             type First = ();
             type Second = ();
         }
 
-        impl<S, const I: usize> $crate::__private::CompoundWrapper<S>
-            for $crate::__private::PhantomField<S, $type, I>
+        impl<$($impl_generics),+, __S, const __I: usize> $crate::__private::CompoundWrapper<__S>
+            for $crate::__private::PhantomField<__S, $($type)+ $($type_generics)*, __I> $($where_clause)*
         {
-            type Compound = $crate::__private::PhantomLeaf<S, Self>;
+            type Compound = $crate::__private::PhantomLeaf<__S, Self>;
         }
     };
 }
 
 macro_rules! impl_primitives {
-    ($type:ty) => {
-        $crate::__private::impl_serializable!($type);
+    (($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt),+} ($($where_clause:tt)*)) => {
+        $crate::__private::impl_serializable!(($($type)+), {$($type_generics)*}, impl {$($impl_generics),+} ($($where_clause)*));
 
-        impl<S, const I: usize> $crate::__private::Len
-            for $crate::__private::PhantomField<S, $type, I>
+        impl<$($impl_generics),+, __S, const __I: usize> $crate::__private::Len
+            for $crate::__private::PhantomField<__S, $($type)+ $($type_generics)*, __I> $($where_clause)*
         {
-            const SIZE: usize = core::mem::size_of::<$type>();
+            const SIZE: usize = core::mem::size_of::<$($type)+ $($type_generics)*>();
         }
+    };
+    (($($type:tt)+)) => {
+        $crate::__private::impl_primitives!(($($type)+), {}, impl {'__nothing} ());
     };
 }
 
 macro_rules! impl_non_primitives {
-    ($type:ty) => {
-        $crate::__private::impl_serializable!($type);
+    (($($type:tt)+)) => {
+        $crate::__private::impl_non_primitives!(($($type)+), {}, impl {'__nothing} ());
+    };
+    (($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt),+} ($($where_clause:tt)*)) => {
+        $crate::__private::impl_serializable!(($($type)+), {$($type_generics)*}, impl {$($impl_generics),+} ($($where_clause)*));
 
-        impl<S, const I: usize> $crate::__private::Len
-            for $crate::__private::PhantomField<S, $type, I>
+        impl<$($impl_generics),+, __S, const __I: usize> $crate::__private::Len
+            for $crate::__private::PhantomField<__S, $($type)+ $($type_generics)*, __I> $($where_clause)*
         {
             const SIZE: usize = $crate::__private::UNSIZED;
         }
@@ -154,9 +171,6 @@ mod tests {
         // padding 0
     }
 
-    #[derive(Serializable)]
-    struct Bar2(u8, u32);
-
     #[test]
     fn actor() {
         for i in 0..100 {
@@ -167,6 +181,8 @@ mod tests {
     #[cfg(not(debug_assertions))]
     #[bench]
     fn bench_must_0ns(b: &mut test::Bencher) {
-        <<Model as crate::__private::Edge>::Second as crate::__private::Actor>::run_at(10);
+        for i in 0..1000 {
+            <<Model as crate::__private::Edge>::Second as crate::__private::Actor>::run_at(i);
+        }
     }
 }

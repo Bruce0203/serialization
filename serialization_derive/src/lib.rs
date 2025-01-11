@@ -1,13 +1,29 @@
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, Data, DeriveInput, Index};
+use syn::{parse_macro_input, parse_quote, Data, DeriveInput, GenericParam, Index, WhereClause};
 
 #[proc_macro_derive(Serializable)]
 pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let crate_path = quote!(serialization);
     let ident = input.ident;
-    let (impl_generics, type_generics, where_clause) = input.generics.split_for_impl();
+    let (_impl_generics, type_generics, where_clause) = input.generics.split_for_impl();
+    let mut impl_generics = input.generics.params.clone();
+    let mut where_clause = where_clause.cloned().unwrap_or_else(|| parse_quote!(where));
+    for impl_generic in impl_generics.iter_mut() {
+        match impl_generic {
+            GenericParam::Lifetime(lifetime_param) => {
+                lifetime_param.bounds.clear();
+                let lt = &lifetime_param.lifetime;
+                where_clause.predicates.push(parse_quote!(#lt: 'static));
+            }
+            GenericParam::Type(type_param) => {
+                type_param.bounds.clear();
+            }
+            GenericParam::Const(_const_param) => {}
+        }
+    }
+    impl_generics.insert(0, parse_quote!('__nothing));
     match input.data {
         Data::Struct(data_struct) => {
             let fields = data_struct.fields;
@@ -30,14 +46,13 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                         })
                 })
                 .collect();
+            println!("{}", impl_generics.to_token_stream());
             quote! {
-                const _: () = {
-                    #crate_path::impl_meshup!(#ident; #(#idents => #types),*);
-                };
+                #crate_path::impl_meshup!((#ident), {#type_generics}, impl {#impl_generics} (#where_clause); #(#idents => {#types}),*);
             }
         }
         Data::Enum(data_enum) => {
-            todo!()
+            quote! {}
         }
         Data::Union(_data_union) => {
             panic!("union not support")

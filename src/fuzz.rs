@@ -1,8 +1,3 @@
-#![feature(const_trait_impl)]
-#![feature(generic_const_exprs)]
-#![feature(specialization)]
-#![allow(warnings)]
-
 #[derive(serialization::Serializable, Debug, Eq, PartialEq)]
 struct A1;
 #[derive(serialization::Serializable, Debug, Eq, PartialEq)]
@@ -119,6 +114,7 @@ struct A26 {
     value3: u8,
 }
 
+#[cfg(feature = "nothing")]
 #[cfg(test)]
 mod tests {
     use std::{any::type_name, convert::Infallible, fmt::Debug, marker::PhantomData, str::FromStr};

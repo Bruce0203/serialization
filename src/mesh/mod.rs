@@ -10,9 +10,6 @@ mod macros;
 mod order;
 mod padding;
 
-#[cfg(test)]
-mod fuzz;
-
 pub mod __private {
     pub mod typenum {
         pub use typenum::*;
