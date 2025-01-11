@@ -1,20 +1,20 @@
 #[macro_export]
 macro_rules! impl_meshup {
-    (($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt),+} ($($where_clause:tt)*); $($field_ident:tt => {$($field:tt)*}),*) => {
+    (($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $($field_ident:tt => {$($field:tt)*}),*) => {
     const _: () = {
-        impl<$($impl_generics),+> $crate::__private::Edge for $($type)+ $($type_generics)* $($where_clause)* {
+        impl<$($impl_generics,)*> $crate::__private::Edge for $($type)+ $($type_generics)* where $($where_clause)* {
             type First = $crate::__private::End<$($type)+ $($type_generics)*>;
             type Second = <$crate::meshup!(0, ($($type)+), {$($type_generics)*}; $({$($field)*})*) as $crate::__private::Flatten>::Output;
         }
-        impl<$($impl_generics),+, __S, const __I: usize> $crate::__private::CompoundWrapper<__S> for $crate::__private::PhantomField<__S, $($type)+ $($type_generics)*, __I> $($where_clause)* {
+        impl<$($impl_generics,)* __S, const __I: usize> $crate::__private::CompoundWrapper<__S> for $crate::__private::PhantomField<__S, $($type)+ $($type_generics)*, __I> where $($where_clause)* {
             type Compound = $crate::__private::Compound<__S, <$($type)+ $($type_generics)* as $crate::__private::Edge>::Second>;
         }
 
-        impl<$($impl_generics),+, __S, const __I: usize> $crate::__private::Len for $crate::__private::PhantomField<__S, $($type)+ $($type_generics)*, __I> $($where_clause)* {
+        impl<$($impl_generics,)* __S, const __I: usize> $crate::__private::Len for $crate::__private::PhantomField<__S, $($type)+ $($type_generics)*, __I> where $($where_clause)* {
             const SIZE: usize = core::mem::size_of::<$($type)+ $($type_generics)*>();
         }
-        $crate::impl_field_offset!(0, ($($type)+), {$($type_generics)*}, impl {$($impl_generics),+} ($($where_clause)*); $($field_ident => {$($field)*}),*);
     };
+        $crate::impl_field_offset!(0, ($($type)+), {$($type_generics)*}, impl {$($impl_generics,)*} ($($where_clause)*); $($field_ident => {$($field)*}),*);
     };
 }
 
@@ -28,28 +28,25 @@ macro_rules! meshup {
     };
 }
 
-struct A<T> {
-    v: u8,
-    v2: T,
-}
-pub trait Ab {
-    const V: usize;
-}
-impl<T> Ab for A<T> {
-    const V: usize = serialization::offset_of!((A), { <T> }, v);
-}
-
 #[macro_export]
 macro_rules! impl_field_offset {
-    ($index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt),+} ($($where_clause:tt)*); ) => {};
-    ($index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt),+} ($($where_clause:tt)*); $first_field_ident:tt => {$($first_field:tt)*}) => {
-        impl<$($impl_generics),+> $crate::__private::FieldOffset for $crate::__private::PhantomField<$($type)+ $($type_generics)*, $($first_field)*, $index> $($where_clause)* {
-            type Offset = $crate::__private::typenum::U<{ $crate::offset_of!(($($type)+), {$($type_generics)*}, $first_field_ident) }>;
-        }
+    ($index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); ) => {};
+    ($index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $first_field_ident:tt => {$($first_field:tt)*}) => {
+        const _: () = {
+            const fn __offset<$($impl_generics,)*>() -> usize where $($where_clause)* {
+                $crate::offset_of!(($($type)+), {$($type_generics)*}, $first_field_ident)
+            }
+            impl<$($impl_generics,)*> $crate::__private::FieldOffset for $crate::__private::PhantomField<$($type)+ $($type_generics)*, $($first_field)*, $index>
+                where
+                    $($where_clause)*
+            {
+                type Offset = $crate::__private::typenum::Const<{ __offset::<$($impl_generics,)*>() }>;
+            }
+        };
     };
-    ($index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt),+} ($($where_clause:tt)*); $first_field_ident:tt => {$($first_field:tt)*}, $($field_ident:tt => {$($field:tt)*}),*) => {
-        $crate::impl_field_offset!($index, ($($type)+), {$($type_generics)*}, impl {$($impl_generics),+} ($($where_clause)*); $first_field_ident => {$($first_field)*});
-        $crate::impl_field_offset!({ ($index) + 1 }, ($($type)+), {$($type_generics)*}, impl {$($impl_generics),+} ($($where_clause)*); $($field_ident => {$($field)*}),*);
+    ($index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $first_field_ident:tt => {$($first_field:tt)*}, $($field_ident:tt => {$($field:tt)*}),*) => {
+        $crate::impl_field_offset!($index, ($($type)+), {$($type_generics)*}, impl {$($impl_generics,)*} ($($where_clause)*); $first_field_ident => {$($first_field)*});
+        $crate::impl_field_offset!({ ($index) + 1 }, ($($type)+), {$($type_generics)*}, impl {$($impl_generics,)*} ($($where_clause)*); $($field_ident => {$($field)*}),*);
     };
 }
 
@@ -77,16 +74,16 @@ macro_rules! offset_of {
 
 macro_rules! impl_serializable {
     (($($type:tt)+), {$($type_generics:tt)*}) => {
-        $crate::__private::impl_serializable!(($($type)+), {$($type_generics)*}, impl {'__nothing} $($where_clause)*);
+        $crate::__private::impl_serializable!(($($type)+), {$($type_generics)*}, impl {} $($where_clause)*);
     };
-    (($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt),+} ($($where_clause:tt)*)) => {
-        impl<$($impl_generics),+> $crate::__private::Edge for $($type)+ $($type_generics)* $($where_clause)* {
+    (($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*)) => {
+        impl<$($impl_generics,)*> $crate::__private::Edge for $($type)+ $($type_generics)* where $($where_clause)* {
             type First = ();
             type Second = ();
         }
 
-        impl<$($impl_generics),+, __S, const __I: usize> $crate::__private::CompoundWrapper<__S>
-            for $crate::__private::PhantomField<__S, $($type)+ $($type_generics)*, __I> $($where_clause)*
+        impl<$($impl_generics,)* __S, const __I: usize> $crate::__private::CompoundWrapper<__S>
+            for $crate::__private::PhantomField<__S, $($type)+ $($type_generics)*, __I> where $($where_clause)*
         {
             type Compound = $crate::__private::PhantomLeaf<__S, Self>;
         }
@@ -94,29 +91,29 @@ macro_rules! impl_serializable {
 }
 
 macro_rules! impl_primitives {
-    (($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt),+} ($($where_clause:tt)*)) => {
-        $crate::__private::impl_serializable!(($($type)+), {$($type_generics)*}, impl {$($impl_generics),+} ($($where_clause)*));
+    (($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*)) => {
+        $crate::__private::impl_serializable!(($($type)+), {$($type_generics)*}, impl {$($impl_generics,)*} ($($where_clause)*));
 
-        impl<$($impl_generics),+, __S, const __I: usize> $crate::__private::Len
-            for $crate::__private::PhantomField<__S, $($type)+ $($type_generics)*, __I> $($where_clause)*
+        impl<$($impl_generics,)* __S, const __I: usize> $crate::__private::Len
+            for $crate::__private::PhantomField<__S, $($type)+ $($type_generics)*, __I> where $($where_clause)*
         {
             const SIZE: usize = core::mem::size_of::<$($type)+ $($type_generics)*>();
         }
     };
     (($($type:tt)+)) => {
-        $crate::__private::impl_primitives!(($($type)+), {}, impl {'__nothing} ());
+        $crate::__private::impl_primitives!(($($type)+), {}, impl {} ());
     };
 }
 
 macro_rules! impl_non_primitives {
     (($($type:tt)+)) => {
-        $crate::__private::impl_non_primitives!(($($type)+), {}, impl {'__nothing} ());
+        $crate::__private::impl_non_primitives!(($($type)+), {}, impl {} ());
     };
-    (($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt),+} ($($where_clause:tt)*)) => {
-        $crate::__private::impl_serializable!(($($type)+), {$($type_generics)*}, impl {$($impl_generics),+} ($($where_clause)*));
+    (($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*)) => {
+        $crate::__private::impl_serializable!(($($type)+), {$($type_generics)*}, impl {$($impl_generics,)*} ($($where_clause)*));
 
-        impl<$($impl_generics),+, __S, const __I: usize> $crate::__private::Len
-            for $crate::__private::PhantomField<__S, $($type)+ $($type_generics)*, __I> $($where_clause)*
+        impl<$($impl_generics,)* __S, const __I: usize> $crate::__private::Len
+            for $crate::__private::PhantomField<__S, $($type)+ $($type_generics)*, __I> where $($where_clause)*
         {
             const SIZE: usize = $crate::__private::UNSIZED;
         }

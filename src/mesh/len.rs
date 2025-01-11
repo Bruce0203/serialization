@@ -1,4 +1,4 @@
-use typenum::Unsigned;
+use typenum::{ToUInt, Unsigned};
 
 use super::{
     edge::{Edge, PhantomEdge},
@@ -25,13 +25,13 @@ impl<S, S2, S3, FrontOffset, B, C> Len
     for PhantomEdge<S, (Padding<S2, FrontOffset>, PhantomEdge<S3, (B, C)>)>
 where
     C: Len,
-    B: FieldOffset<Offset: Unsigned> + Len,
-    FrontOffset: FieldOffset<Offset: Unsigned> + Len,
+    B: FieldOffset<Offset: ToUInt<Output: Unsigned>> + Len,
+    FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>> + Len,
 {
     const SIZE: usize = {
-        let a = <<FrontOffset as FieldOffset>::Offset as Unsigned>::USIZE;
+        let a = <<<FrontOffset as FieldOffset>::Offset as ToUInt>::Output as Unsigned>::USIZE;
         let a_size = <FrontOffset as Len>::SIZE;
-        let b = <B::Offset as Unsigned>::USIZE;
+        let b = <<B::Offset as ToUInt>::Output as Unsigned>::USIZE;
         if a_size != UNSIZED && a_size + a == b {
             field_size_of(<B as Len>::SIZE, <C as Len>::SIZE)
         } else {
