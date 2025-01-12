@@ -1,7 +1,10 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, ops::Add};
 
 use super::{
-    compound::CompoundWrapper, edge::Edge, end::End, field::FieldOffset, leaf::PhantomLeaf,
+    compound::CompoundWrapper,
+    edge::{Edge, PhantomEdge},
+    end::End,
+    field::FieldOffset,
     len::Len,
 };
 
@@ -21,7 +24,15 @@ impl<S, FrontOffset> Edge for Padding<S, FrontOffset> {
 }
 
 impl<S, FrontOffset> CompoundWrapper<S> for Padding<S, FrontOffset> {
-    type Compound = PhantomLeaf<S, Self>;
+    type Compound = Self;
+}
+
+impl<S, FrontOffset, Rhs> Add<Rhs> for Padding<S, FrontOffset> {
+    type Output = PhantomEdge<S, (Padding<S, FrontOffset>, Rhs)>;
+
+    fn add(self, _rhs: Rhs) -> Self::Output {
+        unreachable!()
+    }
 }
 
 impl<S, FrontOffset> Len for Padding<S, FrontOffset> {

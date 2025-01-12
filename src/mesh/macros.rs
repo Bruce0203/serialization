@@ -17,6 +17,10 @@ macro_rules! impl_meshup {
         impl<$($impl_generics,)*> $crate::__private::Len for $($type)+ <$($type_generics)*> where $($where_clause)* {
             const SIZE: usize = core::mem::size_of::<$($type)+ <$($type_generics)*>>();
         }
+        impl<$($impl_generics,)* __S> $crate::__private::CompoundWrapper<__S> for $($type)+ <$($type_generics)*> where $($where_clause)* {
+            type Compound = $crate::__private::Compound<__S, <$($type)+ <$($type_generics)*> as $crate::__private::Edge>::Second>;
+        }
+
         $crate::impl_field_offset!(0, ($($type)+), {$($type_generics)*}, impl {$($impl_generics,)*} ($($where_clause)*); $($field_ident => {$($field)*}),*);
     };
     };
@@ -47,9 +51,8 @@ macro_rules! impl_field_offset {
             {
                 type Offset = $crate::__private::typenum::Const<{ __offset::<$($impl_generics,)*>() }>;
             }
-
-            impl<$($impl_generics,)*> $crate::__private::CompoundWrapper<$($type)+ <$($type_generics)*>> for __FieldToken<$($first_field)*, $index> where $($where_clause)* {
-                type Compound = $crate::__private::Compound<$($type)+ <$($type_generics)*>, <$($first_field)* as $crate::__private::Edge>::Second>;
+            impl<$($impl_generics,)*> $crate::__private::CompoundWrapper<$($type)+ <$($type_generics)*>> for __FieldToken<$($first_field)*, $index> where $($where_clause)* $($first_field)*: $crate::__private::CompoundWrapper<$($type)+ <$($type_generics)*>> {
+                type Compound = Self;
             }
         };
     };
@@ -90,6 +93,12 @@ macro_rules! impl_serializable {
             type First = $crate::__private::End<$($type)+ <$($type_generics)*>>;
             type Second = $crate::__private::End<$($type)+ <$($type_generics)*>>;
         }
+        impl<$($impl_generics,)* __S> $crate::__private::CompoundWrapper<__S> for $($type)+ <$($type_generics)*> where $($where_clause)* {
+            type Compound = Self;
+        }
+        //Compuond<Edge<(First, Second)>>
+        //Leaf<Self>
+
     };
 }
 

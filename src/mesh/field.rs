@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, ops::Add};
 
 use super::{
     compound::{Compound, CompoundWrapper},
@@ -36,7 +36,8 @@ impl<S, T> CompoundWrapper<S> for Field<T>
 where
     T: CompoundWrapper<S>,
 {
-    type Compound = T::Compound;
+    //TODO unwrap field or not ? no
+    type Compound = Field<T::Compound>;
 }
 
 impl<T> Len for Field<T>
@@ -44,4 +45,12 @@ where
     T: Len,
 {
     const SIZE: usize = T::SIZE;
+}
+
+impl<S, A, B, T> Add<PhantomEdge<S, (A, B)>> for Field<T> {
+    type Output = PhantomEdge<S, (Field<T>, PhantomEdge<S, (A, B)>)>;
+
+    fn add(self, _rhs: PhantomEdge<S, (A, B)>) -> Self::Output {
+        unreachable!()
+    }
 }
