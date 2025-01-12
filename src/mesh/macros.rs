@@ -4,7 +4,7 @@ macro_rules! impl_meshup {
     const _: () = {
         impl<$($impl_generics,)*> $crate::__private::Edge for $($type)+ $($type_generics)* where $($where_clause)* {
             type First = $crate::__private::End<$($type)+ $($type_generics)*>;
-            type Second = <$crate::meshup!(0, ($($type)+), {$($type_generics)*}; $({$($field)*})*) as $crate::__private::Flatten>::Output;
+            type Second = $crate::meshup!(0, ($($type)+), {$($type_generics)*}; $({$($field)*})*);
         }
         impl<$($impl_generics,)* __S, const __I: usize> $crate::__private::CompoundWrapper<__S> for $crate::__private::PhantomField<__S, $($type)+ $($type_generics)*, __I> where $($where_clause)* {
             type Compound = $crate::__private::Compound<__S, <$($type)+ $($type_generics)* as $crate::__private::Edge>::Second>;
@@ -22,8 +22,8 @@ macro_rules! impl_meshup {
 macro_rules! meshup {
     ($index:expr, ($($type:tt)+), {$($type_generics:tt)*};) => { $crate::__private::End<$($type)+ $($type_generics)*> };
     ($index:expr, ($($type:tt)+), {$($type_generics:tt)*}; {$($first:tt)*} $({$($field:tt)*})*) => {
-        <$crate::__private::PhantomOrder<$($type)+ $($type_generics)*, <$crate::__private::PhantomOrder<$($type)+ $($type_generics)*, $crate::meshup!({ ($index) + 1 }, ($($type)+), {$($type_generics)*}; $({$($field)*})*)>
-            as core::ops::Add<$crate::__private::Padding<$($type)+ $($type_generics)*, $crate::__private::PhantomField<$($type)+ $($type_generics)*, $($first)*, $index>>>>::Output>
+        <<$crate::meshup!({ ($index) + 1 }, ($($type)+), {$($type_generics)*}; $({$($field)*})*)
+            as core::ops::Add<$crate::__private::Padding<$($type)+ $($type_generics)*, $crate::__private::PhantomField<$($type)+ $($type_generics)*, $($first)*, $index>>>>::Output
             as core::ops::Add<$crate::__private::PhantomField<$($type)+ $($type_generics)*, $($first)*, $index>>>::Output
     };
 }
@@ -39,6 +39,7 @@ macro_rules! impl_field_offset {
             impl<$($impl_generics,)*> $crate::__private::FieldOffset for $crate::__private::PhantomField<$($type)+ $($type_generics)*, $($first_field)*, $index>
                 where
                     $($where_clause)*
+                    [(); __offset::<$($impl_generics)*>()]:
             {
                 type Offset = $crate::__private::typenum::Const<{ __offset::<$($impl_generics,)*>() }>;
             }
@@ -131,9 +132,11 @@ pub const unsafe fn sub_ptr<T>(field: *const T, origin: *const T) -> usize {
 mod tests {
     use serialization_derive::Serializable;
 
+    use crate::__private::{Flatten, Sorted};
+
     extern crate test;
 
-    #[repr(C)]
+    // #[repr(C)]
     #[derive(Serializable)]
     struct Model {
         field0: u8,
@@ -171,7 +174,9 @@ mod tests {
     #[test]
     fn actor() {
         for i in 0..100 {
-            <<Model as crate::__private::Edge>::Second as crate::__private::Actor>::run_at(i);
+            type T =
+                <<<Model as crate::__private::Edge>::Second as Sorted>::Output as Flatten>::Output;
+            <T as crate::__private::Actor>::run_at(i);
         }
     }
 

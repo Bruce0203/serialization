@@ -6,6 +6,7 @@ use syn::{parse_macro_input, parse_quote, Data, DeriveInput, GenericParam, Index
 pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let crate_path = quote!(serialization);
+    let private = quote!(#crate_path::__private);
     let ident = input.ident;
     let (_impl_generics, type_generics, where_clause) = input.generics.split_for_impl();
     let mut impl_generics = input.generics.params.clone();
@@ -23,6 +24,8 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             }
             GenericParam::Type(type_param) => {
                 type_param.bounds.clear();
+                let ident = &type_param.ident;
+                where_clause.push(parse_quote!(#ident: #private::Edge));
             }
             GenericParam::Const(_const_param) => {}
         }

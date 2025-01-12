@@ -3,6 +3,7 @@ use std::{marker::PhantomData, ops::Add};
 use super::{
     edge::{Edge, PhantomEdge},
     end::End,
+    field::PhantomField,
     leaf::PhantomLeaf,
 };
 
@@ -52,9 +53,12 @@ where
 
 impl<S, S2, A, B, C> Add<C> for Compound<S, PhantomEdge<S2, (A, B)>>
 where
+    A: CompoundWrapper<S2>,
     Compound<S, B>: Add<C>,
+    <A as CompoundWrapper<S2>>::Compound: Add<<Compound<S, B> as Add<C>>::Output>,
 {
-    type Output = PhantomEdge<S, (A, <Compound<S, B> as Add<C>>::Output)>;
+    type Output =
+        <<A as CompoundWrapper<S2>>::Compound as Add<<Compound<S, B> as Add<C>>::Output>>::Output;
 
     fn add(self, _rhs: C) -> Self::Output {
         unreachable!()

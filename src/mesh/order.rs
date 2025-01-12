@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, ops::Add};
 
-use typenum::{IsLess, ToUInt, B0, B1};
+use typenum::{B0, B1, IsLess, ToUInt};
 
 use super::{
     edge::{Edge, PhantomEdge},
@@ -8,6 +8,22 @@ use super::{
     field::{FieldOffset, PhantomField},
     leaf::PhantomLeaf,
 };
+
+pub trait Sorted {
+    type Output;
+}
+
+impl<S, A, B> Sorted for PhantomEdge<S, (A, B)>
+where
+    B: Sorted,
+    PhantomOrder<S, B::Output>: Add<A>
+{
+    type Output = <PhantomOrder<S, <B as Sorted>::Output> as Add<A>>::Output;
+}
+
+impl<S> Sorted for End<S> {
+    type Output = End<S>;
+}
 
 pub trait Order<T> {
     type Output;
@@ -35,12 +51,17 @@ impl<S, A, B> Add<B> for PhantomOrder<S, PhantomLeaf<S, A>>
 where
     A: FieldOffset<Offset: ToUInt>,
     B: FieldOffset<Offset: ToUInt>,
-    <<A as FieldOffset>::Offset as ToUInt>::Output: IsLess<<<B as FieldOffset>::Offset as ToUInt>::Output>,
-    PhantomEdge<S, (A, B)>:
-        Order<<<<A as FieldOffset>::Offset as ToUInt>::Output as IsLess<<<B as FieldOffset>::Offset as ToUInt>::Output>>::Output>,
+    <<A as FieldOffset>::Offset as ToUInt>::Output:
+        IsLess<<<B as FieldOffset>::Offset as ToUInt>::Output>,
+    PhantomEdge<S, (A, B)>: Order<
+        <<<A as FieldOffset>::Offset as ToUInt>::Output as IsLess<
+            <<B as FieldOffset>::Offset as ToUInt>::Output,
+        >>::Output,
+    >,
 {
-    type Output =
-        <PhantomEdge<S, (A, B)> as Order<<<A::Offset as ToUInt>::Output as IsLess<<B::Offset as ToUInt>::Output>>::Output>>::Output;
+    type Output = <PhantomEdge<S, (A, B)> as Order<
+        <<A::Offset as ToUInt>::Output as IsLess<<B::Offset as ToUInt>::Output>>::Output,
+    >>::Output;
 
     fn add(self, _rhs: B) -> Self::Output {
         unreachable!()
@@ -51,16 +72,18 @@ impl<S, A, B, const I: usize> Add<B> for PhantomOrder<S, PhantomField<S, A, I>>
 where
     B: FieldOffset<Offset: ToUInt>,
     PhantomField<S, A, I>: FieldOffset<Offset: ToUInt>,
-    <<PhantomField<S, A, I> as FieldOffset>::Offset as ToUInt>::Output: IsLess<<<B as FieldOffset>::Offset as ToUInt>::Output>,
-    PhantomEdge<S, (PhantomField<S, A, I>, B)>:
-        Order<
-            <<<PhantomField<S, A, I> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
-                <<B as FieldOffset>::Offset as ToUInt>::Output,
-            >>::Output,
-        >,
+    <<PhantomField<S, A, I> as FieldOffset>::Offset as ToUInt>::Output:
+        IsLess<<<B as FieldOffset>::Offset as ToUInt>::Output>,
+    PhantomEdge<S, (PhantomField<S, A, I>, B)>: Order<
+        <<<PhantomField<S, A, I> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
+            <<B as FieldOffset>::Offset as ToUInt>::Output,
+        >>::Output,
+    >,
 {
     type Output = <PhantomEdge<S, (PhantomField<S, A, I>, B)> as Order<
-        <<<PhantomField<S, A, I> as FieldOffset>::Offset as ToUInt>::Output as IsLess<<B::Offset as ToUInt>::Output>>::Output,
+        <<<PhantomField<S, A, I> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
+            <B::Offset as ToUInt>::Output,
+        >>::Output,
     >>::Output;
 
     fn add(self, _rhs: B) -> Self::Output {
@@ -72,14 +95,19 @@ impl<S, A, B, C> Add<C> for PhantomOrder<S, PhantomEdge<S, (A, B)>>
 where
     A: FieldOffset<Offset: ToUInt>,
     C: FieldOffset<Offset: ToUInt>,
-    <<A as FieldOffset>::Offset as ToUInt>::Output: IsLess<<<C as FieldOffset>::Offset as ToUInt>::Output>,
+    <<A as FieldOffset>::Offset as ToUInt>::Output:
+        IsLess<<<C as FieldOffset>::Offset as ToUInt>::Output>,
     PhantomEdge<S, (A, C)>: Order<
-        <<<A as FieldOffset>::Offset as ToUInt>::Output as IsLess<<<C as FieldOffset>::Offset as ToUInt>::Output>>::Output,
-        Output: Edge,
-    >,
+            <<<A as FieldOffset>::Offset as ToUInt>::Output as IsLess<
+                <<C as FieldOffset>::Offset as ToUInt>::Output,
+            >>::Output,
+            Output: Edge,
+        >,
     PhantomOrder<S, B>: Add<
         <<PhantomEdge<S, (A, C)> as Order<
-            <<<A as FieldOffset>::Offset as ToUInt>::Output as IsLess<<<C as FieldOffset>::Offset as ToUInt>::Output>>::Output,
+            <<<A as FieldOffset>::Offset as ToUInt>::Output as IsLess<
+                <<C as FieldOffset>::Offset as ToUInt>::Output,
+            >>::Output,
         >>::Output as Edge>::Second,
     >,
 {

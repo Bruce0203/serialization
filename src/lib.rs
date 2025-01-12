@@ -3,8 +3,8 @@
 
 mod mesh;
 
- #[cfg(test)]
- mod fuzz;
+#[cfg(test)]
+mod fuzz;
 
 pub use mesh::*;
 pub use serialization_derive::Serializable;
