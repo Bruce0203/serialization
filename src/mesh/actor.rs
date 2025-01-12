@@ -1,7 +1,7 @@
 use core::primitive::usize;
 use std::any::type_name;
 
-use super::{edge::PhantomEdge, end::End, field::PhantomField, len::Len, padding::Padding};
+use super::{edge::PhantomEdge, end::End, field::Field, len::Len, padding::Padding};
 
 pub trait Actor {
     fn run_at(_index: usize) -> Continuous;
@@ -15,10 +15,10 @@ pub enum Continuous {
     Done,
 }
 
-impl<S, S2, A, B, const I: usize> Actor for PhantomEdge<S, (PhantomField<S2, A, I>, B)>
+impl<S, A, B> Actor for PhantomEdge<S, (Field<A>, B)>
 where
     Self: Len,
-    PhantomField<S2, A, I>: Actor,
+    Field<A>: Actor,
     B: Actor,
 {
     fn run_at(mut index: usize) -> Continuous {
@@ -27,7 +27,7 @@ where
             return Continuous::Done;
         }
         index -= 1;
-        if let Continuous::Next = PhantomField::<S2, A, I>::run_at(index) {
+        if let Continuous::Next = Field::<A>::run_at(index) {
             B::run_at(index)
         } else {
             Continuous::Done
@@ -79,7 +79,7 @@ impl<S, FrontOffset> Actor for Padding<S, FrontOffset> {
     }
 }
 
-impl<S, T, const I: usize> Actor for PhantomField<S, T, I> {
+impl<T> Actor for Field<T> {
     fn run_at(_index: usize) -> Continuous {
         Continuous::Next
     }

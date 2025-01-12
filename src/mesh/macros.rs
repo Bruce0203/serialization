@@ -27,8 +27,8 @@ macro_rules! meshup {
     ($index:expr, ($($type:tt)+), {$($type_generics:tt)*};) => { $crate::__private::End<$($type)+ <$($type_generics)*>> };
     ($index:expr, ($($type:tt)+), {$($type_generics:tt)*}; {$($first:tt)*} $({$($field:tt)*})*) => {
         <<$crate::meshup!({ ($index) + 1 }, ($($type)+), {$($type_generics)*}; $({$($field)*})*)
-            as core::ops::Add<$crate::__private::Padding<$($type)+ <$($type_generics)*>, $crate::__private::PhantomField<$($type)+ <$($type_generics)*>, __FieldToken<$($first)*, $index>, $index>>>>::Output
-            as core::ops::Add<$crate::__private::PhantomField<$($type)+ <$($type_generics)*>, __FieldToken<$($first)*, $index>, $index>>>::Output
+            as core::ops::Add<$crate::__private::Padding<$($type)+ <$($type_generics)*>, $crate::__private::Field<__FieldToken<$($first)*, $index>>>>>::Output
+            as core::ops::Add<$crate::__private::Field<__FieldToken<$($first)*, $index>>>>::Output
     };
 }
 
@@ -89,10 +89,6 @@ macro_rules! impl_serializable {
         impl<$($impl_generics,)*> $crate::__private::Edge for $($type)+ <$($type_generics)*> where $($where_clause)* {
             type First = $crate::__private::End<$($type)+ <$($type_generics)*>>;
             type Second = $crate::__private::End<$($type)+ <$($type_generics)*>>;
-        }
-
-        impl<$($impl_generics,)* __S> $crate::__private::CompoundWrapper<__S> for $($type)+ <$($type_generics)*> where $($where_clause)* {
-            type Compound = $crate::__private::PhantomLeaf<__S, Self>;
         }
     };
 }

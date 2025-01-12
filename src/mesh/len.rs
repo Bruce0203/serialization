@@ -3,7 +3,7 @@ use typenum::{ToUInt, Unsigned};
 use super::{
     edge::{Edge, PhantomEdge},
     end::End,
-    field::{FieldOffset, PhantomField},
+    field::{Field, FieldOffset},
     padding::Padding,
 };
 
@@ -44,7 +44,7 @@ impl<S, S2, FrontOffset> Len for PhantomEdge<S, (Padding<S, FrontOffset>, End<S2
     const SIZE: usize = 0;
 }
 
-impl<S, S2, A, B, const I: usize> Len for PhantomEdge<S, (PhantomField<S2, A, I>, B)>
+impl<S, A, B> Len for PhantomEdge<S, (Field<A>, B)>
 where
     Self: Edge<First: Len, Second: Len>,
 {

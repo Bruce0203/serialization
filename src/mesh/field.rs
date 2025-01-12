@@ -10,9 +10,9 @@ pub trait FieldOffset {
     type Offset;
 }
 
-pub struct PhantomField<S, T, const I: usize>(PhantomData<(S, T)>);
+pub struct Field<T>(PhantomData<T>);
 
-impl<S, T, const I: usize> Edge for PhantomField<S, T, I>
+impl<T> Edge for Field<T>
 where
     T: Edge,
 {
@@ -25,21 +25,21 @@ pub trait FieldWrapper<T> {
     type Output;
 }
 
-impl<S, T, const I: usize> FieldOffset for PhantomField<S, T, I>
+impl<T> FieldOffset for Field<T>
 where
     T: FieldOffset,
 {
     type Offset = T::Offset;
 }
 
-impl<S, T, const I: usize> CompoundWrapper<S> for PhantomField<S, T, I>
+impl<S, T> CompoundWrapper<S> for Field<T>
 where
     T: CompoundWrapper<S>,
 {
     type Compound = T::Compound;
 }
 
-impl<S, T, const I: usize> Len for PhantomField<S, T, I>
+impl<T> Len for Field<T>
 where
     T: Len,
 {

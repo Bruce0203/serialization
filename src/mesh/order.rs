@@ -5,7 +5,7 @@ use typenum::{B0, B1, IsLess, ToUInt};
 use super::{
     edge::{Edge, PhantomEdge},
     end::End,
-    field::{FieldOffset, PhantomField},
+    field::{Field, FieldOffset },
     leaf::PhantomLeaf,
 };
 
@@ -68,20 +68,20 @@ where
     }
 }
 
-impl<S, A, B, const I: usize> Add<B> for PhantomOrder<S, PhantomField<S, A, I>>
+impl<S, A, B> Add<B> for PhantomOrder<S, Field<A>>
 where
     B: FieldOffset<Offset: ToUInt>,
-    PhantomField<S, A, I>: FieldOffset<Offset: ToUInt>,
-    <<PhantomField<S, A, I> as FieldOffset>::Offset as ToUInt>::Output:
+    Field<A>: FieldOffset<Offset: ToUInt>,
+    <<Field<A> as FieldOffset>::Offset as ToUInt>::Output:
         IsLess<<<B as FieldOffset>::Offset as ToUInt>::Output>,
-    PhantomEdge<S, (PhantomField<S, A, I>, B)>: Order<
-        <<<PhantomField<S, A, I> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
+    PhantomEdge<S, (Field<A>, B)>: Order<
+        <<<Field<A> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
             <<B as FieldOffset>::Offset as ToUInt>::Output,
         >>::Output,
     >,
 {
-    type Output = <PhantomEdge<S, (PhantomField<S, A, I>, B)> as Order<
-        <<<PhantomField<S, A, I> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
+    type Output = <PhantomEdge<S, (Field<A>, B)> as Order<
+        <<<Field<A> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
             <B::Offset as ToUInt>::Output,
         >>::Output,
     >>::Output;
