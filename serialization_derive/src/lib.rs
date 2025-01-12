@@ -1,6 +1,6 @@
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, parse_quote, Data, DeriveInput, GenericParam, Index};
+use syn::{parse_macro_input, parse_quote, Data, DeriveInput, GenericParam, Index, TypeGroup};
 
 #[proc_macro_derive(Serializable)]
 pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -8,10 +8,23 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let crate_path = quote!(serialization);
     let private = quote!(#crate_path::__private);
     let ident = input.ident;
-    let (_impl_generics, type_generics, where_clause) = input.generics.split_for_impl();
     let mut impl_generics = input.generics.params.clone();
-    let mut where_clause = where_clause
-        .cloned()
+    let mut type_generics = input.generics.params.clone();
+    for param in type_generics.iter_mut() {
+        match param {
+            GenericParam::Lifetime(lifetime_param) => {
+                lifetime_param.bounds.clear();
+            }
+            GenericParam::Type(type_param) => {
+                type_param.bounds.clear();
+            }
+            GenericParam::Const(_const_param) => {}
+        }
+    }
+    let mut where_clause = input
+        .generics
+        .where_clause
+        .clone()
         .unwrap_or_else(|| parse_quote!(where))
         .predicates;
     for impl_generic in impl_generics.iter_mut() {

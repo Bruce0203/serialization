@@ -1,3 +1,5 @@
+//TODO add where bound fuzzing
+
 #[derive(serialization::Serializable, Debug, Eq, PartialEq)]
 struct A1;
 #[derive(serialization::Serializable, Debug, Eq, PartialEq)]

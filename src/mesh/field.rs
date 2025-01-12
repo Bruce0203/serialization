@@ -1,6 +1,10 @@
 use std::marker::PhantomData;
 
-use super::edge::Edge;
+use super::{
+    compound::{Compound, CompoundWrapper},
+    edge::{Edge, PhantomEdge},
+    len::Len,
+};
 
 pub trait FieldOffset {
     type Offset;
@@ -15,4 +19,29 @@ where
     type First = T::First;
 
     type Second = T::Second;
+}
+
+pub trait FieldWrapper<T> {
+    type Output;
+}
+
+impl<S, T, const I: usize> FieldOffset for PhantomField<S, T, I>
+where
+    T: FieldOffset,
+{
+    type Offset = T::Offset;
+}
+
+impl<S, T, const I: usize> CompoundWrapper<S> for PhantomField<S, T, I>
+where
+    T: CompoundWrapper<S>,
+{
+    type Compound = T::Compound;
+}
+
+impl<S, T, const I: usize> Len for PhantomField<S, T, I>
+where
+    T: Len,
+{
+    const SIZE: usize = T::SIZE;
 }

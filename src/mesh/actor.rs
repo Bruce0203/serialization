@@ -9,6 +9,7 @@ pub trait Actor {
     fn run();
 }
 
+#[derive(Debug)]
 pub enum Continuous {
     Next,
     Done,
@@ -62,7 +63,10 @@ impl<S> Actor for End<S> {
         Continuous::Next
     }
 
-    fn run() {}
+    fn run() {
+        //TODO try remove
+        unreachable!()
+    }
 }
 
 impl<S, FrontOffset> Actor for Padding<S, FrontOffset> {

@@ -3,7 +3,6 @@ use std::{marker::PhantomData, ops::Add};
 use super::{
     edge::{Edge, PhantomEdge},
     end::End,
-    field::PhantomField,
     leaf::PhantomLeaf,
 };
 

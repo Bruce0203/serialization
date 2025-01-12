@@ -1,0 +1,15 @@
+
+Edge<Model, ()>
+Padding<Model, Field<Model, Token<alloc::vec::Vec<u8>, 2>, 2>>, Edge<Foo, ()>
+Padding<Foo, Field<Foo, Token<u32, 0>, 0>>, Edge<Foo, ()>
+Padding<Foo, Field<Foo, Token<u32, 1>, 1>>, Edge<Bar, ()>
+Padding<Bar, Field<Bar, Token<u8, 0>, 0>>, Edge<Bar, ()>
+Padding<Bar, Field<Bar, Token<u8, 1>, 1>>, Edge<Foo, ()>
+Padding<Foo, Field<Foo, Token<Bar, 2>, 2>>, Edge<Model, ()>
+Padding<Model, Field<Model, Token<Foo, 1>, 1>>, Edge<Model, ()>
+Padding<Model, Field<Model, Token<u32, 3>, 3>>, Edge<Model, ()>
+Padding<Model, Field<Model, Token<u32, 5>, 5>>, Edge<Bar, ()>
+Padding<Bar, Field<Bar, Token<u8, 0>, 0>>, Edge<Bar, ()>
+Padding<Bar, Field<Bar, Token<u8, 1>, 1>>, Edge<Model, ()>
+Padding<Model, Field<Model, Token<Bar, 4>, 4>>, Edge<Model, ()>
+Padding<Model, Field<Model, Token<u8, 0>, 0>>, end::End<Model>
