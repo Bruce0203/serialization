@@ -146,8 +146,6 @@ pub const unsafe fn sub_ptr<T>(field: *const T, origin: *const T) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use std::any::type_name;
-
     use serialization_derive::Serializable;
 
     use crate::__private::{Flatten, Sorted};
