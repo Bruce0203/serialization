@@ -39,7 +39,7 @@ impl<S, S2, B> Add<B> for Compound<S, End<S2>> {
     }
 }
 
-impl<S, S2, A, B> Add<B> for Compound<S, PhantomLeaf<S2, A>>
+impl<S, A, B> Add<B> for Compound<S, PhantomLeaf<A>>
 where
     A: Edge,
     B: Edge,

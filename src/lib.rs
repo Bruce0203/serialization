@@ -1,4 +1,8 @@
 #![cfg_attr(test, feature(test))]
+#![allow(
+    incomplete_features,
+    reason = "field offset calculation of generic type field"
+)]
 #![feature(generic_const_exprs)]
 
 mod mesh;

@@ -47,7 +47,7 @@ impl<S, S2, B> Add<B> for PhantomOrder<S, End<S2>> {
     }
 }
 
-impl<S, S2, A, B> Add<B> for PhantomOrder<S, PhantomLeaf<S2, A>>
+impl<S, A, B> Add<B> for PhantomOrder<S, PhantomLeaf< A>>
 where
     A: FieldOffset<Offset: ToUInt>,
     B: FieldOffset<Offset: ToUInt>,

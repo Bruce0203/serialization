@@ -51,14 +51,16 @@ enum A13 {
     C,
 }
 
-#[derive(serialization::Serializable, Debug, Eq, PartialEq)]
-struct A14<T> {
-    vaule: std::marker::PhantomData<T>,
-}
-#[derive(serialization::Serializable, Debug, Eq, PartialEq)]
-struct A15<T> {
-    value: T,
-}
+// generic_const_exprs required
+//
+// #[derive(serialization::Serializable, Debug, Eq, PartialEq)]
+// struct A14<T> {
+//     vaule: std::marker::PhantomData<T>,
+// }
+// #[derive(serialization::Serializable, Debug, Eq, PartialEq)]
+// struct A15<T> {
+//     value: T,
+// }
 
 #[derive(serialization::Serializable, Debug, Eq, PartialEq)]
 enum A16<T, T2> {

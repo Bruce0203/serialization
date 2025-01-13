@@ -10,6 +10,13 @@ macro_rules! impl_meshup {
         impl<T, const I: usize> $crate::__private::Len for __FieldToken<T, I> where T: $crate::__private::Len {
             const SIZE: usize = T::SIZE;
         }
+        impl<S, T, const I: usize> $crate::__private::FieldUnwrapper for __FieldToken<$crate::__private::Compound<S, T>, I> {
+            type Output = $crate::__private::Compound<S, T>;
+        }
+        impl<T, const I: usize> $crate::__private::FieldUnwrapper for __FieldToken<$crate::__private::PhantomLeaf<T>, I> {
+            type Output = $crate::__private::PhantomLeaf<__FieldToken<T, I>>;
+        }
+
         impl<$($impl_generics,)*> $crate::__private::Edge for $($type)+ <$($type_generics)*> where $($where_clause)* {
             type First = $crate::__private::End<$($type)+ <$($type_generics)*>>;
             type Second = $crate::meshup!(0, ($($type)+), {$($type_generics)*}; $({$($field)*})*);
@@ -51,8 +58,13 @@ macro_rules! impl_field_offset {
             {
                 type Offset = $crate::__private::typenum::Const<{ __offset::<$($impl_generics,)*>() }>;
             }
-            impl<$($impl_generics,)*> $crate::__private::CompoundWrapper<$($type)+ <$($type_generics)*>> for __FieldToken<$($first_field)*, $index> where $($where_clause)* $($first_field)*: $crate::__private::CompoundWrapper<$($type)+ <$($type_generics)*>> {
-                type Compound = Self;
+            impl<$($impl_generics,)* __S> $crate::__private::CompoundWrapper<__S> for __FieldToken<$($first_field)*, $index>
+                where
+                    $($where_clause)*
+                    $($first_field)*: $crate::__private::CompoundWrapper<__S>,
+                    __FieldToken<<$($first_field)* as $crate::__private::CompoundWrapper<__S>>::Compound, $index>: $crate::__private::FieldUnwrapper
+            {
+                type Compound = <__FieldToken<<$($first_field)* as $crate::__private::CompoundWrapper<__S>>::Compound, $index> as $crate::__private::FieldUnwrapper>::Output;
             }
         };
     };
@@ -94,11 +106,8 @@ macro_rules! impl_serializable {
             type Second = $crate::__private::End<$($type)+ <$($type_generics)*>>;
         }
         impl<$($impl_generics,)* __S> $crate::__private::CompoundWrapper<__S> for $($type)+ <$($type_generics)*> where $($where_clause)* {
-            type Compound = Self;
+            type Compound = $crate::__private::PhantomLeaf<Self>;
         }
-        //Compuond<Edge<(First, Second)>>
-        //Leaf<Self>
-
     };
 }
 
@@ -183,7 +192,6 @@ mod tests {
     #[test]
     fn actor() {
         type T = <<<Model as crate::__private::Edge>::Second as Sorted>::Output as Flatten>::Output;
-        println!("{}", type_name::<T>());
         for i in 0..1000 {
             <T as crate::__private::Actor>::run_at(i);
         }

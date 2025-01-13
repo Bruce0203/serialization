@@ -3,6 +3,7 @@ use std::{marker::PhantomData, ops::Add};
 use super::{
     compound::{Compound, CompoundWrapper},
     edge::{Edge, PhantomEdge},
+    leaf::PhantomLeaf,
     len::Len,
 };
 
@@ -35,9 +36,9 @@ where
 impl<S, T> CompoundWrapper<S> for Field<T>
 where
     T: CompoundWrapper<S>,
+    Field<<T as CompoundWrapper<S>>::Compound>: FieldUnwrapper,
 {
-    //TODO unwrap field or not ? no
-    type Compound = Field<T::Compound>;
+    type Compound = <Field<T::Compound> as FieldUnwrapper>::Output;
 }
 
 impl<T> Len for Field<T>
@@ -53,4 +54,16 @@ impl<S, A, B, T> Add<PhantomEdge<S, (A, B)>> for Field<T> {
     fn add(self, _rhs: PhantomEdge<S, (A, B)>) -> Self::Output {
         unreachable!()
     }
+}
+
+pub trait FieldUnwrapper {
+    type Output;
+}
+
+impl<T> FieldUnwrapper for Field<PhantomLeaf<T>> {
+    type Output = PhantomLeaf<Field<T>>;
+}
+
+impl<S, T> FieldUnwrapper for Field<Compound<S, T>> {
+    type Output = Compound<S, T>;
 }
