@@ -5,7 +5,7 @@ use typenum::{B0, B1, IsLess, ToUInt};
 use super::{
     edge::{Edge, PhantomEdge},
     end::End,
-    field::{Field, FieldOffset },
+    field::{Field, FieldOffset},
     leaf::PhantomLeaf,
 };
 

@@ -64,7 +64,6 @@ impl<S> Actor for End<S> {
     }
 
     fn run() {
-        //TODO try remove
         unreachable!()
     }
 }

@@ -1,6 +1,6 @@
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, parse_quote, Data, DeriveInput, GenericParam, Index, TypeGroup};
+use syn::{parse_macro_input, parse_quote, Data, DeriveInput, GenericParam, Index};
 
 #[proc_macro_derive(Serializable)]
 pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -32,7 +32,6 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             GenericParam::Lifetime(lifetime_param) => {
                 lifetime_param.bounds.clear();
                 let lt = &lifetime_param.lifetime;
-                //TODO TRY REMOVE or not
                 where_clause.push(parse_quote!(#lt: 'static));
             }
             GenericParam::Type(type_param) => {

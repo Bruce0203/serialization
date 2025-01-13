@@ -13,14 +13,6 @@ pub trait Len {
     const SIZE: usize;
 }
 
-const fn field_size_of(a: usize, b: usize) -> usize {
-    if a == UNSIZED || b == UNSIZED {
-        0
-    } else {
-        a + b
-    }
-}
-
 impl<S, S2, S3, FrontOffset, B, C> Len
     for PhantomEdge<S, (Padding<S2, FrontOffset>, PhantomEdge<S3, (B, C)>)>
 where
@@ -52,4 +44,12 @@ where
         <<Self as Edge>::First as Len>::SIZE,
         <<Self as Edge>::Second as Len>::SIZE,
     );
+}
+
+const fn field_size_of(a: usize, b: usize) -> usize {
+    if a == UNSIZED || b == UNSIZED {
+        0
+    } else {
+        a + b
+    }
 }

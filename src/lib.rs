@@ -1,17 +1,14 @@
-#![cfg_attr(test, feature(test))]
 #![allow(
     incomplete_features,
-    reason = "field offset calculation of generic type field"
+    reason = "`generic_const_exprs` feature required for field offset calculation on generic type"
 )]
 #![feature(generic_const_exprs)]
-
-mod mesh;
-
-#[cfg(test)]
-mod fuzz;
-
-pub use mesh::*;
-pub use serialization_derive::Serializable;
+#![cfg_attr(test, feature(test))]
 
 /// Fix derive macro
 extern crate self as serialization;
+
+mod mesh;
+
+pub use mesh::*;
+pub use serialization_derive::Serializable;
