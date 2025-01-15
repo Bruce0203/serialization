@@ -1,0 +1,9 @@
+코드 좀 리펙터링하고
+enum에 edge를 달기 위해서 Enum::Variant(MaybeUninit)을 하는 함수 만들어서 필드 오프셋 구하고
+enum variant index 구하는 함수 만들고
+encoder decoder 트레잇 가져오고
+이렇게 하고 난 후에는 derive 크레이트에 더 이상 복잡한 구현이 필요 없어진다
+왜냐하면 모든 것을 edge로 처리할 수 있기 때문임 tuple인지 sequence인지 struct인지 구분만 할 수 있다면 말야
+populate 도 추가해야 함 
+
+todo: impl macro_rules들 전부다 __붙이기  

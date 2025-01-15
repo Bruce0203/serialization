@@ -22,10 +22,6 @@ where
     type Second = T::Second;
 }
 
-pub trait FieldWrapper<T> {
-    type Output;
-}
-
 impl<T> FieldOffset for Field<T>
 where
     T: FieldOffset,

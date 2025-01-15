@@ -1,22 +1,7 @@
 #[macro_export]
-macro_rules! impl_meshup {
-    (($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $($field_ident:tt => {$($field:tt)*}),*) => {
+macro_rules! impl_mesh {
+    ($brace:ident, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $($field_ident:tt => {$($field:tt)*}),*) => {
     const _: () = {
-        struct __FieldToken<T, const I: usize>(core::marker::PhantomData<T>);
-        impl<T, const I: usize> $crate::__private::Edge for __FieldToken<T, I> where T: $crate::__private::Edge {
-            type First = T::First;
-            type Second = T::Second;
-        }
-        impl<T, const I: usize> $crate::__private::Len for __FieldToken<T, I> where T: $crate::__private::Len {
-            const SIZE: usize = T::SIZE;
-        }
-        impl<S, T, const I: usize> $crate::__private::FieldUnwrapper for __FieldToken<$crate::__private::Compound<S, T>, I> {
-            type Output = $crate::__private::Compound<S, T>;
-        }
-        impl<T, const I: usize> $crate::__private::FieldUnwrapper for __FieldToken<$crate::__private::PhantomLeaf<T>, I> {
-            type Output = $crate::__private::PhantomLeaf<__FieldToken<T, I>>;
-        }
-
         impl<$($impl_generics,)*> $crate::__private::Edge for $($type)+ <$($type_generics)*> where $($where_clause)* {
             type First = $crate::__private::End<$($type)+ <$($type_generics)*>>;
             type Second = $crate::meshup!(0, ($($type)+), {$($type_generics)*}; $({$($field)*})*);
@@ -28,8 +13,62 @@ macro_rules! impl_meshup {
             type Compound = $crate::__private::Compound<__S, <$($type)+ <$($type_generics)*> as $crate::__private::Edge>::Second>;
         }
 
-        $crate::impl_field_offset!(0, ($($type)+), {$($type_generics)*}, impl {$($impl_generics,)*} ($($where_clause)*); $($field_ident => {$($field)*}),*);
+        $crate::impl_field_token!();
+        $crate::impl_field_offset!($brace, 0, ($($type)+), {$($type_generics)*}, impl {$($impl_generics,)*} ($($where_clause)*); ($($field_ident),*), $($field_ident => {$($field)*}),*);
     };
+    };
+}
+
+#[macro_export]
+macro_rules! impl_enum_mesh {
+    ($brace:ident, ($($type:tt)+), {$($type_generics:tt)*}, $variant:ident impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $($field_ident:tt => {$($field:tt)*}),*) => {
+        const _: () = {
+            struct __EnumToken;
+            impl __EnumToken {}
+        };
+    };
+}
+
+#[macro_export]
+macro_rules! wrap_brace {
+    (brace, $type:path, $($fields_idents:tt),*) => {
+        $type { $($fields_idents),* }
+    };
+    (parentheses, $type:path, $($fields_idents:tt),*) => {
+        $type ($($fields_idents),*)
+    };
+    (unit, $($fields_idents:tt),*) => {
+        $type
+    };
+}
+
+#[macro_export]
+macro_rules! impl_field_token {
+    () => {
+        struct __FieldToken<T, const I: usize>(core::marker::PhantomData<T>);
+        impl<T, const I: usize> $crate::__private::Edge for __FieldToken<T, I>
+        where
+            T: $crate::__private::Edge,
+        {
+            type First = T::First;
+            type Second = T::Second;
+        }
+        impl<T, const I: usize> $crate::__private::Len for __FieldToken<T, I>
+        where
+            T: $crate::__private::Len,
+        {
+            const SIZE: usize = T::SIZE;
+        }
+        impl<S, T, const I: usize> $crate::__private::FieldUnwrapper
+            for __FieldToken<$crate::__private::Compound<S, T>, I>
+        {
+            type Output = $crate::__private::Compound<S, T>;
+        }
+        impl<T, const I: usize> $crate::__private::FieldUnwrapper
+            for __FieldToken<$crate::__private::PhantomLeaf<T>, I>
+        {
+            type Output = $crate::__private::PhantomLeaf<__FieldToken<T, I>>;
+        }
     };
 }
 
@@ -45,11 +84,11 @@ macro_rules! meshup {
 
 #[macro_export]
 macro_rules! impl_field_offset {
-    ($index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); ) => {};
-    ($index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $first_field_ident:tt => {$($first_field:tt)*}) => {
+    ($brace:ident, $index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); ($($fields_idents:tt),*), ) => {};
+    ($brace:ident, $index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); ($($fields_idents:tt),*), $first_field_ident:tt => {$($first_field:tt)*}) => {
         const _: () = {
             const fn __offset<$($impl_generics,)*>() -> usize where $($where_clause)* {
-                $crate::offset_of!(($($type)+), {$($type_generics)*}, $first_field_ident)
+                $crate::offset_of!($brace, $($type)+, {$($type_generics)*}, ($($fields_idents),*), $first_field_ident)
             }
             impl<$($impl_generics,)*> $crate::__private::FieldOffset for __FieldToken<$($first_field)*, $index>
                 where
@@ -68,9 +107,9 @@ macro_rules! impl_field_offset {
             }
         };
     };
-    ($index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $first_field_ident:tt => {$($first_field:tt)*}, $($field_ident:tt => {$($field:tt)*}),*) => {
-        $crate::impl_field_offset!($index, ($($type)+), {$($type_generics)*}, impl {$($impl_generics,)*} ($($where_clause)*); $first_field_ident => {$($first_field)*});
-        $crate::impl_field_offset!({ ($index) + 1 }, ($($type)+), {$($type_generics)*}, impl {$($impl_generics,)*} ($($where_clause)*); $($field_ident => {$($field)*}),*);
+    ($brace:ident, $index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); ($($fields_idents:tt),*), $first_field_ident:tt => {$($first_field:tt)*}, $($field_ident:tt => {$($field:tt)*}),*) => {
+        $crate::impl_field_offset!($brace, $index, ($($type)+), {$($type_generics)*}, impl {$($impl_generics,)*} ($($where_clause)*); ($($fields_idents),*), $first_field_ident => {$($first_field)*});
+        $crate::impl_field_offset!($brace, { ($index) + 1 }, ($($type)+), {$($type_generics)*}, impl {$($impl_generics,)*} ($($where_clause)*); ($($fields_idents),*), $($field_ident => {$($field)*}),*);
     };
 }
 
@@ -84,14 +123,40 @@ macro_rules! count_items {
 
 #[macro_export]
 macro_rules! offset_of {
-    (($($type:tt)+), {$($type_generics:tt)*}, $field:tt) => {{
+    ($brace:ident, $type:ident, {$($type_generics:tt)*}, ($($fields_idents:tt),*), $field:tt) => {{
         use core::mem::MaybeUninit;
-        let origin: MaybeUninit<$($type)+ <$($type_generics)*>> = MaybeUninit::uninit();
+        let origin: MaybeUninit<$type <$($type_generics)*>> = MaybeUninit::uninit();
+        #[allow(unused_variables)]
+        let $crate::wrap_brace!($brace, $type, $($fields_idents),*) = unsafe { origin.assume_init_ref() };
         unsafe {
             $crate::__private::sub_ptr(
-                &origin.assume_init_ref().$field as *const _ as *const u8,
+                $field as *const _ as *const u8,
                 origin.assume_init_ref() as *const _ as *const u8,
             )
+        }
+    }};
+}
+
+#[macro_export]
+macro_rules! offset_of_enum {
+    ($brace:ident, $type:ident, {$($type_generics:tt)*}, $variant:ident, ($($fields_idents:tt),*), $field:tt) => {{
+        use core::mem::MaybeUninit;
+        unsafe {
+            let origin = {
+                $(let $fields_idents = MaybeUninit::zeroed().assume_init();)*
+               let origin: $type <$($type_generics)*> = $crate::wrap_brace!($brace, $type::$variant, $($fields_idents),*);
+               $(core::mem::forget($fields_idents);)*
+                MaybeUninit::new(origin)
+            };
+            match origin.assume_init_ref() {
+                $crate::wrap_brace!($brace, $type::$variant, $($fields_idents),*) => {
+                    $crate::__private::sub_ptr(
+                        $field as *const _ as *const u8,
+                        origin.assume_init_ref() as *const _ as *const u8,
+                    )
+                }
+                _ => unreachable!()
+            }
         }
     }};
 }

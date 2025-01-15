@@ -1,0 +1,12 @@
+field 0 serialization::mesh::macros::tests::_::__FieldToken<alloc::vec::Vec<u8>, 2>
+field 8 serialization::mesh::macros::tests::_::__FieldToken<u32, 0>
+field 4 serialization::mesh::macros::tests::_::__FieldToken<u32, 1>
+field 2 serialization::mesh::macros::tests::_::__FieldToken<u8, 0>
+field 1 serialization::mesh::macros::tests::_::__FieldToken<u8, 1>
+field 8 serialization::mesh::macros::tests::_::__FieldToken<u32, 3>
+field 4 serialization::mesh::macros::tests::_::__FieldToken<u32, 5>
+field 2 serialization::mesh::macros::tests::_::__FieldToken<u8, 0>
+field 1 serialization::mesh::macros::tests::_::__FieldToken<u8, 1>
+field 1 serialization::mesh::macros::tests::_::__FieldToken<u8, 0>
+ok
+

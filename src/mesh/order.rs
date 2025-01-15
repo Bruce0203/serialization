@@ -16,7 +16,7 @@ pub trait Sorted {
 impl<S, A, B> Sorted for PhantomEdge<S, (A, B)>
 where
     B: Sorted,
-    PhantomOrder<S, B::Output>: Add<A>
+    PhantomOrder<S, B::Output>: Add<A>,
 {
     type Output = <PhantomOrder<S, <B as Sorted>::Output> as Add<A>>::Output;
 }
@@ -47,7 +47,7 @@ impl<S, S2, B> Add<B> for PhantomOrder<S, End<S2>> {
     }
 }
 
-impl<S, A, B> Add<B> for PhantomOrder<S, PhantomLeaf< A>>
+impl<S, A, B> Add<B> for PhantomOrder<S, PhantomLeaf<A>>
 where
     A: FieldOffset<Offset: ToUInt>,
     B: FieldOffset<Offset: ToUInt>,

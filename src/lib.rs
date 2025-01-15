@@ -5,10 +5,12 @@
 #![feature(generic_const_exprs)]
 #![cfg_attr(test, feature(test))]
 
-/// Fix derive macro
+#[cfg(test)]
 extern crate self as serialization;
 
+mod coder;
 mod mesh;
 
+pub use coder::*;
 pub use mesh::*;
 pub use serialization_derive::Serializable;
