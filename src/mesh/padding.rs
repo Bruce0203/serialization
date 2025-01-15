@@ -1,10 +1,10 @@
 use std::{marker::PhantomData, ops::Add};
 
 use super::{
-    flatten::CompoundWrapper,
     edge::{Edge, PhantomEdge},
     end::End,
     field::FieldOffset,
+    flatten::CompoundWrapper,
     len::Len,
 };
 
@@ -23,8 +23,8 @@ impl<S, FrontOffset> Edge for Padding<S, FrontOffset> {
     type Second = End<S>;
 }
 
-impl<S, FrontOffset> CompoundWrapper<S> for Padding<S, FrontOffset> {
-    type Compound = Self;
+impl<S, S2, FrontOffset> CompoundWrapper<S> for Padding<S2, FrontOffset> {
+    type Compound = Padding<S, FrontOffset>;
 }
 
 impl<S, FrontOffset, Rhs> Add<Rhs> for Padding<S, FrontOffset> {

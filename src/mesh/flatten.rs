@@ -21,10 +21,10 @@ pub trait Flatten<S> {
 
 impl<S, S2, A, B> Flatten<S> for PhantomEdge<S2, (A, B)>
 where
-    A: CompoundWrapper<S2, Compound: Add<<B as Flatten<S>>::Output>>,
+    A: CompoundWrapper<S, Compound: Add<<B as Flatten<S>>::Output>>,
     B: Flatten<S>,
 {
-    type Output = <<A as CompoundWrapper<S2>>::Compound as Add<<B as Flatten<S>>::Output>>::Output;
+    type Output = <<A as CompoundWrapper<S>>::Compound as Add<<B as Flatten<S>>::Output>>::Output;
 }
 
 impl<S, S2> Flatten<S> for End<S2> {
@@ -65,12 +65,12 @@ where
 
 impl<S, S2, A, B, C> Add<C> for Compound<S, PhantomEdge<S2, (A, B)>>
 where
-    A: CompoundWrapper<S2>,
+    A: CompoundWrapper<S>,
     Compound<S, B>: Add<C>,
-    <A as CompoundWrapper<S2>>::Compound: Add<<Compound<S, B> as Add<C>>::Output>,
+    <A as CompoundWrapper<S>>::Compound: Add<<Compound<S, B> as Add<C>>::Output>,
 {
     type Output =
-        <<A as CompoundWrapper<S2>>::Compound as Add<<Compound<S, B> as Add<C>>::Output>>::Output;
+        <<A as CompoundWrapper<S>>::Compound as Add<<Compound<S, B> as Add<C>>::Output>>::Output;
 
     fn add(self, _rhs: C) -> Self::Output {
         unreachable!()

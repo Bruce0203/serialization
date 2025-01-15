@@ -280,12 +280,12 @@ mod tests {
             },
             field5: 00,
         };
-        let ref mut dst: Model = unsafe { MaybeUninit::zeroed().assume_init() };
+        let mut dst: Model = unsafe { MaybeUninit::zeroed().assume_init() };
         for i in 0..10 {
-            <T as crate::__private::Actor<Model>>::run_at(Action::Encode { src: src, dst: dst }, i);
+            <T as crate::__private::Actor<Model>>::run_at(Action::Encode { src, dst: &mut dst }, i);
         }
-        println!("{:?}", unsafe { dst.field0 });
-        black_box((src, dst));
+        println!("{:?}", dst.field0);
+        black_box((&src, &dst));
         forget(dst);
     }
 
