@@ -7,3 +7,4 @@ encoder decoder 트레잇 가져오고
 populate 도 추가해야 함 
 
 todo: impl macro_rules들 전부다 __붙이기  
+todo: S, S2 구분 없애기 -> Flatten 트레잇에 <S> 제네릭 붙여서 없애도 됨 
