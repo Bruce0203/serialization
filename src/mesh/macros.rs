@@ -222,7 +222,7 @@ mod tests {
 
     extern crate test;
 
-    // #[repr(C)]
+    #[repr(C)]
     #[derive(Serializable)]
     struct Model {
         field0: u8,

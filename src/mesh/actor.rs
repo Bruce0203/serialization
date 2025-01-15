@@ -1,6 +1,8 @@
 use core::primitive::usize;
 use std::any::type_name;
 
+use crate::Encode;
+
 use super::{edge::PhantomEdge, end::End, field::Field, len::Len, padding::Padding};
 
 pub trait Actor<S> {
@@ -59,6 +61,7 @@ where
     Self: Len,
     Field<A>: Actor<S>,
     B: Actor<S>,
+    A: Encode,
     [(); <Self as Len>::SIZE]:,
 {
     fn run_at(action: Action<S>, mut index: usize) -> Continuous<S> {
@@ -77,7 +80,8 @@ where
     fn run(action: Action<S>) {
         match action {
             Action::Encode { src, dst } => {
-                if Self::SIZE != 0 {
+                if Self::SIZE == 0 {
+                } else {
                     unsafe {
                         let src = src as *const [u8; Self::SIZE];
                         let dst = dst as *mut [u8; Self::SIZE];
