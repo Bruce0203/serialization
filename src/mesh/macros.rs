@@ -23,7 +23,7 @@ macro_rules! impl_mesh {
 macro_rules! impl_enum_mesh {
     ($brace:ident, ($($type:tt)+), {$($type_generics:tt)*}, $variant:ident impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $($field_ident:tt => {$($field:tt)*}),*) => {
         const _: () = {
-            struct __EnumToken;
+            pub struct __EnumToken;
             impl __EnumToken {}
         };
     };
@@ -45,7 +45,7 @@ macro_rules! wrap_brace {
 #[macro_export]
 macro_rules! impl_field_token {
     () => {
-        struct __FieldToken<T, const I: usize>(core::marker::PhantomData<T>);
+        pub struct __FieldToken<T, const I: usize>(core::marker::PhantomData<T>);
         impl<T, const I: usize> $crate::__private::Edge for __FieldToken<T, I>
         where
             T: $crate::__private::Edge,
@@ -87,7 +87,7 @@ macro_rules! impl_field_offset {
     ($brace:ident, $index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); ($($fields_idents:tt),*), ) => {};
     ($brace:ident, $index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); ($($fields_idents:tt),*), $first_field_ident:tt => {$($first_field:tt)*}) => {
         const _: () = {
-            const fn __offset<$($impl_generics,)*>() -> usize where $($where_clause)* {
+            pub const fn __offset<$($impl_generics,)*>() -> usize where $($where_clause)* {
                 $crate::offset_of!($brace, $($type)+, {$($type_generics)*}, ($($fields_idents),*), $first_field_ident)
             }
             impl<$($impl_generics,)*> $crate::__private::FieldOffset for __FieldToken<$($first_field)*, $index>
@@ -211,9 +211,14 @@ pub const unsafe fn sub_ptr<T>(field: *const T, origin: *const T) -> usize {
 
 #[cfg(test)]
 mod tests {
+    use std::{
+        hint::black_box,
+        mem::{MaybeUninit, forget},
+    };
+
     use serialization_derive::Serializable;
 
-    use crate::__private::{Flatten, Sorted};
+    use crate::__private::{Action, Flatten, Sorted};
 
     extern crate test;
 
@@ -254,17 +259,44 @@ mod tests {
 
     #[test]
     fn actor() {
-        type T = <<<Model as crate::__private::Edge>::Second as Sorted>::Output as Flatten>::Output;
-        for i in 0..1000 {
-            <T as crate::__private::Actor>::run_at(i);
+        type T = <<<Model as crate::__private::Edge>::Second as Sorted>::Output as Flatten<
+            Model,
+        >>::Output;
+        let src: &Model = &Model {
+            field0: 11,
+            field1: Foo {
+                field0: 22,
+                field1: 33,
+                field2: Bar {
+                    field0: 44,
+                    field1: 55,
+                },
+            },
+            field2: vec![1, 2, 3],
+            field3: 66,
+            field4: Bar {
+                field0: 77,
+                field1: 88,
+            },
+            field5: 00,
+        };
+        let ref mut dst: Model = unsafe { MaybeUninit::zeroed().assume_init() };
+        for i in 0..10 {
+            <T as crate::__private::Actor<Model>>::run_at(Action::Encode { src: src, dst: dst }, i);
         }
+        println!("{:?}", unsafe { dst.field0 });
+        black_box((src, dst));
+        forget(dst);
     }
 
     #[cfg(not(debug_assertions))]
     #[bench]
     fn bench_must_0ns(b: &mut test::Bencher) {
         for i in 0..1000 {
-            <<Model as crate::__private::Edge>::Second as crate::__private::Actor>::run_at(i);
+            <<Model as crate::__private::Edge>::Second as crate::__private::Actor>::run_at(
+                i,
+                todo!(),
+            );
         }
     }
 }

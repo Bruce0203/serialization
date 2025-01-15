@@ -1,7 +1,7 @@
 use std::{marker::PhantomData, ops::Add};
 
 use super::{
-    compound::{Compound, CompoundWrapper},
+    flatten::{Compound, CompoundWrapper},
     edge::{Edge, PhantomEdge},
     leaf::PhantomLeaf,
     len::Len,

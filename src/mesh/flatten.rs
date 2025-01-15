@@ -15,19 +15,19 @@ pub trait CompoundWrapper<S> {
     type Compound;
 }
 
-pub trait Flatten {
+pub trait Flatten<S> {
     type Output;
 }
 
-impl<S, A, B> Flatten for PhantomEdge<S, (A, B)>
+impl<S, S2, A, B> Flatten<S> for PhantomEdge<S2, (A, B)>
 where
-    A: CompoundWrapper<S, Compound: Add<<B as Flatten>::Output>>,
-    B: Flatten,
+    A: CompoundWrapper<S2, Compound: Add<<B as Flatten<S>>::Output>>,
+    B: Flatten<S>,
 {
-    type Output = <<A as CompoundWrapper<S>>::Compound as Add<<B as Flatten>::Output>>::Output;
+    type Output = <<A as CompoundWrapper<S2>>::Compound as Add<<B as Flatten<S>>::Output>>::Output;
 }
 
-impl<S> Flatten for End<S> {
+impl<S, S2> Flatten<S> for End<S2> {
     type Output = End<S>;
 }
 

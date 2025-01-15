@@ -1,3 +1,4 @@
+#![allow(warnings)]
 use std::mem::MaybeUninit;
 
 use serialization::{
