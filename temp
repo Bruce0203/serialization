@@ -10,3 +10,4 @@ field 1 serialization::mesh::macros::tests::_::__FieldToken<u8, 1>
 field 1 serialization::mesh::macros::tests::_::__FieldToken<u8, 0>
 ok
 
+

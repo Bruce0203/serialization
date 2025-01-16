@@ -9,6 +9,7 @@
 extern crate self as serialization;
 
 mod coder;
+mod derive;
 mod mesh;
 
 pub use coder::*;

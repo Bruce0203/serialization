@@ -25,6 +25,7 @@ where
         let a_size = <FrontOffset as Len>::SIZE;
         let b = <<B::Offset as ToUInt>::Output as Unsigned>::USIZE;
         if a_size != UNSIZED && a_size + a == b {
+            //TODO add size of front
             field_size_of(<B as Len>::SIZE, <C as Len>::SIZE)
         } else {
             0
@@ -32,8 +33,14 @@ where
     };
 }
 
-impl<S, S2, FrontOffset> Len for PhantomEdge<S, (Padding<S, FrontOffset>, End<S2>)> {
-    const SIZE: usize = 0;
+impl<S, S2, FrontOffset> Len for PhantomEdge<S, (Padding<S, FrontOffset>, End<S2>)>
+where
+    S2: Len,
+    FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>> + Len,
+{
+    const SIZE: usize = <S2 as Len>::SIZE
+        - (<<<FrontOffset as FieldOffset>::Offset as ToUInt>::Output as Unsigned>::USIZE
+            + <FrontOffset as Len>::SIZE);
 }
 
 impl<S, A, B> Len for PhantomEdge<S, (Field<A>, B)>

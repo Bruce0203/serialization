@@ -45,7 +45,8 @@ macro_rules! wrap_brace {
 #[macro_export]
 macro_rules! impl_field_token {
     () => {
-        pub struct __FieldToken<T, const I: usize>(core::marker::PhantomData<T>);
+        #[repr(transparent)]
+        pub struct __FieldToken<T, const I: usize>(T);
         impl<T, const I: usize> $crate::__private::Edge for __FieldToken<T, I>
         where
             T: $crate::__private::Edge,
@@ -68,6 +69,25 @@ macro_rules! impl_field_token {
             for __FieldToken<$crate::__private::PhantomLeaf<T>, I>
         {
             type Output = $crate::__private::PhantomLeaf<__FieldToken<T, I>>;
+        }
+        impl<T, const I: usize> $crate::Encode for __FieldToken<T, I>
+        where
+            T: $crate::Encode,
+        {
+            fn encode<E: $crate::Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
+                self.0.encode(encoder)
+            }
+        }
+        impl<T, const I: usize> $crate::Decode for __FieldToken<T, I>
+        where
+            T: $crate::Decode,
+        {
+            fn decode_in_place<D: $crate::Decoder>(
+                decoder: &mut D,
+                out: &mut core::mem::MaybeUninit<Self>,
+            ) -> Result<(), D::Error> {
+                T::decode_in_place(decoder, unsafe { core::mem::transmute(out) })
+            }
         }
     };
 }
@@ -210,94 +230,4 @@ pub const unsafe fn sub_ptr<T>(field: *const T, origin: *const T) -> usize {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::{
-        hint::black_box,
-        mem::{MaybeUninit, forget},
-    };
-
-    use serialization_derive::Serializable;
-
-    use crate::__private::{Action, Flatten, Sorted};
-
-    extern crate test;
-
-    #[repr(C)]
-    #[derive(Serializable)]
-    struct Model {
-        field0: u8,
-        // padding 3
-        field1: Foo,
-        // padding 8
-        field2: Vec<u8>,
-        // padding 6
-        field3: u32,
-        // padding 0
-        field4: Bar,
-        // padding 2
-        field5: u32,
-        // padding 4
-    }
-
-    #[derive(Serializable)]
-    struct Foo {
-        field0: u32,
-        // padding 0
-        field1: u32,
-        // padding 0
-        field2: Bar,
-        // padding 2
-    }
-
-    #[derive(Serializable)]
-    struct Bar {
-        field0: u8,
-        // padding 0
-        field1: u8,
-        // padding 0
-    }
-
-    #[test]
-    fn actor() {
-        type T = <<<Model as crate::__private::Edge>::Second as Sorted>::Output as Flatten<
-            Model,
-        >>::Output;
-        let src: &Model = &Model {
-            field0: 11,
-            field1: Foo {
-                field0: 22,
-                field1: 33,
-                field2: Bar {
-                    field0: 44,
-                    field1: 55,
-                },
-            },
-            field2: vec![1, 2, 3],
-            field3: 66,
-            field4: Bar {
-                field0: 77,
-                field1: 88,
-            },
-            field5: 00,
-        };
-        #[allow(invalid_value)]
-        let mut dst: Model = unsafe { MaybeUninit::zeroed().assume_init() };
-        for i in 0..100 {
-            <T as crate::__private::Actor<Model>>::run_at(Action::Encode { src, dst: &mut dst }, i);
-        }
-        println!("{:?}", dst.field0);
-        black_box((&src, &dst));
-        forget(dst);
-    }
-
-    #[cfg(not(debug_assertions))]
-    #[bench]
-    fn bench_must_0ns(b: &mut test::Bencher) {
-        for i in 0..1000 {
-            <<Model as crate::__private::Edge>::Second as crate::__private::Actor>::run_at(
-                i,
-                todo!(),
-            );
-        }
-    }
-}
+mod tests {}

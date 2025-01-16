@@ -1,0 +1,16 @@
+[package]
+name = "serialization_default_binary_encoder"
+version = "0.1.0"
+edition = "2021"
+description = "serialization default encoder"
+author = "Bruce0203 <brucefreedy@gmail.com>"
+repository = "https://github.com/Bruce0203/serialization"
+license = "MIT"
+readme = "../README.md"
+include = [
+    "**/*.rs",
+    "Cargo.toml",
+]
+
+[dependencies]
+serialization = { path = "../" }

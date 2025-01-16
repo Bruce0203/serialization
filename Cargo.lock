@@ -24,8 +24,16 @@ dependencies = [
 name = "serialization"
 version = "0.1.0"
 dependencies = [
+ "serialization_default_binary_encoder",
  "serialization_derive",
  "typenum",
+]
+
+[[package]]
+name = "serialization_default_binary_encoder"
+version = "0.1.0"
+dependencies = [
+ "serialization",
 ]
 
 [[package]]

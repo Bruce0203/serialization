@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "serialization_derive",
+    "serialization_default_binary_encoder",
 ]
 
 [package]
@@ -20,3 +21,6 @@ include = [
 [dependencies]
 typenum = { version = "1.17.0", features = ["const-generics"] }
 serialization_derive = { path = "./serialization_derive" }
+
+[dev-dependencies]
+serialization_default_binary_encoder = { path = "./serialization_default_binary_encoder" }
