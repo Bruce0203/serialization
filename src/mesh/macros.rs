@@ -9,8 +9,12 @@ macro_rules! impl_mesh {
         impl<$($impl_generics,)*> $crate::__private::Len for $($type)+ <$($type_generics)*> where $($where_clause)* {
             const SIZE: usize = core::mem::size_of::<$($type)+ <$($type_generics)*>>();
         }
-        impl<$($impl_generics,)* __S> $crate::__private::CompoundWrapper<__S> for $($type)+ <$($type_generics)*> where $($where_clause)* {
-            type Compound = $crate::__private::Compound<__S, <$($type)+ <$($type_generics)*> as $crate::__private::Edge>::Second>;
+        impl<$($impl_generics,)* __S> $crate::__private::CompoundWrapper<__S> for $($type)+ <$($type_generics)*>
+            where
+                $($where_clause)*
+                Self: $crate::__private::CompoundUnwrapper<__S>
+        {
+            type Compound = <$($type)+ <$($type_generics)*> as $crate::__private::CompoundUnwrapper<__S>>::Output;
         }
 
         $crate::impl_field_token!();
@@ -23,6 +27,7 @@ macro_rules! impl_mesh {
 macro_rules! impl_enum_mesh {
     ($brace:ident, ($($type:tt)+), {$($type_generics:tt)*}, $variant:ident impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $($field_ident:tt => {$($field:tt)*}),*) => {
         const _: () = {
+            //TODO do not use PhantomData for size_of::<__EnumToken>()
             pub struct __EnumToken;
             impl __EnumToken {}
         };

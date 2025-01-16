@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, ops::Add};
+use std::ops::Add;
 
 use super::{
     edge::{Edge, PhantomEdge},
@@ -11,7 +11,7 @@ pub trait FieldOffset {
     type Offset;
 }
 
-pub struct Field<T>(PhantomData<T>);
+pub struct Field<T>(T);
 
 impl<T> Edge for Field<T>
 where

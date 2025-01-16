@@ -5,6 +5,8 @@ use super::{
     end::End,
     field::Field,
     leaf::PhantomLeaf,
+    pad::ConstifyPadding,
+    sort::Sorted,
 };
 
 /// newtype of `PhantomEdge<S, T>` that represents its the root of a struct
@@ -17,6 +19,17 @@ pub trait CompoundWrapper<S> {
 
 pub trait Flatten<S> {
     type Output;
+}
+
+pub trait CompoundUnwrapper<S> {
+    type Output;
+}
+
+impl<S, T> CompoundUnwrapper<S> for T
+where
+    T: Edge<Second: Sorted<Output: ConstifyPadding>>,
+{
+    type Output = Compound<S, <<<T as Edge>::Second as Sorted>::Output as ConstifyPadding>::Output>;
 }
 
 impl<S, S2, A, B> Flatten<S> for PhantomEdge<S2, (A, B)>

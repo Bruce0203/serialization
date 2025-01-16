@@ -7,9 +7,13 @@ encoder decoder 트레잇 가져오고
 populate 도 추가해야 함 
 
 todo: impl macro_rules들 전부다 __붙이기  
-todo: 대부분의 S, S2 구분 없애기 -> Flatten 트레잇에 <S> 제네릭 붙여서 없애도 됨  단 impl Add<Rhs> for Padding  은 제외함 
-todo: sort한 후 Flatten하기 전에 padding Len::SIZE를 replace해서 stuck하는 trait만들기(sort나 flatten처럼 recursive하게 해야함)하기
-todo: AllPrimitiveSizeCheck 에 따라서 Edge구현하기...? -> Actor의 Field<A>로 구하기
+todo: [취소됨;위험함] 대부분의 S, S2 구분 없애기 -> Flatten 트레잇에 <S> 제네릭 붙여서 없애도 됨  단 impl Add<Rhs> for Padding  은 제외함 [취소됨;위험함]
+todo: 
+    sort한 후 Flatten하기 전에 padding Len::SIZE를 replace해서 stuck하는 trait만들기(sort나 flatten처럼 recursive하게 해야함)하기 
+        그러기 전에 왜 Padding이 이웃해있게 출력되는지 알아보기 
+	    알아봤는데 그냥 flatten 하는 과정에서 구조체 맨 끝 패딩이 따라 붙는 거였음 
 
-stopship 01.15 5:42 :  encode decode 를 primitive 에 구현하고 __FieldToken에 encode decode delegate 구현하기
+todo: AllPrimitiveSizeCheck 에 따라서 Edge구현하기...? -> Actor의 Field<A>로 구하기
+todo: Model만 repr(Rust)의 영향을 받는다 Bar, Foo도 repr(Rust)하면 repr(C)와 달라지게 테스트하라
+
 

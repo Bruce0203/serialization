@@ -1,8 +1,9 @@
+#![feature(generic_const_exprs)]
 #![feature(test)]
 
-use std::{any::type_name, mem::offset_of};
+use std::mem::MaybeUninit;
 
-use serialization::__private::{Edge, Flatten, Sorted};
+use serialization::__private::sub_ptr;
 
 extern crate test;
 
@@ -47,8 +48,26 @@ struct Bar {
 
 #[test]
 fn actor() {
-    type T = <<<Model as Edge>::Second as Sorted>::Output as Flatten<Model>>::Output;
-    println!("{}", type_name::<T>());
+    {
+        println!("{}", size_of::<Model>());
+        let value: Model = unsafe { MaybeUninit::uninit().assume_init() };
+        println!(
+            "{}, {}",
+            unsafe {
+                sub_ptr(
+                    &value.field1 as *const _ as *const u8,
+                    &value as *const _ as *const u8,
+                ) + size_of::<Bar>()
+            },
+            unsafe {
+                sub_ptr(
+                    &value.field2 as *const _ as *const u8,
+                    &value as *const _ as *const u8,
+                )
+            }
+        );
+        core::mem::forget(value);
+    };
     let src: &Model = &Model {
         field0: 11,
         field1: Foo {
@@ -71,12 +90,4 @@ fn actor() {
     let mut dst = [0u8; 10000];
     serialization_default_binary_encoder::encode(src, &mut dst);
     println!("{:?}", &dst[..66]);
-}
-
-#[cfg(not(debug_assertions))]
-#[bench]
-fn bench_must_0ns(b: &mut test::Bencher) {
-    for i in 0..1000 {
-        <<Model as crate::__private::Edge>::Second as crate::__private::Actor>::run_at(i, todo!());
-    }
 }
