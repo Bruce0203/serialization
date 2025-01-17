@@ -8,12 +8,12 @@ populate 도 추가해야 함
 
 todo: impl macro_rules들 전부다 __붙이기  
 todo: [취소됨;위험함] 대부분의 S, S2 구분 없애기 -> Flatten 트레잇에 <S> 제네릭 붙여서 없애도 됨  단 impl Add<Rhs> for Padding  은 제외함 [취소됨;위험함]
-todo: 
-    sort한 후 Flatten하기 전에 padding Len::SIZE를 replace해서 stuck하는 trait만들기(sort나 flatten처럼 recursive하게 해야함)하기 
-        그러기 전에 왜 Padding이 이웃해있게 출력되는지 알아보기 
-	    알아봤는데 그냥 flatten 하는 과정에서 구조체 맨 끝 패딩이 따라 붙는 거였음 
 
 todo: AllPrimitiveSizeCheck 에 따라서 Edge구현하기...? -> Actor의 Field<A>로 구하기
 todo: Model만 repr(Rust)의 영향을 받는다 Bar, Foo도 repr(Rust)하면 repr(C)와 달라지게 테스트하라
 
+
+mock testing serialization encoder decoder 만들기
+                //STOPSHIP test in sandbox crate the difference between &mut usize and usize that
+                //effect const inlining
 

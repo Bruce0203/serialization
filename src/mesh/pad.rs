@@ -104,6 +104,10 @@ where
     type Output = PhantomEdge<S, (Field<A>, <B as ConstifyPadding>::Output)>;
 }
 
+impl<S> ConstifyPadding for End<S> {
+    type Output = End<S>;
+}
+
 impl<S, S2, S3, FrontOffset> ConstifyPadding for PhantomEdge<S, (Padding<S2, FrontOffset>, End<S3>)>
 where
     FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>>,

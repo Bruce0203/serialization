@@ -17,6 +17,15 @@ macro_rules! impl_mesh {
             type Compound = <$($type)+ <$($type_generics)*> as $crate::__private::CompoundUnwrapper<__S>>::Output;
         }
 
+        impl<$($impl_generics,)*> $crate::Encode for $($type)+ <$($type_generics)*> where $($where_clause)* {
+            fn encode<E: $crate::Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
+                let struc = $crate::Encoder::encode_struct(encoder)?;
+                $crate::__private::encode_with_encoder(self, struc)?;
+                $crate::CompositeEncoder::end(struc)?;
+                Ok(())
+            }
+        }
+
         $crate::impl_field_token!();
         $crate::impl_field_offset!($brace, 0, ($($type)+), {$($type_generics)*}, impl {$($impl_generics,)*} ($($where_clause)*); ($($field_ident),*), $($field_ident => {$($field)*}),*);
     };
@@ -64,16 +73,6 @@ macro_rules! impl_field_token {
             T: $crate::__private::Len,
         {
             const SIZE: usize = T::SIZE;
-        }
-        impl<S, T, const I: usize> $crate::__private::FieldUnwrapper
-            for __FieldToken<$crate::__private::Compound<S, T>, I>
-        {
-            type Output = $crate::__private::Compound<S, T>;
-        }
-        impl<T, const I: usize> $crate::__private::FieldUnwrapper
-            for __FieldToken<$crate::__private::PhantomLeaf<T>, I>
-        {
-            type Output = $crate::__private::PhantomLeaf<__FieldToken<T, I>>;
         }
         impl<T, const I: usize> $crate::Encode for __FieldToken<T, I>
         where
@@ -126,9 +125,8 @@ macro_rules! impl_field_offset {
                 where
                     $($where_clause)*
                     $($first_field)*: $crate::__private::CompoundWrapper<__S>,
-                    __FieldToken<<$($first_field)* as $crate::__private::CompoundWrapper<__S>>::Compound, $index>: $crate::__private::FieldUnwrapper
             {
-                type Compound = <__FieldToken<<$($first_field)* as $crate::__private::CompoundWrapper<__S>>::Compound, $index> as $crate::__private::FieldUnwrapper>::Output;
+                type Compound = <$($first_field)* as $crate::__private::CompoundWrapper<__S>>::Compound;
             }
         };
     };
@@ -235,4 +233,93 @@ pub const unsafe fn sub_ptr<T>(field: *const T, origin: *const T) -> usize {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use std::hint::black_box;
+
+    use test::Bencher;
+
+    use crate::mock;
+
+    extern crate test;
+
+    #[repr(C)]
+    #[derive(serialization::Serializable)]
+    struct Model {
+        field0: u8, // offset 0 size 1
+        // padding 3
+        field1: Foo, // offset 4 size 12
+        // padding 0
+        field2: Vec<u8>, // offset 16 size 24
+        // padding 0
+        field3: u32, // offset 40 size 4
+        // padding 0
+        field4: Bar, // offset 44 size 2
+        // padding 2
+        field5: u32, // offset 48 size 4
+                     // padding 4
+                     // model size 56
+    }
+
+    #[repr(C)]
+    #[derive(serialization::Serializable)]
+    struct Foo {
+        field0: u32, // offset 0  size 4
+        // padding 0
+        field1: u32, // offset 4 size 4
+        // padding 0
+        field2: Bar, //offset 8 size 2
+                     // padding 2
+                     // size 12
+    }
+
+    #[repr(C)]
+    #[derive(serialization::Serializable)]
+    struct Bar {
+        field0: u8, // offset 0 size 1
+        // padding 0
+        field1: u8, // offset 0 size 1
+                    // padding 0
+    }
+
+    fn model() -> Model {
+        Model {
+            field0: 11,
+            field1: Foo {
+                field0: 22,
+                field1: 33,
+                field2: Bar {
+                    field0: 44,
+                    field1: 55,
+                },
+            },
+            field2: vec![1, 2, 3, 4],
+            field3: 66,
+            field4: Bar {
+                field0: 77,
+                field1: 88,
+            },
+            field5: 99,
+        }
+    }
+
+    #[test]
+    fn actor() {
+        println!();
+        #[allow(invalid_value)]
+        let mut dst = [0u8; 10000];
+        println!("--------");
+        mock::encode(&model(), &mut dst).unwrap();
+        println!("{:?}", &dst[..66]);
+        println!("--------");
+    }
+
+    #[cfg(not(debug_assertions))]
+    #[bench]
+    fn bench_encode(b: &mut Bencher) {
+        let model = &model();
+        let mut dst = [0u8; 10000];
+        b.iter(|| mock::encode(model, &mut dst));
+        println!("{:?}", &dst[..66]);
+        black_box(&dst);
+    }
+}

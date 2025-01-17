@@ -1,31 +1,24 @@
 use std::mem::MaybeUninit;
 
-use serialization::{
-    unsafe_wild_copy, BinaryDecoder, CompositeDecoder, CompositeEncoder, Decoder, Encoder,
+use crate::{
+    __private::{EncodeActor, Mesh, encode_with_encoder},
+    BinaryDecoder, BinaryEncoder, CompositeDecoder, CompositeEncoder, Decoder, Encoder,
+    unsafe_wild_copy,
 };
 
-pub struct Codec<T>(pub T);
+pub struct Codec<T>(T);
 
-impl serialization::BinaryEncoder for Codec<*mut u8> {
-    fn encode_slice<const N: usize>(&mut self, src: &[u8; N]) {
-        let dst = self.0;
-        let src = src.as_ptr();
-        self.0 = unsafe { self.0.byte_add(N) };
-        unsafe {
-            unsafe_wild_copy!([u8; N], src, dst, N);
-        }
-    }
-}
-
-impl BinaryDecoder for Codec<*mut u8> {
-    fn decode_slice<const N: usize>(self, out: &mut MaybeUninit<[u8; N]>) -> Self {
-        todo!()
-    }
-}
-
-impl<T> Encoder for Codec<T>
+pub fn encode<'a, T>(src: &T, dst: &mut [u8]) -> Result<(), <Codec<*mut u8> as Encoder>::Error>
 where
-    Self: serialization::BinaryEncoder,
+    T: Mesh<Codec<*mut u8>, Output: EncodeActor<T, Codec<*mut u8>>>,
+{
+    let mut coder = Codec(dst.as_mut_ptr());
+    encode_with_encoder(src, &mut coder)
+}
+
+impl Encoder for Codec<*mut u8>
+where
+    Self: BinaryEncoder,
 {
     type Error = EncodeError;
 
@@ -36,7 +29,8 @@ where
     type SequenceEncoder = Self;
 
     fn encode_u8(&mut self, v: &u8) -> Result<(), Self::Error> {
-        todo!()
+        self.encode_slice(&v.to_be_bytes());
+        Ok(())
     }
 
     fn encode_i8(&mut self, v: &i8) -> Result<(), Self::Error> {
@@ -95,16 +89,17 @@ where
         todo!()
     }
 
-    fn encode_tuple(&mut self) -> Result<&mut Self::TupleEncoder, Self::Error> {
+    fn encode_tuple<'a>(&mut self) -> Result<&mut Self::TupleEncoder, Self::Error> {
         todo!()
     }
 
-    fn encode_struct(&mut self) -> Result<&mut Self::StructEncoder, Self::Error> {
-        todo!()
+    fn encode_struct<'a>(&mut self) -> Result<&mut Self::StructEncoder, Self::Error> {
+        Ok(self)
     }
 
     fn encode_seq(&mut self, len: usize) -> Result<&mut Self::SequenceEncoder, Self::Error> {
-        todo!()
+        self.encode_u8(&(len as u8))?;
+        Ok(self)
     }
 
     fn encode_enum_variant_key(
@@ -129,7 +124,8 @@ where
     }
 
     fn encode_bytes(&mut self, v: &[u8]) -> Result<(), Self::Error> {
-        todo!()
+        unsafe { core::slice::from_raw_parts_mut(self.0, v.len()).copy_from_slice(v) };
+        Ok(())
     }
 
     fn encode_var_i32(&mut self, v: i32) -> Result<(), Self::Error> {
@@ -137,13 +133,13 @@ where
     }
 }
 
-impl<T> CompositeEncoder for Codec<T>
+impl CompositeEncoder for Codec<*mut u8>
 where
-    Self: serialization::BinaryEncoder,
+    Self: BinaryEncoder,
 {
     type Error = EncodeError;
 
-    fn encode_element<E: serialization::Encode>(&mut self, v: &E) -> Result<(), Self::Error> {
+    fn encode_element<E: crate::Encode>(&mut self, v: &E) -> Result<(), Self::Error> {
         v.encode(self)
     }
 
@@ -152,13 +148,25 @@ where
     }
 }
 
+impl BinaryEncoder for Codec<*mut u8> {
+    fn encode_slice<const N: usize>(&mut self, src: &[u8; N]) {
+        let dst = self.0;
+        let src = src.as_ptr();
+        self.0 = unsafe { self.0.byte_add(N) };
+        unsafe {
+            unsafe_wild_copy!([u8; N], src, dst, N);
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum EncodeError {
     NotEnoughSpaceInTheBuffer,
     TooLarge,
     Custom,
 }
 
-impl serialization::EncodeError for EncodeError {
+impl crate::EncodeError for EncodeError {
     fn not_enough_space_in_the_buffer() -> Self {
         Self::NotEnoughSpaceInTheBuffer
     }
@@ -172,10 +180,7 @@ impl serialization::EncodeError for EncodeError {
     }
 }
 
-impl<T> Decoder for Codec<T>
-where
-    Self: serialization::BinaryDecoder,
-{
+impl<T> Decoder for Codec<T> {
     type Error = DecodeError;
 
     type TupleDecoder = Self;
@@ -278,7 +283,7 @@ where
     fn decode_enum(
         &mut self,
         enum_name: &'static str,
-    ) -> Result<serialization::EnumIdentifier, Self::Error> {
+    ) -> Result<crate::EnumIdentifier, Self::Error> {
         todo!()
     }
 
@@ -287,13 +292,10 @@ where
     }
 }
 
-impl<T> CompositeDecoder for Codec<T>
-where
-    Self: serialization::BinaryDecoder,
-{
+impl<T> CompositeDecoder for Codec<T> {
     type Error = DecodeError;
 
-    fn decode_element<D: serialization::Decode>(
+    fn decode_element<D: crate::Decode>(
         &mut self,
         place: &mut MaybeUninit<D>,
     ) -> Result<(), Self::Error> {
@@ -301,37 +303,47 @@ where
     }
 
     fn end(&mut self) -> Result<(), Self::Error> {
-        Ok(())
+        todo!()
     }
 }
 
+impl<T> BinaryDecoder for Codec<T> {
+    fn decode_slice<const N: usize>(self, out: &mut MaybeUninit<[u8; N]>) -> Self {
+        todo!()
+    }
+}
+
+#[derive(Debug)]
 pub enum DecodeError {
     NotEnoughBytesInTheBuffer,
     TooLarge,
     InvalidEnumVariantName,
     InvalidEnumVarirantIndex,
     Custom,
+    InvalidUtf8,
+    NonMaxButMax,
+    NonZeroButZero,
 }
 
-impl serialization::DecodeError for DecodeError {
+impl crate::DecodeError for DecodeError {
     fn not_enough_bytes_in_the_buffer() -> Self {
-        Self::NotEnoughBytesInTheBuffer
+        todo!()
     }
 
     fn too_large() -> Self {
-        Self::TooLarge
+        todo!()
     }
 
     fn invalid_enum_variant_name() -> Self {
-        Self::InvalidEnumVariantName
+        todo!()
     }
 
     fn invalid_enum_variant_index() -> Self {
-        Self::InvalidEnumVarirantIndex
+        todo!()
     }
 
     fn custom() -> Self {
-        Self::Custom
+        todo!()
     }
 
     fn invalid_utf8() -> Self {

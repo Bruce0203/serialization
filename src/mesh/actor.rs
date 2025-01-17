@@ -1,7 +1,7 @@
 use core::primitive::usize;
-use std::any::type_name;
+use std::{any::type_name, iter::Skip, mem::transmute};
 
-use crate::{BinaryEncoder, CompositeEncoder, Encode};
+use crate::{CompositeDecoder, CompositeEncoder, Encode};
 
 use super::{
     edge::PhantomEdge,
@@ -11,171 +11,185 @@ use super::{
     pad::{ConstPadding, Padding},
 };
 
-pub trait Actor<S, C> {
-    fn run_at(action: &mut Ctx<S, C>, _index: usize) -> Continuous;
+pub trait EncodeActor<S, C>
+where
+    C: CompositeEncoder,
+{
+    fn run_at<'a>(src: &S, codec: &mut C, skip_acc: usize, _index: usize) -> Continuous<'a, S, C>;
 
-    fn run(action: &mut Ctx<S, C>);
+    fn run(src: &S, codec: &mut C) -> Result<(), C::Error>;
 }
 
 #[derive(Debug)]
-pub enum Continuous {
-    Next,
-    Done,
+pub enum Continuous<'a, S, C>
+where
+    C: CompositeEncoder,
+{
+    Next { src: &'a S, skip_acc: usize },
+    Done(Result<(), C::Error>),
 }
 
-#[derive(Debug)]
-pub enum Ctx<T, C> {
-    Encode {
-        src: *const T,
-        coder: C,
-    },
-    Decode {
-        src: *const T,
-        dst: *mut T,
-        coder: C,
-    },
-    Drop {
-        ptr: *const T,
-        coder: C,
-    },
-}
-
-impl<S, C, A, B> Actor<S, C> for PhantomEdge<S, (Field<A>, B)>
+impl<S, C, A, B> EncodeActor<S, C> for PhantomEdge<S, (Field<A>, B)>
 where
     Self: Len,
-    C: CompositeEncoder + BinaryEncoder,
-    Field<A>: Actor<S, C>,
-    B: Actor<S, C>,
+    C: CompositeEncoder,
+    Field<A>: EncodeActor<S, C>,
+    B: EncodeActor<S, C>,
     A: Encode,
     [(); <Self as Len>::SIZE]:,
 {
-    fn run_at(action: &mut Ctx<S, C>, mut index: usize) -> Continuous {
+    fn run_at<'a>(
+        src: &S,
+        codec: &mut C,
+        mut skip_acc: usize,
+        mut index: usize,
+    ) -> Continuous<'a, S, C> {
         if index == 0 {
-            Self::run(action);
-            return Continuous::Done;
+            #[cfg(debug_assertions)]
+            println!("{}", skip_acc);
+            if skip_acc == 0 {
+                skip_acc = Self::SIZE;
+                let result = Self::run(src, codec);
+                return Continuous::Done(result);
+            } else {
+                skip_acc -= size_of::<A>();
+                #[cfg(debug_assertions)]
+                println!("HHHHH");
+                return Continuous::Done(Ok(()));
+            }
         }
         index -= 1;
-        match Field::<A>::run_at(action, index) {
-            Continuous::Next => B::run_at(action, index),
-            Continuous::Done => Continuous::Done,
+        match Field::<A>::run_at(src, codec, skip_acc, index) {
+            Continuous::Next { src, skip_acc } => B::run_at(src, codec, skip_acc, index),
+            Continuous::Done(result) => Continuous::Done(result),
         }
     }
 
-    fn run(action: &mut Ctx<S, C>) {
+    fn run(src: &mut *const S, codec: &mut C) -> Result<(), C::Error> {
+        #[cfg(debug_assertions)]
         println!("field {} {}", <Self as Len>::SIZE, type_name::<A>());
-        match action {
-            Ctx::Encode { src, coder } => {
-                if Self::SIZE == 0 {
-                    *src = unsafe { src.byte_add(size_of::<A>()) };
-                } else {
-                    unsafe {
-                        let slice = &*(*src as *const [u8; Self::SIZE]);
-                        coder.encode_slice::<{ Self::SIZE }>(slice);
-                        *src = src.byte_add(Self::SIZE);
-                    }
-                }
+        if Self::SIZE == 0 {
+            // unsafe {
+            //     let src: &A = transmute(*src);
+            //     codec.encode_element(src)?;
+            // }
+            *src = unsafe { (*src).byte_add(size_of::<A>()) };
+        } else {
+            unsafe {
+                let slice = (*src) as *const _ as *const [u8; Self::SIZE];
+                codec.encode_slice::<{ Self::SIZE }>(&*slice);
+                *src = (*src).byte_add(Self::SIZE);
             }
-            Ctx::Decode { src, dst, coder } => {}
-            Ctx::Drop { ptr, coder } => {}
         }
+        Ok(())
     }
 }
 
-impl<S, S2, C, B, const I: usize> Actor<S, C> for PhantomEdge<S, (ConstPadding<S2, I>, B)>
+impl<S, S2, C, B, const I: usize> EncodeActor<S, C> for PhantomEdge<S, (ConstPadding<S2, I>, B)>
 where
+    C: CompositeEncoder,
     Self: Len,
-    ConstPadding<S2, I>: Actor<S, C>,
-    B: Actor<S, C>,
+    ConstPadding<S2, I>: EncodeActor<S, C>,
+    B: EncodeActor<S, C>,
 {
-    fn run_at(action: &mut Ctx<S, C>, mut index: usize) -> Continuous {
+    fn run_at(
+        src: &mut *const S,
+        codec: &mut C,
+        skip_acc: &mut usize,
+        mut index: usize,
+    ) -> Continuous<C> {
         if index == 0 {
-            Self::run(action);
-            return Continuous::Done;
+            if *skip_acc != 0 && I != 0 {
+                *skip_acc = 0;
+            }
+            #[cfg(debug_assertions)]
+            println!("skip_acc = {}", skip_acc);
+            let result = Self::run(src, codec);
+            return Continuous::Done(result);
         }
         index -= 1;
-        match ConstPadding::<S2, I>::run_at(action, index) {
-            Continuous::Next => B::run_at(action, index),
-            Continuous::Done => Continuous::Done,
+        match ConstPadding::<S2, I>::run_at(src, codec, skip_acc, index) {
+            Continuous::Next => B::run_at(src, codec, skip_acc, index),
+            Continuous::Done(result) => Continuous::Done(result),
         }
     }
 
-    fn run(action: &mut Ctx<S, C>) {
-        match action {
-            Ctx::Encode { src, coder: _ } => {
-                *src = unsafe { src.byte_add(I) };
-            }
-            Ctx::Decode {
-                src: _,
-                dst: _,
-                coder: _,
-            } => {}
-            Ctx::Drop { ptr: _, coder: _ } => {}
-        }
+    fn run(src: &mut *const S, _codec: &mut C) -> Result<(), C::Error> {
+        #[cfg(debug_assertions)]
         println!("padding {} ", I);
+        *src = unsafe { (*src).byte_add(I) };
+        Ok(())
     }
 }
 
-// 1 + 3 + 10 + 0 + 6 + 0 + 2 + 1 + 2 + 6 + 2 + 1 + 2 + 4 + 4
-// field 1 model::_::__FieldToken<u8, 0>
-// padding 3
-// field 10 model::_::__FieldToken<u32, 0>
-// padding 0
-// field 6 model::_::__FieldToken<u32, 1>
-// padding 0
-// field 2 model::_::__FieldToken<u8, 0>
-// padding 0
-// field 1 model::_::__FieldToken<u8, 1>
-// padding 0
-// padding 2
-// padding 0
-// field 0 model::_::__FieldToken<alloc::vec::Vec<u8>, 2>
-// padding 0
-// field 6 model::_::__FieldToken<u32, 3>
-// padding 0
-// field 2 model::_::__FieldToken<u8, 0>
-// padding 0
-// field 1 model::_::__FieldToken<u8, 1>
-// padding 0
-// padding 2
-// field 4 model::_::__FieldToken<u32, 5>
-// padding 4
-
-impl<S, C> Actor<S, C> for End<S> {
-    fn run_at(action: &mut Ctx<S, C>, _index: usize) -> Continuous {
+impl<S, C> EncodeActor<S, C> for End<S>
+where
+    C: CompositeEncoder,
+{
+    fn run_at(
+        src: &mut *const S,
+        codec: &mut C,
+        skip_acc: &mut usize,
+        _index: usize,
+    ) -> Continuous<C> {
         Continuous::Next
     }
 
-    fn run(_action: &mut Ctx<S, C>) {
+    fn run(src: &mut *const S, codec: &mut C) -> Result<(), C::Error> {
         unreachable!()
     }
 }
 
-impl<S, C, FrontOffset> Actor<S, C> for Padding<S, FrontOffset> {
-    fn run_at(_action: &mut Ctx<S, C>, _index: usize) -> Continuous {
+impl<S, C, FrontOffset> EncodeActor<S, C> for Padding<S, FrontOffset>
+where
+    C: CompositeEncoder,
+{
+    fn run_at(
+        src: &mut *const S,
+        codec: &mut C,
+        skip_acc: &mut usize,
+        _index: usize,
+    ) -> Continuous<C> {
         Continuous::Next
     }
 
-    fn run(_action: &mut Ctx<S, C>) {
+    fn run(src: &mut *const S, codec: &mut C) -> Result<(), C::Error> {
         unreachable!()
     }
 }
 
-impl<S, C, const I: usize> Actor<S, C> for ConstPadding<S, I> {
-    fn run_at(_action: &mut Ctx<S, C>, _index: usize) -> Continuous {
+impl<S, C, const I: usize> EncodeActor<S, C> for ConstPadding<S, I>
+where
+    C: CompositeEncoder,
+{
+    fn run_at(
+        src: &mut *const S,
+        codec: &mut C,
+        skip_acc: &mut usize,
+        _index: usize,
+    ) -> Continuous<C> {
         Continuous::Next
     }
 
-    fn run(_action: &mut Ctx<S, C>) {
+    fn run(src: &mut *const S, codec: &mut C) -> Result<(), C::Error> {
         unreachable!()
     }
 }
 
-impl<S, C, T> Actor<S, C> for Field<T> {
-    fn run_at(_action: &mut Ctx<S, C>, _index: usize) -> Continuous {
+impl<S, C, T> EncodeActor<S, C> for Field<T>
+where
+    C: CompositeEncoder,
+{
+    fn run_at(
+        src: &mut *const S,
+        codec: &mut C,
+        skip_acc: &mut usize,
+        _index: usize,
+    ) -> Continuous<C> {
         Continuous::Next
     }
 
-    fn run(_action: &mut Ctx<S, C>) {
+    fn run(src: &mut *const S, codec: &mut C) -> Result<(), C::Error> {
         unreachable!()
     }
 }

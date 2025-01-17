@@ -2,7 +2,6 @@ use std::{marker::PhantomData, ops::Add};
 
 use super::{
     edge::{Edge, PhantomEdge},
-    field::FieldOffset,
     len::Len,
 };
 

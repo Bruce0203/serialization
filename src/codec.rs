@@ -10,7 +10,7 @@ macro_rules! encode_value {
     )*};
 }
 
-pub trait Encoder: Sized {
+pub trait Encoder: Sized + BinaryEncoder {
     type Error: EncodeError;
     type TupleEncoder: CompositeEncoder<Error = Self::Error>;
     type StructEncoder: CompositeEncoder<Error = Self::Error>;
@@ -65,7 +65,7 @@ macro_rules! decode_value {
      )*};
 }
 
-pub trait Decoder: Sized {
+pub trait Decoder: Sized + BinaryDecoder {
     type Error: DecodeError;
     type TupleDecoder: CompositeDecoder<Error = Self::Error>;
     type StructDecoder: CompositeDecoder<Error = Self::Error>;
@@ -118,16 +118,16 @@ pub trait DecodeError {
     fn nonzero_but_zero() -> Self;
 }
 
-pub trait CompositeEncoder {
+pub trait CompositeEncoder: BinaryEncoder {
     type Error;
     fn encode_element<E: Encode>(&mut self, v: &E) -> Result<(), Self::Error>;
-    fn end(self) -> Result<(), Self::Error>;
+    fn end(&mut self) -> Result<(), Self::Error>;
 }
 
-pub trait CompositeDecoder: Sized {
+pub trait CompositeDecoder: Sized + BinaryDecoder {
     type Error;
     fn decode_element<D: Decode>(&mut self, place: &mut MaybeUninit<D>) -> Result<(), Self::Error>;
-    fn end(self) -> Result<(), Self::Error>;
+    fn end(&mut self) -> Result<(), Self::Error>;
 }
 
 pub trait BinaryEncoder {

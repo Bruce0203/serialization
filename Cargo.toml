@@ -24,3 +24,8 @@ serialization_derive = { path = "./serialization_derive" }
 
 [dev-dependencies]
 serialization_default_binary_encoder = { path = "./serialization_default_binary_encoder" }
+
+[profile.bench]
+strip = true
+lto = true
+codegen-units = 1

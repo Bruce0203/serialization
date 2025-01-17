@@ -2,13 +2,15 @@ use std::marker::PhantomData;
 
 use super::macros::{impl_non_primitives, impl_primitives};
 
-impl_primitives!((u8));
-impl_primitives!((u32));
-impl_primitives!((i32));
-impl_primitives!((i16));
-impl_primitives!((u16));
+macro_rules! primitives {
+    ($($type:tt),*) => {
+        $(impl_primitives!(($type));)*
+    };
+}
 type UnitType = ();
-impl_primitives!((UnitType));
+primitives!(
+    u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, usize, isize, f32, f64, bool, UnitType
+);
 impl_primitives!((PhantomData), {T}, impl {T,} ());
 impl_non_primitives!((Vec), {T}, impl {T,} ());
 impl_non_primitives!((String));
