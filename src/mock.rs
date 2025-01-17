@@ -29,7 +29,7 @@ where
     type SequenceEncoder = Self;
 
     fn encode_u8(&mut self, v: &u8) -> Result<(), Self::Error> {
-        self.encode_slice(&v.to_be_bytes());
+        self.encode_slice(&[*v]);
         Ok(())
     }
 
@@ -125,6 +125,7 @@ where
 
     fn encode_bytes(&mut self, v: &[u8]) -> Result<(), Self::Error> {
         unsafe { core::slice::from_raw_parts_mut(self.0, v.len()).copy_from_slice(v) };
+        self.0 = unsafe { self.0.byte_add(v.len()) };
         Ok(())
     }
 

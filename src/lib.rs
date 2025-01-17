@@ -19,8 +19,8 @@ mod mesh;
 mod benches;
 #[cfg(test)]
 mod fuzz;
-// #[cfg(test)]
-pub mod mock;
+#[cfg(test)]
+mod mock;
 
 pub use codec::*;
 pub use macros::*;
