@@ -28,8 +28,9 @@ where
     T: Mesh<C, Output: EncodeActor<T, C>>,
 {
     let mut skip_acc = 0;
-    let mut i = 0;
     let src = &mut src;
-    T::Output::run_at(src, enc, &mut skip_acc, 0);
+    for i in 0..usize::MAX {
+        T::Output::run_at(src, enc, &mut skip_acc, i);
+    }
     Ok(())
 }
