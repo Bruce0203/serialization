@@ -1,11 +1,12 @@
-use std::{hint::black_box, str::FromStr};
+use std::{
+    hint::black_box,
+    mem::{transmute, transmute_copy},
+    str::FromStr,
+};
 
 use test::Bencher;
 
-use crate::{
-    __private::{EncodeActor, Mesh, encode_with_encoder},
-    mock::{self, Codec, encode},
-};
+use crate::mock::encode;
 
 #[derive(serialization::Serializable, Debug, PartialEq, PartialOrd, Ord, Eq, Clone)]
 pub struct Log {
@@ -61,10 +62,10 @@ fn model() -> Logs {
 #[bench]
 fn bench_log_model(b: &mut Bencher) {
     let model = &model();
-    let model = model.logs.first().unwrap();
     let mut dst = [0_u8; 1000];
     black_box(&model);
     b.iter(|| encode(model, &mut dst));
     println!("{:?}", &dst[..66]);
+    // assert_eq!(unsafe { transmute_copy::<_, &Model>(&dst) }, model);
     black_box(&dst);
 }

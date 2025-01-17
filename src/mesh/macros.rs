@@ -19,6 +19,9 @@ macro_rules! impl_mesh {
 
         impl<$($impl_generics,)*> $crate::Encode for $($type)+ <$($type_generics)*> where $($where_clause)* {
             fn encode<E: $crate::Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
+                let struc = $crate::Encoder::encode_struct(encoder)?;
+                $crate::__private::encode_with_encoder(self, struc)?;
+                $crate::CompositeEncoder::end(struc)?;
                 Ok(())
             }
         }

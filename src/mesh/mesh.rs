@@ -2,13 +2,7 @@ use std::hint::black_box;
 
 use crate::{CompositeEncoder, Encoder};
 
-use super::{
-    actor::{Continuous, EncodeActor},
-    edge::Edge,
-    flatten::Flatten,
-    pad::ConstifyPadding,
-    sort::Sorted,
-};
+use super::{actor::EncodeActor, edge::Edge, flatten::Flatten, pad::ConstifyPadding, sort::Sorted};
 
 pub trait Mesh<C> {
     type Output;
@@ -27,10 +21,7 @@ where
     C: CompositeEncoder,
     T: Mesh<C, Output: EncodeActor<T, C>>,
 {
-    let mut skip_acc = 0;
     let src = &mut src;
-    for i in 0..usize::MAX {
-        T::Output::run_at(src, enc, &mut skip_acc, i);
-    }
+    T::Output::run_at(src, enc, 0);
     Ok(())
 }
