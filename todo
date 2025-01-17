@@ -17,3 +17,5 @@ mock testing serialization encoder decoder 만들기
                 //STOPSHIP test in sandbox crate the difference between &mut usize and usize that
                 //effect const inlining
 
+
+stopship: actor 에서 offset array 만들기 

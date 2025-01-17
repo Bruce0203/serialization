@@ -6,7 +6,7 @@ use crate::{
     unsafe_wild_copy,
 };
 
-pub struct Codec<T>(T);
+pub struct Codec<T>(pub(crate) T);
 
 pub fn encode<'a, T>(src: &T, dst: &mut [u8]) -> Result<(), <Codec<*mut u8> as Encoder>::Error>
 where

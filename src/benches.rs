@@ -2,9 +2,11 @@ use std::{hint::black_box, str::FromStr};
 
 use test::Bencher;
 
-use crate::mock;
+use crate::{
+    __private::{EncodeActor, Mesh, encode_with_encoder},
+    mock::{self, Codec, encode},
+};
 
-#[repr(C)]
 #[derive(serialization::Serializable, Debug, PartialEq, PartialOrd, Ord, Eq, Clone)]
 pub struct Log {
     pub address: Address,
@@ -61,7 +63,8 @@ fn bench_log_model(b: &mut Bencher) {
     let model = &model();
     let model = model.logs.first().unwrap();
     let mut dst = [0_u8; 1000];
-    b.iter(|| mock::encode(model, &mut dst));
+    black_box(&model);
+    b.iter(|| encode(model, &mut dst));
     println!("{:?}", &dst[..66]);
     black_box(&dst);
 }

@@ -1,3 +1,5 @@
+use std::hint::black_box;
+
 use crate::{CompositeEncoder, Encoder};
 
 use super::{
@@ -20,20 +22,14 @@ where
     type Output = <<<<T as Edge>::Second as Sorted>::Output as ConstifyPadding>::Output as Flatten<T>>::Output;
 }
 
-pub fn encode_with_encoder<T, C>(src: &T, enc: &mut C) -> Result<(), C::Error>
+pub fn encode_with_encoder<T, C>(mut src: &T, enc: &mut C) -> Result<(), C::Error>
 where
     C: CompositeEncoder,
     T: Mesh<C, Output: EncodeActor<T, C>>,
 {
-    let mut i = 0;
     let mut skip_acc = 0;
-    let src = &mut (src as *const T);
-    loop {
-        match T::Output::run_at(src, enc, &mut skip_acc, i) {
-            Continuous::Next => break,
-            Continuous::Done(result) => result?,
-        }
-        i += 1;
-    }
+    let mut i = 0;
+    let src = &mut src;
+    T::Output::run_at(src, enc, &mut skip_acc, 0);
     Ok(())
 }
