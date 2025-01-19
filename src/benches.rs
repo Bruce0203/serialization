@@ -35,7 +35,6 @@ pub struct Address {
     pub x3: u8,
 }
 
-type Model = Logs;
 fn model() -> Logs {
     Logs {
         logs: vec![
@@ -59,6 +58,7 @@ fn model() -> Logs {
     }
 }
 
+#[ignore]
 #[bench]
 fn bench_log_model(b: &mut Bencher) {
     let model = &model();

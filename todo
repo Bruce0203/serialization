@@ -21,3 +21,7 @@ mock testing serialization encoder decoder 만들기
 ~~Stopship: actor 에서 offset array 만들기 ~~
 
 stopship : mock 구현과 실제 구현 합일화하기
+
+
+low pirority todo task: remove generic_const_exprs from lib.rs of serialization crate 
+ rename Len::SIZE to Len::LEN

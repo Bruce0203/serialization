@@ -22,6 +22,5 @@ where
     T: Mesh<C, Output: EncodeActor<T, C>>,
 {
     let src = &mut src;
-    T::Output::run_at(src, enc, 0);
-    Ok(())
+    T::Output::run(src, enc, 0)
 }

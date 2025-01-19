@@ -4,7 +4,7 @@ use super::{
     edge::{Edge, PhantomEdge},
     flatten::{Compound, CompoundWrapper},
     leaf::PhantomLeaf,
-    len::Len,
+    len::{Len, Size},
 };
 
 pub trait FieldOffset {
@@ -43,6 +43,14 @@ where
 {
     const SIZE: usize = T::SIZE;
 }
+
+impl<T> Size for Field<T>
+where
+    T: Size,
+{
+    const SIZE: usize = T::SIZE;
+}
+
 
 impl<S, A, B, T> Add<PhantomEdge<S, (A, B)>> for Field<T> {
     type Output = PhantomEdge<S, (Field<T>, PhantomEdge<S, (A, B)>)>;

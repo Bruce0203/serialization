@@ -10,17 +10,16 @@ extern crate self as serialization;
 #[cfg(test)]
 extern crate test;
 
-mod codec;
-mod derive;
-mod macros;
-mod mesh;
-
 #[cfg(test)]
 mod benches;
 #[cfg(test)]
 mod fuzz;
-#[cfg(test)]
-mod mock;
+pub mod mock;
+
+mod codec;
+mod derive;
+mod macros;
+mod mesh;
 
 pub use codec::*;
 pub use macros::*;

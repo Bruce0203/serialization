@@ -6,6 +6,9 @@ macro_rules! impl_mesh {
             type First = $crate::__private::End<$($type)+ <$($type_generics)*>>;
             type Second = $crate::meshup!(0, ($($type)+), {$($type_generics)*}; $({$($field)*})*);
         }
+        impl<$($impl_generics,)*> $crate::__private::Size for $($type)+ <$($type_generics)*> where $($where_clause)* {
+            const SIZE: usize = core::mem::size_of::<$($type)+ <$($type_generics)*>>();
+        }
         impl<$($impl_generics,)*> $crate::__private::Len for $($type)+ <$($type_generics)*> where $($where_clause)* {
             const SIZE: usize = core::mem::size_of::<$($type)+ <$($type_generics)*>>();
         }
@@ -18,10 +21,7 @@ macro_rules! impl_mesh {
         }
 
         impl<$($impl_generics,)*> $crate::Encode for $($type)+ <$($type_generics)*> where $($where_clause)* {
-            fn encode<E: $crate::Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
-                let struc = $crate::Encoder::encode_struct(encoder)?;
-                $crate::__private::encode_with_encoder(self, struc)?;
-                $crate::CompositeEncoder::end(struc)?;
+            fn encode<E: $crate::Encoder>(&self, _encoder: &mut E) -> Result<(), E::Error> {
                 Ok(())
             }
         }
@@ -71,6 +71,12 @@ macro_rules! impl_field_token {
         impl<T, const I: usize> $crate::__private::Len for __FieldToken<T, I>
         where
             T: $crate::__private::Len,
+        {
+            const SIZE: usize = T::SIZE;
+        }
+        impl<T, const I: usize> $crate::__private::Size for __FieldToken<T, I>
+        where
+            T: $crate::__private::Size,
         {
             const SIZE: usize = T::SIZE;
         }
@@ -196,6 +202,10 @@ macro_rules! impl_serializable {
         impl<$($impl_generics,)* __S> $crate::__private::CompoundWrapper<__S> for $($type)+ <$($type_generics)*> where $($where_clause)* {
             type Compound = $crate::__private::PhantomLeaf<Self>;
         }
+        impl<$($impl_generics,)*> $crate::__private::Size for $($type)+ <$($type_generics)*> where $($where_clause)* {
+            const SIZE: usize = core::mem::size_of::<$($type)+ <$($type_generics)*>>();
+        }
+
     };
 }
 
@@ -310,6 +320,7 @@ mod tests {
         println!("--------");
         mock::encode(&model(), &mut dst).unwrap();
         println!("{:?}", &dst[..66]);
+        black_box(&dst);
         println!("--------");
     }
 

@@ -9,6 +9,10 @@ use super::{
 
 pub const UNSIZED: usize = usize::MAX;
 
+pub trait Size {
+    const SIZE: usize;
+}
+
 pub trait Len {
     const SIZE: usize;
 }
@@ -33,6 +37,7 @@ where
         let front = <<<FrontOffset as FieldOffset>::Offset as ToUInt>::Output as Unsigned>::USIZE;
         let front_size = <FrontOffset as Len>::SIZE;
         let back = <<B::Offset as ToUInt>::Output as Unsigned>::USIZE;
+        //TODO Simplify condition as possible as you can...
         if front_size != UNSIZED && front_size + front == back {
             //TODO add size of front
             field_size_of(<B as Len>::SIZE, <C as Len>::SIZE)
@@ -45,13 +50,13 @@ where
 //TODO try remove S3 and replace it to S
 impl<S, S2, S3, FrontOffset> Len for PhantomEdge<S, (Padding<S3, FrontOffset>, End<S2>)>
 where
-    S2: Len,
-    FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>> + Len,
+    S2: Len + Size,
+    FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>> + Len + Size,
 {
     //breakpoint2
-    const SIZE: usize = size_of::<S2>()
+    const SIZE: usize = <S2 as Size>::SIZE
         - (<<<FrontOffset as FieldOffset>::Offset as ToUInt>::Output as Unsigned>::USIZE
-            + size_of::<FrontOffset>());
+            + <FrontOffset as Size>::SIZE);
 }
 
 impl<S, A, B> Len for PhantomEdge<S, (Field<A>, B)>
@@ -66,6 +71,7 @@ where
 }
 
 const fn field_size_of(a: usize, b: usize) -> usize {
+    //TODO try remove b == UNSIZED
     if a == UNSIZED || b == UNSIZED {
         0
     } else {

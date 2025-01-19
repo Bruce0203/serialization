@@ -7,7 +7,7 @@ use super::{
     end::End,
     field::{Field, FieldOffset},
     flatten::CompoundWrapper,
-    len::Len,
+    len::{Len, Size},
 };
 
 pub struct Padding<S, FrontOffset>(PhantomData<(S, FrontOffset)>);
@@ -82,7 +82,7 @@ impl<S, S2, S3, FrontOffset, B, C> ConstifyPadding
     for PhantomEdge<S, (Padding<S2, FrontOffset>, PhantomEdge<S3, (Field<B>, C)>)>
 where
     Self: Len,
-    FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>>,
+    FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>> + Size,
     Field<B>: FieldOffset<Offset: ToUInt<Output: Unsigned>>,
     [(); padding_of::<FrontOffset, Field<B>>()]:,
     PhantomEdge<S, (Field<B>, C)>: ConstifyPadding,
@@ -110,11 +110,12 @@ impl<S> ConstifyPadding for End<S> {
 
 impl<S, S2, S3, FrontOffset> ConstifyPadding for PhantomEdge<S, (Padding<S2, FrontOffset>, End<S3>)>
 where
-    FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>>,
+    S3: Size,
+    FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>> + Size,
     [(); {
-        size_of::<S3>()
+        <S3 as Size>::SIZE
             - (<<<FrontOffset as FieldOffset>::Offset as ToUInt>::Output as Unsigned>::USIZE
-                + size_of::<FrontOffset>())
+                + <FrontOffset as Size>::SIZE)
     }]:,
 {
     type Output = PhantomEdge<
@@ -123,9 +124,9 @@ where
             ConstPadding<
                 S,
                 {
-                    size_of::<S3>() - (
+                    <S3 as Size>::SIZE - (
                         <<<FrontOffset as FieldOffset>::Offset as ToUInt>::Output as Unsigned>::USIZE 
-                        + size_of::<FrontOffset>()
+                        + <FrontOffset as Size>::SIZE
                     )
                 },
             >,
@@ -136,11 +137,11 @@ where
 
 pub const fn padding_of<FrontOffset, B>() -> usize
 where
-    FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>>,
+    FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>> + Size,
     B: FieldOffset<Offset: ToUInt<Output: Unsigned>>,
 {
     let front = <<<FrontOffset as FieldOffset>::Offset as ToUInt>::Output as Unsigned>::USIZE;
-    let front_size = size_of::<FrontOffset>();
+    let front_size = <FrontOffset as Size>::SIZE;
     let back = <<B::Offset as ToUInt>::Output as Unsigned>::USIZE;
     back - (front_size + front)
 }
