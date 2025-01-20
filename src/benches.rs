@@ -55,7 +55,7 @@ fn model() -> Logs {
                 code: 55,
                 size: 66,
             };
-            100
+            300
         ],
     }
 }
@@ -63,8 +63,7 @@ fn model() -> Logs {
 #[bench]
 fn bench_log_model(b: &mut Bencher) {
     let models = model();
-    let dst: Box<[u8; 100000000]> = unsafe { transmute(Box::<[u8; 100000000]>::new_uninit()) };
-    let mut dst: Box<[u8]> = dst;
+    let mut dst = [0_u8; 1000000];
     black_box(&model);
     b.iter(|| {
         black_box(encode(&models, &mut dst).unwrap());

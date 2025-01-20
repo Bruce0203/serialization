@@ -321,7 +321,7 @@ mod tests {
     fn actor() {
         println!("{}", type_name::<<Model as Mesh<Codec<*mut u8>>>::Output>());
         #[allow(invalid_value)]
-        let mut dst: Box<[u8]> = Box::new([0_u8; 1000000]);
+        let mut dst = [0_u8; 1000000];
         println!("--------");
         mock::encode(&model(), &mut dst).unwrap();
         println!("{:?}", &dst[..66]);
@@ -333,7 +333,7 @@ mod tests {
     #[bench]
     fn bench_encode(b: &mut Bencher) {
         let model = &model();
-    let mut dst: Box<[u8]> = Box::new([0_u8; 1000000]);
+        let mut dst = [0_u8; 1000000];
         b.iter(|| mock::encode(model, &mut dst));
         println!("{:?}", &dst[..66]);
         black_box(&dst);
