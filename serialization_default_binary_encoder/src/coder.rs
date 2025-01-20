@@ -16,7 +16,7 @@ impl serialization::BinaryEncoder for Codec<*mut u8> {
         }
     }
 
-    fn encode_slice(&mut self, src: &[u8]) {
+    fn encode_slice<T>(&mut self, src: &[T]) {
         todo!()
     }
 }

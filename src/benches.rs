@@ -1,10 +1,5 @@
-use std::{
-    hint::black_box,
-    mem::{MaybeUninit, transmute},
-    str::FromStr,
-};
+use std::{hint::black_box, mem::transmute, str::FromStr};
 
-use rand::Rng;
 use test::Bencher;
 
 use crate::mock::encode;
@@ -60,54 +55,16 @@ fn model() -> Logs {
                 code: 55,
                 size: 66,
             };
-            100
+            3000000
         ],
     }
-}
-
-fn random_string<const N: usize>() -> String {
-    String::from_str(core::str::from_utf8(&[rand::thread_rng().gen_range(0..10_u8); N]).unwrap())
-        .unwrap()
-}
-
-fn models() -> Vec<Logs> {
-    let mut dst = Vec::new();
-    for _ in 0..1000_000 {
-        dst.push(model());
-    }
-    black_box(&model);
-    println!("model generated");
-    dst
-}
-
-#[ignore]
-#[bench]
-fn bench_log_models(b: &mut Bencher) {
-    let models = models();
-    let mut models = models.iter();
-    let mut dst: Box<[u8]> = Box::new([0_u8; 1000000]);
-    black_box(&model);
-    b.iter(|| {
-        black_box(encode(models.next().unwrap(), &mut dst).unwrap());
-    });
-    black_box(&dst);
-}
-
-#[ignore]
-#[bench]
-fn bench_log_models_with_bitcode(b: &mut Bencher) {
-    let models = models();
-    let mut models = models.iter();
-    let mut buf = bitcode::Buffer::default();
-    b.iter(|| {
-        black_box(&buf.encode(models.next().unwrap()));
-    });
 }
 
 #[bench]
 fn bench_log_model(b: &mut Bencher) {
     let models = model();
-    let mut dst: Box<[u8]> = Box::new([0_u8; 1000000]);
+    let dst: Box<[u8; 100000000]> = unsafe { transmute(Box::<[u8; 100000000]>::new_uninit()) };
+    let mut dst: Box<[u8]> = dst;
     black_box(&model);
     b.iter(|| {
         black_box(encode(&models, &mut dst).unwrap());

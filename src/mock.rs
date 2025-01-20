@@ -161,9 +161,11 @@ impl BinaryEncoder for Codec<*mut u8> {
         }
     }
 
-    fn encode_slice(&mut self, src: &[u8]) {
-        unsafe { core::slice::from_raw_parts_mut(self.0, src.len()).copy_from_slice(src) };
-        self.0 = unsafe { self.0.byte_add(src.len()) };
+    fn encode_slice<T: Copy>(&mut self, src: &[T]) {
+        unsafe {
+            core::slice::from_raw_parts_mut(self.0 as *mut T, src.len()).copy_from_slice(src)
+        };
+        self.0 = unsafe { (self.0 as *mut T).byte_add(src.len()) as *mut u8 };
     }
 }
 

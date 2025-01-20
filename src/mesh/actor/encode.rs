@@ -68,6 +68,7 @@ where
     B: EncodeActor<S, C>,
     T: Vector<Item: Size + Mesh<C, Output: EncodeActor<<T as Vector>::Item, C> + Len>> + Size,
     S: Size,
+    [(); <<T as Vector>::Item as Size>::SIZE]:,
 {
     fn run(
         mut src: &S,
@@ -77,8 +78,8 @@ where
     ) -> Result<(), C::Error> {
         let skip_acc = 0;
         src = unsafe { &*(src as *const S).byte_sub(1) };
+        let vec = unsafe { transmute::<_, &T>(src) };
         {
-            let vec = unsafe { transmute::<_, &T>(src) };
             let mut src = vec.as_ptr();
             for _ in 0..vec.len() {
                 <<<T as Vector>::Item as Mesh<C>>::Output as EncodeActor<
