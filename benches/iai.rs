@@ -12,7 +12,7 @@ fn fibonacci(n: u64) -> u64 {
 }
 
 #[library_benchmark]
-#[bench::one(&model())]
+#[benches::one(&model())]
 fn bench(model: &Logs) -> [u8; 1000000] {
     let mut dst = [0_u8; 1000000];
     black_box(encode(model, &mut dst).unwrap());

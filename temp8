@@ -1,0 +1,19 @@
+1번
+  Instructions:                     2052917|N/A                  (*********)
+  L1 Hits:                          5019130|N/A                  (*********)
+  L2 Hits:                            17360|N/A                  (*********)
+  RAM Hits:                           31017|N/A                  (*********)
+  Total read+write:                 5067507|N/A                  (*********)
+  Estimated Cycles:                 6191525|N/A                  (*********)
+
+test benches::bench_log_model              ... bench:       3,458.04 ns/iter (+/- 64.14)
+
+2번
+  Instructions:                     2030904|N/A                  (*********)
+  L1 Hits:                          4993563|N/A                  (*********)
+  L2 Hits:                            16958|N/A                  (*********)
+  RAM Hits:                           31031|N/A                  (*********)
+  Total read+write:                 5041552|N/A                  (*********)
+  Estimated Cycles:                 6164438|N/A                  (*********)
+test benches::bench_log_model              ... bench:       4,562.60 ns/iter (+/- 69.15)
+
