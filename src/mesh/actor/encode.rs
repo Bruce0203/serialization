@@ -78,15 +78,20 @@ where
     ) -> Result<(), C::Error> {
         let skip_acc = 0;
         src = unsafe { &*(src as *const S).byte_sub(1) };
-        let vec = unsafe { transmute::<_, &T>(src) };
         {
-            let mut src = vec.as_ptr();
-            for _ in 0..vec.len() {
+            let mut src = src;
+            let vec = unsafe { transmute::<_, &T>(src) };
+            for _ in 0..vectored_amount {
                 <<<T as Vector>::Item as Mesh<C>>::Output as EncodeActor<
                     <T as Vector>::Item,
                     C,
-                >>::run(unsafe { transmute(src) }, codec, skip_acc, 1)?;
-                src = unsafe { src.byte_add(<<T as Vector>::Item as Size>::SIZE) };
+                >>::run(
+                    unsafe { transmute(vec.as_ptr()) },
+                    codec,
+                    skip_acc,
+                    vec.len(),
+                )?;
+                src = unsafe { &*(src as *const S).byte_add(<S as Size>::SIZE) };
             }
         }
         src = unsafe { &*(src as *const S).byte_add(<T as Size>::SIZE) };
