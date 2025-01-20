@@ -25,9 +25,13 @@ serialization_derive = { path = "./serialization_derive" }
 [dev-dependencies]
 bitcode = "0.6.3"
 rand = "0.8.5"
-serialization_default_binary_encoder = { path = "./serialization_default_binary_encoder" }
+iai = "0.1"
 
 [profile.release]
 strip = true
 lto = true
 codegen-units = 1
+
+[[bench]]
+name = "iai"
+harness = false

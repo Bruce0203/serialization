@@ -55,7 +55,7 @@ fn model() -> Logs {
                 code: 55,
                 size: 66,
             };
-            3000000
+            100
         ],
     }
 }
@@ -80,5 +80,6 @@ fn bench_log_model_with_bitcode(b: &mut Bencher) {
     b.iter(|| {
         black_box(&buf.encode(&models));
     });
+    println!("len={}", &buf.encode(&models).len());
     black_box(&buf);
 }
