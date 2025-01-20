@@ -5,6 +5,7 @@ use super::{
     flatten::{Compound, CompoundWrapper},
     leaf::PhantomLeaf,
     len::{Len, Size},
+    prelude::Vectored,
 };
 
 pub trait FieldOffset {
@@ -51,7 +52,6 @@ where
     const SIZE: usize = T::SIZE;
 }
 
-
 impl<S, A, B, T> Add<PhantomEdge<S, (A, B)>> for Field<T> {
     type Output = PhantomEdge<S, (Field<T>, PhantomEdge<S, (A, B)>)>;
 
@@ -70,4 +70,8 @@ impl<T> FieldUnwrapper for Field<PhantomLeaf<T>> {
 
 impl<S, T> FieldUnwrapper for Field<Compound<S, T>> {
     type Output = Compound<S, T>;
+}
+
+impl<T, V> FieldUnwrapper for Field<Vectored<T, V>> {
+    type Output = Vectored<T, V>;
 }

@@ -10,8 +10,9 @@ mod macros;
 mod mesh;
 mod pad;
 mod sort;
+mod vectored;
 
-pub mod __private {
+pub(crate) mod prelude {
     pub mod typenum {
         pub use typenum::*;
     }
@@ -26,4 +27,9 @@ pub mod __private {
     pub use super::mesh::*;
     pub use super::pad::*;
     pub use super::sort::*;
+    pub use super::vectored::*;
+}
+
+pub mod __private {
+    pub use super::prelude::*;
 }

@@ -3,8 +3,6 @@ use std::{marker::PhantomData, ops::Add};
 use super::{
     edge::{Edge, PhantomEdge},
     end::End,
-    field::Field,
-    leaf::PhantomLeaf,
     pad::ConstifyPadding,
     sort::Sorted,
 };
@@ -46,30 +44,6 @@ impl<S, S2> Flatten<S> for End<S2> {
 
 impl<S, S2, B> Add<B> for Compound<S, End<S2>> {
     type Output = B;
-
-    fn add(self, _rhs: B) -> Self::Output {
-        unreachable!()
-    }
-}
-
-impl<S, A, B> Add<B> for Compound<S, PhantomLeaf<A>>
-where
-    A: Edge,
-    B: Edge,
-{
-    type Output = PhantomEdge<S, (A, B)>;
-
-    fn add(self, _rhs: B) -> Self::Output {
-        unreachable!()
-    }
-}
-
-impl<S, A, B> Add<B> for Compound<S, Field<A>>
-where
-    A: Edge,
-    B: Edge,
-{
-    type Output = PhantomEdge<S, (A, B)>;
 
     fn add(self, _rhs: B) -> Self::Output {
         unreachable!()

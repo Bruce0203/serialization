@@ -1,6 +1,4 @@
-use std::hint::black_box;
-
-use crate::{CompositeEncoder, Encoder};
+use crate::CompositeEncoder;
 
 use super::{actor::EncodeActor, edge::Edge, flatten::Flatten, pad::ConstifyPadding, sort::Sorted};
 
@@ -22,5 +20,7 @@ where
     T: Mesh<C, Output: EncodeActor<T, C>>,
 {
     let src = &mut src;
-    T::Output::run(src, enc, 0)
+    const VECTORED_AMOUNT: usize = 1;
+    const SKIP_ACC: usize = 0;
+    T::Output::run(src, enc, SKIP_ACC, VECTORED_AMOUNT)
 }

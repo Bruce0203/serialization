@@ -5,6 +5,7 @@ use super::{
     end::End,
     field::{Field, FieldOffset},
     pad::{ConstPadding, Padding},
+    prelude::Vectored,
 };
 
 pub const UNSIZED: usize = usize::MAX;
@@ -32,7 +33,6 @@ where
     FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>> + Len,
     PhantomEdge<S3, (B, C)>: Len,
 {
-    //breakpoint1
     const SIZE: usize = {
         let front = <<<FrontOffset as FieldOffset>::Offset as ToUInt>::Output as Unsigned>::USIZE;
         let front_size = <FrontOffset as Len>::SIZE;
@@ -53,7 +53,6 @@ where
     S2: Len + Size,
     FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>> + Len + Size,
 {
-    //breakpoint2
     const SIZE: usize = <S2 as Size>::SIZE
         - (<<<FrontOffset as FieldOffset>::Offset as ToUInt>::Output as Unsigned>::USIZE
             + <FrontOffset as Size>::SIZE);
@@ -63,11 +62,17 @@ impl<S, A, B> Len for PhantomEdge<S, (Field<A>, B)>
 where
     Self: Edge<First: Len, Second: Len>,
 {
-    //breakpoint3
     const SIZE: usize = field_size_of(
         <<Self as Edge>::First as Len>::SIZE,
         <<Self as Edge>::Second as Len>::SIZE,
     );
+}
+
+impl<S, T, B, V> Len for PhantomEdge<S, (Vectored<T, V>, B)>
+where
+    Self: Edge<Second: Len>,
+{
+    const SIZE: usize = field_size_of(UNSIZED, <<Self as Edge>::Second as Len>::SIZE);
 }
 
 const fn field_size_of(a: usize, b: usize) -> usize {

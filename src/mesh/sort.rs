@@ -6,7 +6,7 @@ use super::{
     edge::{Edge, PhantomEdge},
     end::End,
     field::{Field, FieldOffset},
-    leaf::PhantomLeaf,
+    leaf::PhantomLeaf, prelude::Vectored,
 };
 
 pub trait Sorted {
@@ -82,6 +82,29 @@ where
 {
     type Output = <PhantomEdge<S, (Field<A>, B)> as Order<
         <<<Field<A> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
+            <B::Offset as ToUInt>::Output,
+        >>::Output,
+    >>::Output;
+
+    fn add(self, _rhs: B) -> Self::Output {
+        unreachable!()
+    }
+}
+
+impl<S, A, B, V> Add<B> for PhantomOrder<S, Vectored<A, V>>
+where
+    B: FieldOffset<Offset: ToUInt>,
+    Vectored<A, V>: FieldOffset<Offset: ToUInt>,
+    <<Vectored<A, V> as FieldOffset>::Offset as ToUInt>::Output:
+        IsLess<<<B as FieldOffset>::Offset as ToUInt>::Output>,
+    PhantomEdge<S, (Vectored<A, V>, B)>: Order<
+        <<<Vectored<A, V> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
+            <<B as FieldOffset>::Offset as ToUInt>::Output,
+        >>::Output,
+    >,
+{
+    type Output = <PhantomEdge<S, (Vectored<A, V>, B)> as Order<
+        <<<Vectored<A, V> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
             <B::Offset as ToUInt>::Output,
         >>::Output,
     >>::Output;

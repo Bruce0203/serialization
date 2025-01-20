@@ -1,8 +1,8 @@
 use std::mem::MaybeUninit;
 
 use crate::{
-    __private::{EncodeActor, Mesh, encode_with_encoder},
     BinaryDecoder, BinaryEncoder, CompositeDecoder, CompositeEncoder, Decoder, Encoder,
+    prelude::{EncodeActor, Mesh, encode_with_encoder},
     unsafe_wild_copy,
 };
 
@@ -153,6 +153,8 @@ impl BinaryEncoder for Codec<*mut u8> {
     fn encode_slice<const N: usize>(&mut self, src: &[u8; N]) {
         let dst = self.0;
         let src = src.as_ptr();
+        #[cfg(debug_assertions)]
+        println!("{:?}", unsafe { core::slice::from_raw_parts(src, N) });
         self.0 = unsafe { self.0.byte_add(N) };
         unsafe {
             unsafe_wild_copy!([u8; N], src, dst, N);

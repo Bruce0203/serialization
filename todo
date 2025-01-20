@@ -24,4 +24,7 @@ stopship : mock 구현과 실제 구현 합일화하기
 
 
 low pirority todo task: remove generic_const_exprs from lib.rs of serialization crate 
- rename Len::SIZE to Len::LEN
+todo: rename Len::SIZE to Len::LEN
+
+ ~~stopship: make Vectored<T> like Field<T>~~
+ stopship: Vectored<T> -> Vectored<T, Chain> ==> leave behind T for allocation of array chunk

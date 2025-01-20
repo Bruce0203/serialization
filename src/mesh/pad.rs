@@ -7,7 +7,7 @@ use super::{
     end::End,
     field::{Field, FieldOffset},
     flatten::CompoundWrapper,
-    len::{Len, Size},
+    len::{Len, Size}, prelude::Vectored,
 };
 
 pub struct Padding<S, FrontOffset>(PhantomData<(S, FrontOffset)>);
@@ -103,6 +103,14 @@ where
 {
     type Output = PhantomEdge<S, (Field<A>, <B as ConstifyPadding>::Output)>;
 }
+
+impl<S, A, B, V> ConstifyPadding for PhantomEdge<S, (Vectored<A, V>, B)>
+where
+    B: ConstifyPadding,
+{
+    type Output = PhantomEdge<S, (Vectored<A, V>, <B as ConstifyPadding>::Output)>;
+}
+
 
 impl<S> ConstifyPadding for End<S> {
     type Output = End<S>;

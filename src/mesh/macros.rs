@@ -88,6 +88,12 @@ macro_rules! impl_field_token {
                 self.0.encode(encoder)
             }
         }
+        impl<S, T, const I: usize> $crate::__private::CompoundWrapper<S> for __FieldToken<T, I>
+        where
+            T: $crate::__private::CompoundWrapper<S>,
+        {
+            type Compound = <T as $crate::__private::CompoundWrapper<S>>::Compound;
+        }
         impl<T, const I: usize> $crate::Decode for __FieldToken<T, I>
         where
             T: $crate::Decode,
@@ -126,13 +132,6 @@ macro_rules! impl_field_offset {
                     [(); __offset::<$($impl_generics)*>()]:
             {
                 type Offset = $crate::__private::typenum::Const<{ __offset::<$($impl_generics,)*>() }>;
-            }
-            impl<$($impl_generics,)* __S> $crate::__private::CompoundWrapper<__S> for __FieldToken<$($first_field)*, $index>
-                where
-                    $($where_clause)*
-                    $($first_field)*: $crate::__private::CompoundWrapper<__S>,
-            {
-                type Compound = <$($first_field)* as $crate::__private::CompoundWrapper<__S>>::Compound;
             }
         };
     };
@@ -197,7 +196,10 @@ macro_rules! impl_serializable {
     (($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*)) => {
         impl<$($impl_generics,)*> $crate::__private::Edge for $($type)+ <$($type_generics)*> where $($where_clause)* {
             type First = $crate::__private::End<$($type)+ <$($type_generics)*>>;
-            type Second = $crate::__private::End<$($type)+ <$($type_generics)*>>;
+            type Second = $crate::__private::PhantomEdge<$($type)+ <$($type_generics)*>, (
+                    $crate::__private::Field<$($type)+ <$($type_generics)*>>,
+                    $crate::__private::End<$($type)+ <$($type_generics)*>>
+                )>;
         }
         impl<$($impl_generics,)* __S> $crate::__private::CompoundWrapper<__S> for $($type)+ <$($type_generics)*> where $($where_clause)* {
             type Compound = $crate::__private::PhantomLeaf<Self>;
@@ -244,11 +246,14 @@ pub const unsafe fn sub_ptr<T>(field: *const T, origin: *const T) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use std::hint::black_box;
+    use std::{any::type_name, hint::black_box};
 
     use test::Bencher;
 
-    use crate::mock;
+    use crate::{
+        mock::{self, Codec},
+        prelude::{Edge, Mesh},
+    };
 
     extern crate test;
 
@@ -314,7 +319,7 @@ mod tests {
 
     #[test]
     fn actor() {
-        println!();
+        println!("{}", type_name::<<Model as Mesh<Codec<*mut u8>>>::Output>());
         #[allow(invalid_value)]
         let mut dst = [0u8; 10000];
         println!("--------");
