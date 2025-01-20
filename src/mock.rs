@@ -29,7 +29,7 @@ where
     type SequenceEncoder = Self;
 
     fn encode_u8(&mut self, v: &u8) -> Result<(), Self::Error> {
-        self.encode_slice(&[*v]);
+        self.encode_array(&[*v]);
         Ok(())
     }
 
@@ -124,8 +124,8 @@ where
     }
 
     fn encode_bytes(&mut self, v: &[u8]) -> Result<(), Self::Error> {
-        unsafe { core::slice::from_raw_parts_mut(self.0, v.len()).copy_from_slice(v) };
-        self.0 = unsafe { self.0.byte_add(v.len()) };
+        //TODO remained buffer space check
+        self.encode_slice(v);
         Ok(())
     }
 
@@ -150,7 +150,7 @@ where
 }
 
 impl BinaryEncoder for Codec<*mut u8> {
-    fn encode_slice<const N: usize>(&mut self, src: &[u8; N]) {
+    fn encode_array<const N: usize>(&mut self, src: &[u8; N]) {
         let dst = self.0;
         let src = src.as_ptr();
         #[cfg(debug_assertions)]
@@ -159,6 +159,11 @@ impl BinaryEncoder for Codec<*mut u8> {
         unsafe {
             unsafe_wild_copy!([u8; N], src, dst, N);
         }
+    }
+
+    fn encode_slice(&mut self, src: &[u8]) {
+        unsafe { core::slice::from_raw_parts_mut(self.0, src.len()).copy_from_slice(src) };
+        self.0 = unsafe { self.0.byte_add(src.len()) };
     }
 }
 

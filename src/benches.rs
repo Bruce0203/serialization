@@ -61,10 +61,10 @@ fn model() -> Logs {
 #[bench]
 fn bench_log_model(b: &mut Bencher) {
     let model = &model();
-    let mut dst = [0_u8; 100000];
+    let mut dst = [0_u8; 1000000];
     black_box(&model);
     b.iter(|| encode(model, &mut dst));
-    println!("{:?}", &dst[..66]);
+    println!("{:?}", &dst[..1000]);
     // assert_eq!(unsafe { transmute_copy::<_, &Model>(&dst) }, model);
     black_box(&dst);
 }

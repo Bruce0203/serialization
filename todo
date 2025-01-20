@@ -27,4 +27,6 @@ low pirority todo task: remove generic_const_exprs from lib.rs of serialization 
 todo: rename Len::SIZE to Len::LEN
 
  ~~stopship: make Vectored<T> like Field<T>~~
- stopship: Vectored<T> -> Vectored<T, Chain> ==> leave behind T for allocation of array chunk
+~~ stopship: Vectored<T> -> Vectored<T, Chain> ==> leave behind T for allocation of array chunk~~
+ todo: vec.rs를 vec/으로 바꾸기 
+ learn usecase of repr(transparent)

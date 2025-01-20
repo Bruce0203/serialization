@@ -39,33 +39,21 @@ where
         println!("field {:?} {}", <Self as Len>::SIZE, type_name::<A>());
         if skip_acc == 0 {
             skip_acc = <Self as Len>::SIZE;
-            if vectored_amount == 1 {
-                if <Self as Len>::SIZE == 0 {
-                    unsafe { codec.encode_element::<A>(transmute(src))? };
-                    src = unsafe { &*(src as *const S).byte_add(<A as Size>::SIZE) };
-                } else {
-                    unsafe { codec.encode_slice::<{ <Self as Len>::SIZE }>(transmute(src)) };
-                    src = unsafe { &*(src as *const S).byte_add(<Self as Len>::SIZE) };
-                }
-            } else {
-                {
-                    let mut src = src;
-                    for _ in 0..vectored_amount {
-                        if <Self as Len>::SIZE == 0 {
-                            unsafe { codec.encode_element::<A>(transmute(src))? };
-                        } else {
-                            unsafe {
-                                codec.encode_slice::<{ <Self as Len>::SIZE }>(transmute(src))
-                            };
-                        }
-                        src = unsafe { &*(src as *const S).byte_add(<S as Size>::SIZE) };
+            {
+                let mut src = src;
+                for _ in 0..vectored_amount {
+                    if <Self as Len>::SIZE == 0 {
+                        unsafe { codec.encode_element::<A>(transmute(src))? };
+                    } else {
+                        unsafe { codec.encode_array::<{ <Self as Len>::SIZE }>(transmute(src)) };
                     }
+                    src = unsafe { &*(src as *const S).byte_add(<S as Size>::SIZE) };
                 }
-                if <Self as Len>::SIZE == 0 {
-                    src = unsafe { &*(src as *const S).byte_add(<A as Size>::SIZE) };
-                } else {
-                    src = unsafe { &*(src as *const S).byte_add(<Self as Len>::SIZE) };
-                }
+            }
+            if <Self as Len>::SIZE == 0 {
+                src = unsafe { &*(src as *const S).byte_add(<A as Size>::SIZE) };
+            } else {
+                src = unsafe { &*(src as *const S).byte_add(<Self as Len>::SIZE) };
             }
         } else {
             skip_acc -= <A as Size>::SIZE;
@@ -81,6 +69,7 @@ where
     V: Mesh<C, Output: EncodeActor<V, C> + Len>,
     B: EncodeActor<S, C>,
     T: Vector<Item: Size>,
+    S: Size,
 {
     fn run(
         mut src: &S,
@@ -90,14 +79,32 @@ where
     ) -> Result<(), C::Error> {
         let skip_acc = 0;
         src = unsafe { &*(src as *const S).byte_sub(1) };
-        let vec = unsafe { transmute::<_, &T>(src) };
-        <<V as Mesh<C>>::Output as EncodeActor<V, C>>::run(
-            unsafe { transmute(vec.as_ptr()) },
-            codec,
-            skip_acc,
-            vec.len(),
-        )?;
-        // encode_with_encoder::<V, C>(unsafe { transmute(elem) }, codec)?;
+        if <<T as Vector>::Item as Size>::SIZE == <<V as Mesh<C>>::Output as Len>::SIZE {
+            let mut src = src as *const _ as *const u8;
+            for _ in 0..vectored_amount {
+                let vec = unsafe { transmute::<_, &T>(src) };
+                let slice = unsafe {
+                    core::slice::from_raw_parts(
+                        vec.as_ptr() as *const u8,
+                        vec.len() * <<T as Vector>::Item as Size>::SIZE,
+                    )
+                };
+                codec.encode_slice(slice);
+                src = unsafe { src.byte_add(<S as Size>::SIZE) };
+            }
+        } else {
+            let mut src = src;
+            for _ in 0..vectored_amount {
+                let vec = unsafe { transmute::<_, &T>(src) };
+                <<V as Mesh<C>>::Output as EncodeActor<V, C>>::run(
+                    unsafe { transmute(vec.as_ptr()) },
+                    codec,
+                    skip_acc,
+                    vec.len(),
+                )?;
+                src = unsafe { &*(src as *const S).byte_add(<<T as Vector>::Item as Size>::SIZE) };
+            }
+        }
         src = unsafe { &*(src as *const S).byte_add(<Vectored<T, V> as Size>::SIZE) };
         B::run(src, codec, skip_acc, vectored_amount)
     }

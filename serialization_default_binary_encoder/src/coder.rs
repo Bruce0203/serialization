@@ -7,13 +7,17 @@ use serialization::{
 pub struct Codec<T>(pub T);
 
 impl serialization::BinaryEncoder for Codec<*mut u8> {
-    fn encode_slice<const N: usize>(&mut self, src: &[u8; N]) {
+    fn encode_array<const N: usize>(&mut self, src: &[u8; N]) {
         let dst = self.0;
         let src = src.as_ptr();
         self.0 = unsafe { self.0.byte_add(N) };
         unsafe {
             unsafe_wild_copy!([u8; N], src, dst, N);
         }
+    }
+
+    fn encode_slice(&mut self, src: &[u8]) {
+        todo!()
     }
 }
 
