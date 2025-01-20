@@ -23,6 +23,8 @@ typenum = { version = "1.17.0", features = ["const-generics"] }
 serialization_derive = { path = "./serialization_derive" }
 
 [dev-dependencies]
+bitcode = "0.6.3"
+rand = "0.8.5"
 serialization_default_binary_encoder = { path = "./serialization_default_binary_encoder" }
 
 [profile.release]

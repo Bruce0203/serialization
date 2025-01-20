@@ -10,6 +10,7 @@ use super::{
     len::{Len, Size, UNSIZED},
 };
 
+//TODO replace V to Vector::Item
 pub struct Vectored<T, V>(PhantomData<(T, V)>);
 
 pub trait Vector {

@@ -70,8 +70,8 @@ fn model() -> Model {
 fn actor() {
     println!();
     #[allow(invalid_value)]
-    let mut dst = [0u8; 10000];
     println!("--------");
+    let mut dst: Box<[u8]> = Box::new([0_u8; 1000000]);
     serialization::mock::encode(&model(), &mut dst).unwrap();
     println!("{:?}", &dst[..66]);
     println!("--------");

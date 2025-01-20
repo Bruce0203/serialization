@@ -8,7 +8,7 @@ use crate::{
 
 pub struct Codec<T>(pub(crate) T);
 
-pub fn encode<'a, T>(src: &T, dst: &mut [u8]) -> Result<(), <Codec<*mut u8> as Encoder>::Error>
+pub fn encode<'a, T>(src: &T, dst: &mut Box<[u8]>) -> Result<(), <Codec<*mut u8> as Encoder>::Error>
 where
     T: Mesh<Codec<*mut u8>, Output: EncodeActor<T, Codec<*mut u8>>>,
 {

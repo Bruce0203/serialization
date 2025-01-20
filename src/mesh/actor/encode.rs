@@ -1,6 +1,6 @@
 use std::{any::type_name, mem::transmute};
 
-use crate::{CompositeEncoder, Encode, prelude::encode_with_encoder};
+use crate::{CompositeEncoder, Encode};
 
 use super::super::{
     edge::PhantomEdge,
@@ -65,10 +65,8 @@ where
 impl<S, C, B, T, V> EncodeActor<S, C> for PhantomEdge<S, (Vectored<T, V>, B)>
 where
     C: CompositeEncoder,
-    Vectored<T, V>: Size,
-    V: Mesh<C, Output: EncodeActor<V, C> + Len>,
     B: EncodeActor<S, C>,
-    T: Vector<Item: Size>,
+    T: Vector<Item: Size + Mesh<C, Output: EncodeActor<<T as Vector>::Item, C> + Len>> + Size,
     S: Size,
 {
     fn run(
@@ -79,33 +77,18 @@ where
     ) -> Result<(), C::Error> {
         let skip_acc = 0;
         src = unsafe { &*(src as *const S).byte_sub(1) };
-        if <<T as Vector>::Item as Size>::SIZE == <<V as Mesh<C>>::Output as Len>::SIZE {
-            let mut src = src as *const _ as *const u8;
-            for _ in 0..vectored_amount {
-                let vec = unsafe { transmute::<_, &T>(src) };
-                let slice = unsafe {
-                    core::slice::from_raw_parts(
-                        vec.as_ptr() as *const u8,
-                        vec.len() * <<T as Vector>::Item as Size>::SIZE,
-                    )
-                };
-                codec.encode_slice(slice);
-                src = unsafe { src.byte_add(<S as Size>::SIZE) };
-            }
-        } else {
-            let mut src = src;
-            for _ in 0..vectored_amount {
-                let vec = unsafe { transmute::<_, &T>(src) };
-                <<V as Mesh<C>>::Output as EncodeActor<V, C>>::run(
-                    unsafe { transmute(vec.as_ptr()) },
-                    codec,
-                    skip_acc,
-                    vec.len(),
-                )?;
-                src = unsafe { &*(src as *const S).byte_add(<<T as Vector>::Item as Size>::SIZE) };
+        {
+            let vec = unsafe { transmute::<_, &T>(src) };
+            let mut src = vec.as_ptr();
+            for _ in 0..vec.len() {
+                <<<T as Vector>::Item as Mesh<C>>::Output as EncodeActor<
+                    <T as Vector>::Item,
+                    C,
+                >>::run(unsafe { transmute(src) }, codec, skip_acc, 1)?;
+                src = unsafe { src.byte_add(<<T as Vector>::Item as Size>::SIZE) };
             }
         }
-        src = unsafe { &*(src as *const S).byte_add(<Vectored<T, V> as Size>::SIZE) };
+        src = unsafe { &*(src as *const S).byte_add(<T as Size>::SIZE) };
         B::run(src, codec, skip_acc, vectored_amount)
     }
 }
