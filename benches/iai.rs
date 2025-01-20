@@ -1,4 +1,6 @@
-use iai::black_box;
+
+use iai_callgrind::{main, library_benchmark_group, library_benchmark};
+use std::hint::black_box;
 
 fn fibonacci(n: u64) -> u64 {
     match n {
@@ -8,12 +10,13 @@ fn fibonacci(n: u64) -> u64 {
     }
 }
 
-fn iai_benchmark_short() -> u64 {
-    fibonacci(black_box(10))
+#[library_benchmark]
+#[bench::short(10)]
+#[bench::long(30)]
+fn bench_fibonacci(value: u64) -> u64 {
+    black_box(fibonacci(value))
 }
 
-fn iai_benchmark_long() -> u64 {
-    fibonacci(black_box(30))
-}
+library_benchmark_group!(name = bench_fibonacci_group; benchmarks = bench_fibonacci);
+main!(library_benchmark_groups = bench_fibonacci_group);
 
-iai::main!(iai_benchmark_short, iai_benchmark_long);

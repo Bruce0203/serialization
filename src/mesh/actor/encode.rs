@@ -17,7 +17,7 @@ where
     C: CompositeEncoder,
 {
     fn run(src: &S, codec: &mut C, skip_acc: usize, vectored_amount: usize)
-    -> Result<(), C::Error>;
+        -> Result<(), C::Error>;
 }
 
 impl<S, C, A, B> EncodeActor<S, C> for PhantomEdge<S, (Field<A>, B)>

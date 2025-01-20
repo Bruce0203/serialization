@@ -25,7 +25,7 @@ serialization_derive = { path = "./serialization_derive" }
 [dev-dependencies]
 bitcode = "0.6.3"
 rand = "0.8.5"
-iai = "0.1"
+iai-callgrind = "0.14.0"
 
 [profile.release]
 strip = true
