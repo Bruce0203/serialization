@@ -32,6 +32,12 @@ strip = true
 lto = true
 codegen-units = 1
 
+[profile.bench]
+debug = true
+strip = false
+
 [[bench]]
 name = "iai"
 harness = false
+
+
