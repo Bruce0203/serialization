@@ -18,6 +18,7 @@ jobs:
           submodules: 'true'
       - name: Install Repo MSRV toolchain
         run: |
+          sudo apt-get install valgrind
           cargo -V
       - name: Run 
         run: |
