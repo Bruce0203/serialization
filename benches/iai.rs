@@ -73,7 +73,7 @@ fn model() -> Logs {
                 code: 55,
                 size: 66,
             };
-            100
+            300
         ],
     }
 }
