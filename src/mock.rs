@@ -150,7 +150,7 @@ where
 }
 
 impl BinaryEncoder for Codec<*mut u8> {
-    fn encode_array<T, const N: usize>(&mut self, src: &[T; N]) {
+    fn encode_array<T: Copy, const N: usize>(&mut self, src: &[T; N]) {
         let dst = self.0 as *mut T;
         self.0 = dst.wrapping_add(N) as *mut u8;
         let src = src.as_ptr();
@@ -160,14 +160,13 @@ impl BinaryEncoder for Codec<*mut u8> {
     }
 
     fn encode_slice<T: Copy>(&mut self, src: &[T]) {
-        const N: usize = 16;
-        let dst = self.0 as *mut u8;
-        for i in 0..(src.len() / N).max(1) {
+        for chunk in src.chunks(size_of::<T>() * 16) {
+            let dst = self.0 as *mut T;
             unsafe {
-                let src = src.as_ptr().wrapping_add(i) as *const u8;
-                unsafe_wild_copy!([u8; N], src, dst, N);
+                let src = chunk.as_ptr() as *const T;
+                unsafe_wild_copy!([T; 16], src, dst, 16);
             }
-            self.0 = dst.wrapping_add(1) as *mut u8;
+            self.0 = dst.wrapping_add(chunk.len()) as *mut u8;
         }
     }
 }

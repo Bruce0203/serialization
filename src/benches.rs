@@ -68,7 +68,7 @@ fn bench_log_model(b: &mut Bencher) {
     b.iter(|| {
         black_box(encode(&model, &mut dst).unwrap());
     });
-    // println!("{:?}", &dst[..66]);
+    println!("{:?}", &dst[..66]);
     black_box(&dst);
 }
 

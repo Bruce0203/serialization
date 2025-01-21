@@ -131,7 +131,7 @@ pub trait CompositeDecoder: Sized + BinaryDecoder {
 }
 
 pub trait BinaryEncoder {
-    fn encode_array<T, const N: usize>(&mut self, src: &[T; N]);
+    fn encode_array<T: Copy, const N: usize>(&mut self, src: &[T; N]);
     fn encode_slice<T: Copy>(&mut self, src: &[T]);
 }
 
