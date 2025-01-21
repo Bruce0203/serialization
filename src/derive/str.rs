@@ -50,18 +50,19 @@ impl Vector for String {
 const _: () = {
     impl_field_token!();
 
-    impl FieldOffset for __FieldToken<u8, 0> {
+    impl FieldOffset for __FieldToken<String, u8, 0> {
         type Offset = Const<0>;
     }
 
-    impl FieldOffset for __FieldToken<u8, 1> {
-        type Offset = Const<{ <u8 as Size>::SIZE }>;
+    impl FieldOffset for __FieldToken<String, u8, 1> {
+        // type Offset = Const<{ <u8 as Size>::SIZE }>;
+        type Offset = Const<{0}>;
     }
 
     impl Edge for String {
         type First = End<Self>;
 
-        type Second = PhantomEdge<Self, (Vectored<Self, __FieldToken<u8, 1>>, End<Self>)>;
+        type Second = PhantomEdge<Self, (Vectored<Self, __FieldToken<String, u8, 1>>, End<Self>)>;
     }
 
     impl Len for String {

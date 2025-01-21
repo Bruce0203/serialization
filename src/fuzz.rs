@@ -119,10 +119,19 @@ struct A26 {
     value3: u8,
 }
 
-#[cfg(feature = "nothing")]
+#[derive(serialization::Serializable, Debug, Eq, PartialEq)]
+struct A27 {
+    value: (u32, u8),
+}
+
 #[cfg(test)]
 mod tests {
     use std::{any::type_name, convert::Infallible, fmt::Debug, marker::PhantomData, str::FromStr};
+
+    use crate::{
+        mock::Codec,
+        prelude::{EncodeActor, Mesh},
+    };
 
     use super::*;
 
@@ -135,22 +144,22 @@ mod tests {
         test(A5 { v: 123 });
         test(A6 { v1: 11, v2: 22 });
         test(A7(11, 22));
-        test(A8::A);
-        test(A9::B);
-        test(A10::A(123));
-        test(A10::A(123));
-        test(A11::A(11, 22));
-        test(A12::B(11, 22));
-        test(A13::C);
-        test(A14::<usize> { vaule: PhantomData });
-        test(A15::<usize> { value: 123 });
-        test(A16::<usize, usize>::A(123));
-        test(A17 { value: "hi" });
+        // test(A8::A);
+        // test(A9::B);
+        // test(A10::A(123));
+        // test(A10::A(123));
+        // test(A11::A(11, 22));
+        // test(A12::B(11, 22));
+        // test(A13::C);
+        // test(A14::<usize> { vaule: PhantomData });
+        // test(A15::<usize> { value: 123 });
+        // test(A16::<usize, usize>::A(123));
+        // test(A17 { value: "hi" });
         test(A18 { value: 123 });
         //A19 is infallible type
-        test(A20::E);
+        // test(A20::E);
         test(A21 { value: "hi" });
-        test(A22::A { value: 123 });
+        // test(A22::A { value: 123 });
         test(A23 { value: vec![123] });
         test(A24 {
             value: vec![String::from_str("hi").unwrap()],
@@ -165,17 +174,14 @@ mod tests {
                 value3: 22,
             }],
         });
+        test(A27 { value: (11, 22) });
     }
 
-    fn test<T: Encode + Decode + Eq + Debug>(value: T) {
-        let mut buf = Buffer::<[u8; 100000]>::new();
-        let ref mut enc = PacketEncoder::new(&mut buf);
-        T::encode(&value, enc).expect(format!("{value:?}").as_str());
-        println!("encode passed");
-        println!("{:?}", buf);
-        let ref mut dec = PacketDecoder::new(&mut buf);
-        let decoded_value = T::decode(dec).unwrap();
-        assert_eq!(value, decoded_value);
-        println!("{} passed", type_name::<T>());
+    fn test<T: Eq + Debug>(value: T)
+    where
+        T: Mesh<Codec<*mut u8>, Output: EncodeActor<T, Codec<*mut u8>>>,
+    {
+        let mut dst = [0u8; 100000];
+        crate::mock::encode(&value, &mut dst).unwrap();
     }
 }

@@ -1,10 +1,10 @@
 use typenum::Const;
 
 use crate::{
-    impl_enum_mesh, impl_field_token, impl_mesh, offset_of, offset_of_enum,
+    impl_field_token, meshup,
     prelude::{
-        CompoundUnwrapper, CompoundWrapper, Edge, End, Field, FieldOffset, Len, PhantomEdge, Size,
-        Vector, Vectored, UNSIZED,
+        sub_ptr, CompoundUnwrapper, CompoundWrapper, ConstifyPadding, Edge, End, FieldOffset, Len,
+        Size, Sorted,
     },
     Encode, Encoder,
 };
@@ -20,16 +20,66 @@ where
         Ok(())
     }
 }
+
+impl<A, B> Size for (A, B) {
+    const SIZE: usize = size_of::<Self>();
+}
+
+impl<A, B> Len for (A, B) {
+    const SIZE: usize = size_of::<Self>();
+}
+
 const _: () = {
     impl_field_token!();
 
-    impl<A> FieldOffset for __FieldToken<A, 0> {
-        type Offset = Const<{0}>;
+    const _: () = {
+        impl<A, B> FieldOffset for __FieldToken<(A, B), A, 0>
+        where
+            [(); offset_of::<A, B>()]:,
+        {
+            type Offset = Const<{ offset_of::<A, B>() }>;
+        }
+
+        pub const fn offset_of<A, B>() -> usize {
+            use core::mem::MaybeUninit;
+            let origin: MaybeUninit<(A, B)> = MaybeUninit::uninit();
+            unsafe {
+                sub_ptr(
+                    &origin.assume_init_ref().0 as *const _ as *const u8,
+                    origin.assume_init_ref() as *const _ as *const u8,
+                )
+            }
+        }
+    };
+
+    const _: () = {
+        impl<A, B> FieldOffset for __FieldToken<(A, B), B, 1>
+        where
+            [(); offset_of::<A, B>()]:,
+        {
+            type Offset = Const<{ offset_of::<A, B>() }>;
+        }
+
+        pub const fn offset_of<A, B>() -> usize {
+            use core::mem::MaybeUninit;
+            let origin: MaybeUninit<(A, B)> = MaybeUninit::uninit();
+            unsafe {
+                sub_ptr(
+                    &origin.assume_init_ref().1 as *const _ as *const u8,
+                    origin.assume_init_ref() as *const _ as *const u8,
+                )
+            }
+        }
+    };
+
+    impl<S, A, B> CompoundWrapper<S> for (A, B)
+    where
+        Self: Edge<Second: Sorted<Output: ConstifyPadding>>,
+    {
+        type Compound = <Self as CompoundUnwrapper<S>>::Output;
     }
 
-    impl<B> FieldOffset for __FieldToken<B, 1> {
-        type Offset = Const<0>;
-    }
+    pub type Tup<A, B> = (A, B);
 
     impl<A, B> Edge for (A, B)
     where
@@ -38,12 +88,6 @@ const _: () = {
     {
         type First = End<Self>;
 
-        type Second = PhantomEdge<
-            Self,
-            (
-                Field<__FieldToken<A, 0>>,
-                PhantomEdge<Self, (Field<__FieldToken<B, 1>>, End<Self>)>,
-            ),
-        >;
+        type Second = meshup!(0, (Tup), {A, B,}; {A} {B});
     }
 };

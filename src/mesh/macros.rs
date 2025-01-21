@@ -60,27 +60,27 @@ macro_rules! wrap_brace {
 macro_rules! impl_field_token {
     () => {
         #[repr(transparent)]
-        pub struct __FieldToken<T, const I: usize>(T);
-        impl<T, const I: usize> $crate::__private::Edge for __FieldToken<T, I>
+        pub struct __FieldToken<S, T, const I: usize>(T, core::marker::PhantomData<S>);
+        impl<S, T, const I: usize> $crate::__private::Edge for __FieldToken<S, T, I>
         where
             T: $crate::__private::Edge,
         {
             type First = T::First;
             type Second = T::Second;
         }
-        impl<T, const I: usize> $crate::__private::Len for __FieldToken<T, I>
+        impl<S, T, const I: usize> $crate::__private::Len for __FieldToken<S, T, I>
         where
             T: $crate::__private::Len,
         {
             const SIZE: usize = T::SIZE;
         }
-        impl<T, const I: usize> $crate::__private::Size for __FieldToken<T, I>
+        impl<S, T, const I: usize> $crate::__private::Size for __FieldToken<S, T, I>
         where
             T: $crate::__private::Size,
         {
             const SIZE: usize = T::SIZE;
         }
-        impl<T, const I: usize> $crate::Encode for __FieldToken<T, I>
+        impl<S, T, const I: usize> $crate::Encode for __FieldToken<S, T, I>
         where
             T: $crate::Encode,
         {
@@ -88,13 +88,14 @@ macro_rules! impl_field_token {
                 self.0.encode(encoder)
             }
         }
-        impl<S, T, const I: usize> $crate::__private::CompoundWrapper<S> for __FieldToken<T, I>
+        impl<S, S2, T, const I: usize> $crate::__private::CompoundWrapper<S>
+            for __FieldToken<S2, T, I>
         where
             T: $crate::__private::CompoundWrapper<S>,
         {
             type Compound = <T as $crate::__private::CompoundWrapper<S>>::Compound;
         }
-        impl<T, const I: usize> $crate::Decode for __FieldToken<T, I>
+        impl<S, T, const I: usize> $crate::Decode for __FieldToken<S, T, I>
         where
             T: $crate::Decode,
         {
@@ -113,8 +114,8 @@ macro_rules! meshup {
     ($index:expr, ($($type:tt)+), {$($type_generics:tt)*};) => { $crate::__private::End<$($type)+ <$($type_generics)*>> };
     ($index:expr, ($($type:tt)+), {$($type_generics:tt)*}; {$($first:tt)*} $({$($field:tt)*})*) => {
         <<$crate::meshup!({ ($index) + 1 }, ($($type)+), {$($type_generics)*}; $({$($field)*})*)
-            as core::ops::Add<$crate::__private::Padding<$($type)+ <$($type_generics)*>, $crate::__private::Field<__FieldToken<$($first)*, $index>>>>>::Output
-            as core::ops::Add<$crate::__private::Field<__FieldToken<$($first)*, $index>>>>::Output
+            as core::ops::Add<$crate::__private::Padding<$($type)+ <$($type_generics)*>, $crate::__private::Field<__FieldToken<$($type)+ <$($type_generics)*>, $($first)*, $index>>>>>::Output
+            as core::ops::Add<$crate::__private::Field<__FieldToken<$($type)+ <$($type_generics)*>, $($first)*, $index>>>>::Output
     };
 }
 
@@ -123,16 +124,17 @@ macro_rules! impl_field_offset {
     ($brace:ident, $index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); ($($fields_idents:tt),*), ) => {};
     ($brace:ident, $index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); ($($fields_idents:tt),*), $first_field_ident:tt => {$($first_field:tt)*}) => {
         const _: () = {
-            pub const fn __offset<$($impl_generics,)*>() -> usize where $($where_clause)* {
-                $crate::offset_of!($brace, $($type)+, {$($type_generics)*}, ($($fields_idents),*), $first_field_ident)
-            }
-            impl<$($impl_generics,)*> $crate::__private::FieldOffset for __FieldToken<$($first_field)*, $index>
+            impl<$($impl_generics,)*> $crate::__private::FieldOffset for __FieldToken<$($type)+ <$($type_generics)*>, $($first_field)*, $index>
                 where
                     $($where_clause)*
-                    [(); __offset::<$($impl_generics)*>()]:
+                    [(); __field_offset::<$($impl_generics,)*>()]:
             {
-                type Offset = $crate::__private::typenum::Const<{ __offset::<$($impl_generics,)*>() }>;
+                type Offset = $crate::__private::typenum::Const<{ __field_offset::<$($impl_generics,)*>() }>;
             }
+            pub const fn __field_offset<$($impl_generics,)*>() -> usize where $($where_clause)* {
+                $crate::offset_of!($brace, $($type)+, {$($type_generics)*}, ($($fields_idents),*), $first_field_ident)
+            }
+
         };
     };
     ($brace:ident, $index:expr, ($($type:tt)+), {$($type_generics:tt)*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); ($($fields_idents:tt),*), $first_field_ident:tt => {$($first_field:tt)*}, $($field_ident:tt => {$($field:tt)*}),*) => {

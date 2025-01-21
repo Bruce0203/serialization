@@ -39,12 +39,12 @@ impl<T> Vector for Vec<T> {
 const _: () = {
     impl_field_token!();
 
-    impl FieldOffset for __FieldToken<u8, 0> {
+    impl<T> FieldOffset for __FieldToken<Vec<T>, u8, 0> {
         type Offset = Const<0>;
     }
 
-    impl<T> FieldOffset for __FieldToken<T, 1> {
-        type Offset = Const<{ <u8 as Size>::SIZE }>;
+    impl<T> FieldOffset for __FieldToken<Vec<T>, T, 1> {
+        type Offset = Const<{0}>;
     }
 
     impl<T> Edge for Vec<T>
@@ -53,7 +53,7 @@ const _: () = {
     {
         type First = End<Self>;
 
-        type Second = PhantomEdge<Self, (Vectored<Self, __FieldToken<T, 1>>, End<Self>)>;
+        type Second = PhantomEdge<Self, (Vectored<Self, __FieldToken<Vec<T>, T, 1>>, End<Self>)>;
     }
 
     impl<T> Len for Vec<T>

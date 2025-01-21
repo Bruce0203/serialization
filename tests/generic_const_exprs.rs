@@ -19,3 +19,9 @@ pub enum A16<T, T2> {
 struct A17<'a> {
     value: &'a str,
 }
+
+#[derive(serialization::Serializable, Debug, Eq, PartialEq)]
+struct AAA<T1, T2> {
+    a: T1,
+    b: T2,
+}

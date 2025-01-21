@@ -23,24 +23,9 @@ typenum = { version = "1.17.0", features = ["const-generics"] }
 serialization_derive = { path = "./serialization_derive" }
 
 [dev-dependencies]
-divan = "0.1.17"
 bitcode = "0.6.3"
-rand = "0.8.5"
-iai-callgrind = "0.14.0"
 
-[profile.release]
-strip = false
-lto = true
-codegen-units = 1
- 
-[profile.bench]
-debug = true
-strip = false
-
-[[bench]]
-name = "iai"
-harness = false
-
-[[bench]]
-name = "divan"
-harness = false
+# [profile.release]
+# strip = false
+# lto = true
+# codegen-units = 1

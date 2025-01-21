@@ -29,8 +29,6 @@ where
     [(); <Self as Len>::SIZE]:,
 {
     fn run(mut src: &S, codec: &mut C, mut skip_acc: usize) -> Result<(), C::Error> {
-        #[cfg(debug_assertions)]
-        println!("field {:?} {}", <Self as Len>::SIZE, type_name::<A>());
         if skip_acc == 0 {
             skip_acc = <Self as Len>::SIZE;
             if <Self as Len>::SIZE == 0 {
@@ -57,7 +55,6 @@ where
 {
     fn run(mut src: &S, codec: &mut C, _skip_acc: usize) -> Result<(), C::Error> {
         let skip_acc = 0;
-        // src = unsafe { &*(src as *const S).byte_sub(1) };
         let vec = unsafe { transmute::<_, &T>(src) };
         if <<<T as Vector>::Item as Mesh<C>>::Output as Len>::SIZE
             == <<T as Vector>::Item as Size>::SIZE

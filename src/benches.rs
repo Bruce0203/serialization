@@ -1,4 +1,4 @@
-use std::{hint::black_box, mem::transmute, str::FromStr};
+use std::{hint::black_box, str::FromStr};
 
 use test::Bencher;
 
@@ -55,34 +55,30 @@ fn model() -> Logs {
                 code: 55,
                 size: 66,
             };
-            300
+            1
         ],
     }
 }
 
-#[cfg(debug_assertions)]
 #[bench]
 fn bench_log_model(b: &mut Bencher) {
-    let models = model();
-    let mut dst = [0_u8; 1000000];
+    let model = model();
+    let mut dst = unsafe { Box::<[u8; 1000000]>::new_uninit().assume_init() } as Box<[u8]>;
     black_box(&model);
     b.iter(|| {
-        black_box(encode(&models, &mut dst).unwrap());
+        black_box(encode(&model, &mut dst).unwrap());
     });
-    println!("{:?}", &dst[0..1000]);
+    // println!("{:?}", &dst[..66]);
     black_box(&dst);
 }
 
-#[ignore]
 #[bench]
 fn bench_log_model_with_bitcode(b: &mut Bencher) {
-    let models = model();
+    let model = model();
+    black_box(&model);
     let mut buf = bitcode::Buffer::default();
     b.iter(|| {
-        black_box(&buf.encode(&models));
+        black_box(&buf.encode(&model));
     });
-    println!("len={}", &buf.encode(&models).len());
     black_box(&buf);
 }
-
-const N: usize = 500;

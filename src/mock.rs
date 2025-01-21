@@ -120,7 +120,7 @@ where
     }
 
     fn encode_str(&mut self, v: &str) -> Result<(), Self::Error> {
-        todo!()
+        Ok(())
     }
 
     fn encode_bytes(&mut self, v: &[u8]) -> Result<(), Self::Error> {
@@ -160,11 +160,12 @@ impl BinaryEncoder for Codec<*mut u8> {
     }
 
     fn encode_slice<T: Copy>(&mut self, src: &[T]) {
-        for elem in src.iter() {
-            let dst = self.0 as *mut T;
-            let src = elem as *const T;
+        const N: usize = 16;
+        let dst = self.0 as *mut u8;
+        for i in 0..(src.len() / N).max(1) {
             unsafe {
-                unsafe_wild_copy!([T; 1], src, dst, 1);
+                let src = src.as_ptr().wrapping_add(i) as *const u8;
+                unsafe_wild_copy!([u8; N], src, dst, N);
             }
             self.0 = dst.wrapping_add(1) as *mut u8;
         }
