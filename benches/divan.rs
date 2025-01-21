@@ -1,8 +1,35 @@
-use std::{hint::black_box, mem::transmute, str::FromStr};
+use std::{hint::black_box, str::FromStr};
 
-use test::Bencher;
+use divan::{bench, Bencher};
+use serialization::{mock::encode, unsafe_wild_copy};
 
-use crate::mock::encode;
+const SAMPLE: u32 = 100;
+const SAMPLE_COUNT: u32 = SAMPLE;
+const SAMPLE_SIZE: u32 = SAMPLE;
+
+#[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
+fn bench_log_model_with_1_serialization(b: Bencher) {
+    let model = &model();
+    black_box(&model);
+    let ref mut dst = [0_u8; 5000000];
+    Bencher::bench_local(b, || {
+        black_box(&encode(model, dst));
+    });
+}
+
+#[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
+fn bench_log_model_with_2_bitcode(b: Bencher) {
+    let model = &model();
+    black_box(&model);
+    let mut buf = bitcode::Buffer::default();
+    b.bench_local(|| {
+        black_box(&buf.encode(model));
+    });
+    black_box(&buf);
+}
+fn main() {
+    divan::main();
+}
 
 #[derive(
     serialization::Serializable, Debug, PartialEq, PartialOrd, Ord, Eq, Clone, bitcode::Encode,
@@ -55,32 +82,7 @@ fn model() -> Logs {
                 code: 55,
                 size: 66,
             };
-            300
+            10000
         ],
     }
-}
-
-#[cfg(debug_assertions)]
-#[bench]
-fn bench_log_model(b: &mut Bencher) {
-    let models = model();
-    let mut dst = [0_u8; 1000000];
-    black_box(&model);
-    b.iter(|| {
-        black_box(encode(&models, &mut dst).unwrap());
-    });
-    println!("{:?}", &dst[0..1000]);
-    black_box(&dst);
-}
-
-#[ignore]
-#[bench]
-fn bench_log_model_with_bitcode(b: &mut Bencher) {
-    let models = model();
-    let mut buf = bitcode::Buffer::default();
-    b.iter(|| {
-        black_box(&buf.encode(&models));
-    });
-    println!("len={}", &buf.encode(&models).len());
-    black_box(&buf);
 }

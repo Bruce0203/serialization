@@ -1,11 +1,12 @@
 use typenum::Const;
 
 use crate::{
-    Encode, Encoder, impl_field_token,
+    impl_field_token,
     prelude::{
         CompoundUnwrapper, CompoundWrapper, Edge, End, Field, FieldOffset, Len, PhantomEdge, Size,
-        UNSIZED, Vector, Vectored,
+        Vector, Vectored, UNSIZED,
     },
+    Encode, Encoder,
 };
 
 // impl Encode for String {
@@ -33,6 +34,10 @@ impl Encode for String {
 impl Vector for String {
     type Item = u8;
 
+    fn as_iter(&self) -> impl Iterator<Item = &Self::Item> {
+        self.as_bytes().iter()
+    }
+
     fn as_ptr(&self) -> *const Self::Item {
         self.as_bytes().as_ptr()
     }
@@ -56,13 +61,7 @@ const _: () = {
     impl Edge for String {
         type First = End<Self>;
 
-        type Second = PhantomEdge<
-            Self,
-            (
-                Field<__FieldToken<u8, 0>>,
-                PhantomEdge<Self, (Vectored<Self, __FieldToken<u8, 1>>, End<Self>)>,
-            ),
-        >;
+        type Second = PhantomEdge<Self, (Vectored<Self, __FieldToken<u8, 1>>, End<Self>)>;
     }
 
     impl Len for String {

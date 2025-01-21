@@ -1,9 +1,9 @@
 use std::mem::MaybeUninit;
 
 use crate::{
-    BinaryDecoder, BinaryEncoder, CompositeDecoder, CompositeEncoder, Decoder, Encoder,
-    prelude::{EncodeActor, Mesh, encode_with_encoder},
-    unsafe_wild_copy,
+    prelude::{encode_with_encoder, EncodeActor, Mesh},
+    unsafe_wild_copy, BinaryDecoder, BinaryEncoder, CompositeDecoder, CompositeEncoder, Decoder,
+    Encoder,
 };
 
 pub struct Codec<T>(pub(crate) T);
@@ -150,22 +150,24 @@ where
 }
 
 impl BinaryEncoder for Codec<*mut u8> {
-    fn encode_array<const N: usize>(&mut self, src: &[u8; N]) {
-        let dst = self.0;
+    fn encode_array<T, const N: usize>(&mut self, src: &[T; N]) {
+        let dst = self.0 as *mut T;
+        self.0 = dst.wrapping_add(N) as *mut u8;
         let src = src.as_ptr();
-        #[cfg(debug_assertions)]
-        println!("{:?}", unsafe { core::slice::from_raw_parts(src, N) });
-        self.0 = unsafe { self.0.byte_add(N) };
         unsafe {
-            unsafe_wild_copy!([u8; N], src, dst, N);
+            unsafe_wild_copy!([T; N], src, dst, N);
         }
     }
 
     fn encode_slice<T: Copy>(&mut self, src: &[T]) {
-        unsafe {
-            core::slice::from_raw_parts_mut(self.0 as *mut T, src.len()).copy_from_slice(src)
-        };
-        self.0 = unsafe { (self.0 as *mut T).byte_add(src.len()) as *mut u8 };
+        for elem in src.iter() {
+            let dst = self.0 as *mut T;
+            let src = elem as *const T;
+            unsafe {
+                unsafe_wild_copy!([T; 1], src, dst, 1);
+            }
+            self.0 = dst.wrapping_add(1) as *mut u8;
+        }
     }
 }
 

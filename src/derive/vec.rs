@@ -1,11 +1,12 @@
 use typenum::Const;
 
 use crate::{
-    Encode, Encoder, impl_field_token,
+    impl_field_token,
     prelude::{
         CompoundUnwrapper, CompoundWrapper, Edge, End, Field, FieldOffset, Len, PhantomEdge, Size,
-        UNSIZED, Vector, Vectored,
+        Vector, Vectored, UNSIZED,
     },
+    Encode, Encoder,
 };
 
 impl<T> Encode for Vec<T>
@@ -21,6 +22,10 @@ where
 
 impl<T> Vector for Vec<T> {
     type Item = T;
+
+    fn as_iter(&self) -> impl Iterator<Item = &Self::Item> {
+        self.iter()
+    }
 
     fn as_ptr(&self) -> *const Self::Item {
         self.as_ptr()
@@ -48,13 +53,7 @@ const _: () = {
     {
         type First = End<Self>;
 
-        type Second = PhantomEdge<
-            Self,
-            (
-                Field<__FieldToken<u8, 0>>,
-                PhantomEdge<Self, (Vectored<Self, __FieldToken<T, 1>>, End<Self>)>,
-            ),
-        >;
+        type Second = PhantomEdge<Self, (Vectored<Self, __FieldToken<T, 1>>, End<Self>)>;
     }
 
     impl<T> Len for Vec<T>

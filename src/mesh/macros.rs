@@ -330,6 +330,7 @@ mod tests {
     }
 
     #[cfg(not(debug_assertions))]
+    #[ignore]
     #[bench]
     fn bench_encode(b: &mut Bencher) {
         let model = &model();

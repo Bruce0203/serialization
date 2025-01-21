@@ -15,6 +15,7 @@ pub struct Vectored<T, V>(PhantomData<(T, V)>);
 
 pub trait Vector {
     type Item;
+    fn as_iter(&self) -> impl Iterator<Item = &Self::Item>;
     fn as_ptr(&self) -> *const Self::Item;
     fn len(&self) -> usize;
 }

@@ -14,13 +14,13 @@ where
     type Output = <<<<T as Edge>::Second as Sorted>::Output as ConstifyPadding>::Output as Flatten<T>>::Output;
 }
 
+#[inline(never)]
 pub fn encode_with_encoder<T, C>(mut src: &T, enc: &mut C) -> Result<(), C::Error>
 where
     C: CompositeEncoder,
     T: Mesh<C, Output: EncodeActor<T, C>>,
 {
     let src = &mut src;
-    const VECTORED_AMOUNT: usize = 1;
     const SKIP_ACC: usize = 0;
-    T::Output::run(src, enc, SKIP_ACC, VECTORED_AMOUNT)
+    T::Output::run(src, enc, SKIP_ACC)
 }
