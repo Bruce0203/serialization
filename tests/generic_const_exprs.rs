@@ -1,6 +1,8 @@
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 
+use std::marker::PhantomData;
+
 #[derive(serialization::Serializable, Debug, Eq, PartialEq)]
 pub struct A14<T> {
     vaule: std::marker::PhantomData<T>,

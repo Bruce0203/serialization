@@ -26,20 +26,20 @@ serialization_derive = { path = "./serialization_derive" }
 divan = "0.1.17"
 bitcode = "0.6.3"
 rand = "0.8.5"
-# iai-callgrind = "0.14.0"
+iai-callgrind = "0.14.0"
 
-# [profile.release]
-# strip = false
-# lto = true
-# codegen-units = 1
+[profile.release]
+strip = false
+lto = true
+codegen-units = 1
  
-# [profile.bench]
-# debug = true
-# strip = false
-# 
-# [[bench]]
-# name = "iai"
-# harness = false
+[profile.bench]
+debug = true
+strip = false
+
+[[bench]]
+name = "iai"
+harness = false
 
 [[bench]]
 name = "divan"

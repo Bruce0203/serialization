@@ -1,7 +1,7 @@
 use std::{hint::black_box, str::FromStr};
 
 use divan::{bench, Bencher};
-use serialization::{mock::encode, unsafe_wild_copy};
+use serialization::mock::encode;
 
 const SAMPLE: u32 = 100;
 const SAMPLE_COUNT: u32 = SAMPLE;
@@ -12,16 +12,16 @@ fn bench_log_model_with_1_serialization(b: Bencher) {
     let model = &model();
     black_box(&model);
     let ref mut dst = [0_u8; 5000000];
-    Bencher::bench_local(b, || {
+    b.bench_local(|| {
         black_box(&encode(model, dst));
     });
 }
 
 #[bench(sample_count = SAMPLE_COUNT, sample_size = SAMPLE_SIZE)]
 fn bench_log_model_with_2_bitcode(b: Bencher) {
+    let mut buf = bitcode::Buffer::default();
     let model = &model();
     black_box(&model);
-    let mut buf = bitcode::Buffer::default();
     b.bench_local(|| {
         black_box(&buf.encode(model));
     });

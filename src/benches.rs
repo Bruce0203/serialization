@@ -84,3 +84,5 @@ fn bench_log_model_with_bitcode(b: &mut Bencher) {
     println!("len={}", &buf.encode(&models).len());
     black_box(&buf);
 }
+
+const N: usize = 500;
