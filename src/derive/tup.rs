@@ -91,3 +91,109 @@ const _: () = {
         type Second = meshup!(0, (Tup), {A, B,}; {A} {B});
     }
 };
+
+impl<A, B, C> Encode for (A, B, C)
+where
+    A: Encode,
+    B: Encode,
+    C: Encode,
+{
+    fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
+        A::encode(&self.0, encoder)?;
+        B::encode(&self.1, encoder)?;
+        C::encode(&self.2, encoder)?;
+        Ok(())
+    }
+}
+
+impl<A, B, C> Size for (A, B, C) {
+    const SIZE: usize = size_of::<Self>();
+}
+
+impl<A, B, C> Len for (A, B, C) {
+    const SIZE: usize = size_of::<Self>();
+}
+
+const _: () = {
+    impl_field_token!();
+
+    const _: () = {
+        impl<A, B, C> FieldOffset for __FieldToken<(A, B, C), A, 0>
+        where
+            [(); offset_of::<A, B, C>()]:,
+        {
+            type Offset = Const<{ offset_of::<A, B, C>() }>;
+        }
+
+        pub const fn offset_of<A, B, C>() -> usize {
+            use core::mem::MaybeUninit;
+            let origin: MaybeUninit<(A, B, C)> = MaybeUninit::uninit();
+            unsafe {
+                sub_ptr(
+                    &origin.assume_init_ref().0 as *const _ as *const u8,
+                    origin.assume_init_ref() as *const _ as *const u8,
+                )
+            }
+        }
+    };
+
+    const _: () = {
+        impl<A, B, C> FieldOffset for __FieldToken<(A, B, C), B, 1>
+        where
+            [(); offset_of::<A, B, C>()]:,
+        {
+            type Offset = Const<{ offset_of::<A, B, C>() }>;
+        }
+
+        pub const fn offset_of<A, B, C>() -> usize {
+            use core::mem::MaybeUninit;
+            let origin: MaybeUninit<(A, B, C)> = MaybeUninit::uninit();
+            unsafe {
+                sub_ptr(
+                    &origin.assume_init_ref().1 as *const _ as *const u8,
+                    origin.assume_init_ref() as *const _ as *const u8,
+                )
+            }
+        }
+    };
+
+    const _: () = {
+        impl<A, B, C> FieldOffset for __FieldToken<(A, B, C), C, 2>
+        where
+            [(); offset_of::<A, B, C>()]:,
+        {
+            type Offset = Const<{ offset_of::<A, B, C>() }>;
+        }
+
+        pub const fn offset_of<A, B, C>() -> usize {
+            use core::mem::MaybeUninit;
+            let origin: MaybeUninit<(A, B, C)> = MaybeUninit::uninit();
+            unsafe {
+                sub_ptr(
+                    &origin.assume_init_ref().2 as *const _ as *const u8,
+                    origin.assume_init_ref() as *const _ as *const u8,
+                )
+            }
+        }
+    };
+
+    impl<S, A, B, C> CompoundWrapper<S> for (A, B, C)
+    where
+        Self: Edge<Second: Sorted<Output: ConstifyPadding>>,
+    {
+        type Compound = <Self as CompoundUnwrapper<S>>::Output;
+    }
+
+    pub type Tup<A, B, C> = (A, B, C);
+
+    impl<A, B, C> Edge for (A, B, C)
+    where
+        A: Edge,
+        B: Edge,
+        C: Edge,
+    {
+        type First = End<Self>;
+
+        type Second = meshup!(0, (Tup), {A, B, C,}; {A} {B} {C});
+    }
+};

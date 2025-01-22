@@ -1,4 +1,4 @@
-use std::mem::MaybeUninit;
+use std::{collections::btree_map::Iter, mem::MaybeUninit};
 
 use crate::{
     prelude::{encode_with_encoder, EncodeActor, Mesh},
@@ -160,11 +160,21 @@ impl BinaryEncoder for Codec<*mut u8> {
     }
 
     fn encode_slice<T: Copy>(&mut self, src: &[T]) {
-        for chunk in src.chunks(size_of::<T>() * 16) {
+        // Most cpu cache lane is 64 bytes or 128 bytes. so 1/4 size will be fine.
+        const CHUNK_SIZE: usize = if cfg!(any(
+            target_arch = "x86",
+            target_arch = "x86_64",
+            target_arch = "aarch64"
+        )) {
+            16
+        } else {
+            4
+        };
+        for chunk in src.chunks(CHUNK_SIZE) {
             let dst = self.0 as *mut T;
             unsafe {
-                let src = chunk.as_ptr() as *const T;
-                unsafe_wild_copy!([T; 16], src, dst, 16);
+                let src = chunk.as_ptr();
+                unsafe_wild_copy!([T; CHUNK_SIZE], src, dst, CHUNK_SIZE);
             }
             self.0 = dst.wrapping_add(chunk.len()) as *mut u8;
         }

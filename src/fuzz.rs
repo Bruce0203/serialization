@@ -122,6 +122,7 @@ struct A26 {
 #[derive(serialization::Serializable, Debug, Eq, PartialEq)]
 struct A27 {
     value: (u32, u8),
+    value2: (u32, String, String),
 }
 
 #[cfg(test)]
@@ -174,7 +175,14 @@ mod tests {
                 value3: 22,
             }],
         });
-        test(A27 { value: (11, 22) });
+        test(A27 {
+            value: (11, 22),
+            value2: (
+                11,
+                String::from_str("hello").unwrap(),
+                String::from_str("hihi").unwrap(),
+            ),
+        });
     }
 
     fn test<T: Eq + Debug>(value: T)

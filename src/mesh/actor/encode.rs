@@ -1,4 +1,4 @@
-use std::{any::type_name, mem::transmute};
+use std::mem::transmute;
 
 use crate::{CompositeEncoder, Encode};
 
@@ -86,7 +86,6 @@ where
     B: EncodeActor<S, C>,
 {
     fn run(mut src: &S, codec: &mut C, mut skip_acc: usize) -> Result<(), C::Error> {
-        //TODO try remove skip_acc != 0 or not!
         if skip_acc != 0 && I != 0 {
             skip_acc = 0;
         }

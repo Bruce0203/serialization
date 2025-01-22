@@ -55,7 +55,7 @@ fn model() -> Logs {
                 code: 55,
                 size: 66,
             };
-            1
+            10000
         ],
     }
 }
