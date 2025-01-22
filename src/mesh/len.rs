@@ -22,7 +22,13 @@ impl<S, S2, const I: usize, B> Len for PhantomEdge<S, (ConstPadding<S2, I>, B)>
 where
     B: Len,
 {
-    const SIZE: usize = { if I == 0 { B::SIZE } else { 0 } };
+    const SIZE: usize = {
+        if I == 0 {
+            B::SIZE
+        } else {
+            0
+        }
+    };
 }
 
 impl<S, S2, S3, FrontOffset, B, C> Len
@@ -37,10 +43,9 @@ where
         let front = <<<FrontOffset as FieldOffset>::Offset as ToUInt>::Output as Unsigned>::USIZE;
         let front_size = <FrontOffset as Len>::SIZE;
         let back = <<B::Offset as ToUInt>::Output as Unsigned>::USIZE;
-        //TODO Simplify condition as possible as you can...
         if front_size != UNSIZED && front_size + front == back {
-            //TODO add size of front
-            field_size_of(<B as Len>::SIZE, <C as Len>::SIZE)
+            // field_size_of(<B as Len>::SIZE, <C as Len>::SIZE);
+            <PhantomEdge<S3, (B, C)> as Len>::SIZE
         } else {
             0
         }
@@ -76,8 +81,7 @@ where
 }
 
 const fn field_size_of(a: usize, b: usize) -> usize {
-    //TODO try remove b == UNSIZED
-    if a == UNSIZED || b == UNSIZED {
+    if a == UNSIZED {
         0
     } else {
         a + b

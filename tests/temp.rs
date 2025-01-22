@@ -2,7 +2,7 @@
 use std::mem::MaybeUninit;
 
 use serialization::{
-    __private::{Edge, End, FieldOffset, PhantomEdge, sub_ptr},
+    __private::{sub_ptr, Edge, End, FieldOffset, PhantomEdge},
     impl_field_token, meshup, offset_of_enum, wrap_brace,
 };
 

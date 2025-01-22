@@ -1,4 +1,4 @@
-use std::{collections::btree_map::Iter, mem::MaybeUninit};
+use std::mem::MaybeUninit;
 
 use crate::{
     prelude::{encode_with_encoder, EncodeActor, Mesh},
@@ -34,7 +34,8 @@ where
     }
 
     fn encode_i8(&mut self, v: &i8) -> Result<(), Self::Error> {
-        todo!()
+        self.encode_array(&[*v]);
+        Ok(())
     }
 
     fn encode_u16(&mut self, v: &u16) -> Result<(), Self::Error> {
