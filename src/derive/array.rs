@@ -1,4 +1,4 @@
-use std::mem::transmute;
+use std::mem::{transmute, MaybeUninit};
 
 use typenum::Const;
 
@@ -7,8 +7,17 @@ use crate::{
         CompoundUnwrapper, CompoundWrapper, Edge, End, Field, FieldOffset, Len, PhantomEdge, Size,
         Vector, Vectored, UNSIZED,
     },
-    Encode, Encoder,
+    Decode, Decoder, Encode, Encoder,
 };
+
+impl<T, const N: usize> Decode for [T; N] {
+    fn decode_in_place<D: Decoder>(
+        decoder: &mut D,
+        out: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
+        todo!()
+    }
+}
 
 impl<T, const N: usize> Encode for [T; N] {
     fn encode<E: Encoder>(&self, _encoder: &mut E) -> Result<(), E::Error> {

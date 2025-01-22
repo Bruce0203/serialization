@@ -1,24 +1,36 @@
 use std::mem::MaybeUninit;
 
 use crate::{
-    prelude::{encode_with_encoder, EncodeActor, Mesh},
-    unsafe_wild_copy, BinaryDecoder, BinaryEncoder, CompositeDecoder, CompositeEncoder, Decoder,
-    Encoder,
+    prelude::{walk_segment, Mesh, SegmentEncoder, SegmentWalker},
+    BufRead, BufWrite, Buffer, CompositeDecoder, CompositeEncoder, Decoder, Encoder,
 };
 
-pub struct Codec<T>(pub(crate) T);
-
-pub fn encode<'a, T>(src: &T, dst: &mut [u8]) -> Result<(), <Codec<*mut u8> as Encoder>::Error>
-where
-    T: Mesh<Codec<*mut u8>, Output: EncodeActor<T, Codec<*mut u8>>>,
-{
-    let mut coder = Codec(dst.as_mut_ptr());
-    encode_with_encoder(src, &mut coder)
+pub struct BinaryCodecMock {
+    buffer: Buffer,
 }
 
-impl Encoder for Codec<*mut u8>
+impl BufWrite for BinaryCodecMock {
+    fn write_array<T: Copy, const N: usize>(&mut self, src: &[T; N]) {
+        self.buffer.write_array::<T, N>(src)
+    }
+
+    fn write_slice<T: Copy>(&mut self, src: &[T]) {
+        self.buffer.write_slice::<T>(src)
+    }
+}
+
+pub fn encode<'a, T>(src: &T, dst: &mut [u8]) -> Result<(), <BinaryCodecMock as Encoder>::Error>
 where
-    Self: BinaryEncoder,
+    T: Mesh<BinaryCodecMock, Output: SegmentWalker<T, BinaryCodecMock, SegmentEncoder>>,
+{
+    let buffer = Buffer::from(dst);
+    let mut codec = BinaryCodecMock { buffer };
+    walk_segment(src, &mut codec)
+}
+
+impl Encoder for BinaryCodecMock
+where
+    Self: BufWrite,
 {
     type Error = EncodeError;
 
@@ -29,12 +41,12 @@ where
     type SequenceEncoder = Self;
 
     fn encode_u8(&mut self, v: &u8) -> Result<(), Self::Error> {
-        self.encode_array(&[*v]);
+        self.write_array(&[*v]);
         Ok(())
     }
 
     fn encode_i8(&mut self, v: &i8) -> Result<(), Self::Error> {
-        self.encode_array(&[*v]);
+        self.write_array(&[*v]);
         Ok(())
     }
 
@@ -126,7 +138,7 @@ where
 
     fn encode_bytes(&mut self, v: &[u8]) -> Result<(), Self::Error> {
         //TODO remained buffer space check
-        self.encode_slice(v);
+        self.write_slice(v);
         Ok(())
     }
 
@@ -135,9 +147,9 @@ where
     }
 }
 
-impl CompositeEncoder for Codec<*mut u8>
+impl CompositeEncoder for BinaryCodecMock
 where
-    Self: BinaryEncoder,
+    Self: BufWrite,
 {
     type Error = EncodeError;
 
@@ -147,38 +159,6 @@ where
 
     fn end(&mut self) -> Result<(), Self::Error> {
         Ok(())
-    }
-}
-
-impl BinaryEncoder for Codec<*mut u8> {
-    fn encode_array<T: Copy, const N: usize>(&mut self, src: &[T; N]) {
-        let dst = self.0 as *mut T;
-        self.0 = dst.wrapping_add(N) as *mut u8;
-        let src = src.as_ptr();
-        unsafe {
-            unsafe_wild_copy!([T; N], src, dst, N);
-        }
-    }
-
-    fn encode_slice<T: Copy>(&mut self, src: &[T]) {
-        // Most cpu cache lane is 64 bytes or 128 bytes. so 1/4 size will be fine.
-        const CHUNK_SIZE: usize = if cfg!(any(
-            target_arch = "x86",
-            target_arch = "x86_64",
-            target_arch = "aarch64"
-        )) {
-            16
-        } else {
-            4
-        };
-        for chunk in src.chunks(CHUNK_SIZE) {
-            let dst = self.0 as *mut T;
-            unsafe {
-                let src = chunk.as_ptr();
-                unsafe_wild_copy!([T; CHUNK_SIZE], src, dst, CHUNK_SIZE);
-            }
-            self.0 = dst.wrapping_add(chunk.len()) as *mut u8;
-        }
     }
 }
 
@@ -203,7 +183,7 @@ impl crate::EncodeError for EncodeError {
     }
 }
 
-impl<T> Decoder for Codec<T> {
+impl Decoder for BinaryCodecMock {
     type Error = DecodeError;
 
     type TupleDecoder = Self;
@@ -315,7 +295,7 @@ impl<T> Decoder for Codec<T> {
     }
 }
 
-impl<T> CompositeDecoder for Codec<T> {
+impl CompositeDecoder for BinaryCodecMock {
     type Error = DecodeError;
 
     fn decode_element<D: crate::Decode>(
@@ -330,9 +310,9 @@ impl<T> CompositeDecoder for Codec<T> {
     }
 }
 
-impl<T> BinaryDecoder for Codec<T> {
-    fn decode_slice<const N: usize>(self, out: &mut MaybeUninit<[u8; N]>) -> Self {
-        todo!()
+impl BufRead for BinaryCodecMock {
+    fn read_slice<const N: usize>(&mut self, out: &mut MaybeUninit<[u8; N]>) {
+        self.buffer.read_slice::<N>(out)
     }
 }
 
@@ -379,5 +359,216 @@ impl crate::DecodeError for DecodeError {
 
     fn nonzero_but_zero() -> Self {
         todo!()
+    }
+}
+
+#[cfg(test)]
+pub mod model {
+    use std::hint::black_box;
+
+    use test::Bencher;
+
+    use crate::mock::encode;
+
+    pub mod log {
+        use std::{hint::black_box, str::FromStr};
+
+        use test::Bencher;
+
+        use crate::mock::encode;
+
+        #[derive(
+            serialization::Serializable,
+            Debug,
+            PartialEq,
+            PartialOrd,
+            Ord,
+            Eq,
+            Clone,
+            bitcode::Encode,
+        )]
+        pub struct Log {
+            pub address: Address,
+
+            pub identity: String,
+            pub userid: String,
+            pub date: String,
+            pub request: String,
+            pub code: u16,
+            pub size: u64,
+        }
+
+        #[repr(C)]
+        #[derive(
+            serialization::Serializable,
+            Debug,
+            PartialEq,
+            PartialOrd,
+            Ord,
+            Eq,
+            Clone,
+            bitcode::Encode,
+        )]
+        pub struct Logs {
+            pub logs: Vec<Log>,
+        }
+
+        #[repr(C)]
+        #[derive(
+            serialization::Serializable,
+            Debug,
+            PartialEq,
+            PartialOrd,
+            Ord,
+            Eq,
+            Clone,
+            bitcode::Encode,
+        )]
+        pub struct Address {
+            pub x0: u8,
+            pub x1: u8,
+            pub x2: u8,
+            pub x3: u8,
+        }
+
+        impl Default for Logs {
+            fn default() -> Self {
+                Self {
+                    logs: vec![
+                        Log {
+                            address: Address {
+                                x0: 11,
+                                x1: 22,
+                                x2: 33,
+                                x3: 44,
+                            },
+
+                            identity: String::from_str("abcd").unwrap(),
+                            userid: String::from_str("a").unwrap(),
+                            date: String::from_str("wijkl").unwrap(),
+                            request: String::from_str("mnop").unwrap(),
+                            code: 55,
+                            size: 66,
+                        };
+                        1
+                    ],
+                }
+            }
+        }
+
+        #[ignore]
+        #[bench]
+        fn bench_log_model(b: &mut Bencher) {
+            let model = Logs::default();
+            let mut dst = unsafe { Box::<[u8; 1000000]>::new_uninit().assume_init() } as Box<[u8]>;
+            black_box(&model);
+            b.iter(|| {
+                black_box(encode(&model, &mut dst).unwrap());
+            });
+            println!("{:?}", &dst[..66]);
+            black_box(&dst);
+        }
+
+        #[ignore]
+        #[bench]
+        fn bench_log_model_with_bitcode(b: &mut Bencher) {
+            let model = Logs::default();
+            black_box(&model);
+            let mut buf = bitcode::Buffer::default();
+            b.iter(|| {
+                black_box(&buf.encode(&model));
+            });
+            black_box(&buf);
+        }
+    }
+
+    pub mod foo {
+        use std::hint::black_box;
+
+        use test::Bencher;
+
+        use crate::mock::encode;
+
+        #[repr(C)]
+        #[derive(serialization::Serializable)]
+        pub struct Foo {
+            field0: u8, // offset 0 size 1
+            // padding 3
+            field1: Bar, // offset 4 size 12
+            // padding 0
+            field2: Vec<u8>, // offset 16 size 24
+            // padding 0
+            field3: u32, // offset 40 size 4
+            // padding 0
+            field4: Baz, // offset 44 size 2
+            // padding 2
+            field5: u32, // offset 48 size 4
+                         // padding 4
+                         // model size 56
+        }
+
+        #[repr(C)]
+        #[derive(serialization::Serializable)]
+        pub struct Bar {
+            field0: u32, // offset 0  size 4
+            // padding 0
+            field1: u32, // offset 4 size 4
+            // padding 0
+            field2: Baz, //offset 8 size 2
+                         // padding 2
+                         // size 12
+        }
+
+        #[repr(C)]
+        #[derive(serialization::Serializable)]
+        pub struct Baz {
+            field0: u8, // offset 0 size 1
+            // padding 0
+            field1: u8, // offset 0 size 1
+                        // padding 0
+        }
+
+        impl Default for Foo {
+            fn default() -> Self {
+                Foo {
+                    field0: 11,
+                    field1: Bar {
+                        field0: 22,
+                        field1: 33,
+                        field2: Baz {
+                            field0: 44,
+                            field1: 55,
+                        },
+                    },
+                    field2: vec![1, 2, 3, 4],
+                    field3: 66,
+                    field4: Baz {
+                        field0: 77,
+                        field1: 88,
+                    },
+                    field5: 99,
+                }
+            }
+        }
+
+        #[test]
+        fn test_mock_model_encode() {
+            #[allow(invalid_value)]
+            let mut dst = [0_u8; 1000000];
+            println!("--------");
+            encode(&Foo::default(), &mut dst).unwrap();
+            println!("{:?}", &dst[..66]);
+            black_box(&dst);
+            println!("--------");
+        }
+
+        #[ignore]
+        #[bench]
+        fn bench_mock_model(b: &mut Bencher) {
+            let model = &Foo::default();
+            let mut dst = [0_u8; 1000000];
+            b.iter(|| encode(model, &mut dst));
+            black_box(&dst);
+        }
     }
 }

@@ -1,25 +1,26 @@
+use std::mem::MaybeUninit;
+
 use typenum::Const;
 
 use crate::{
-    impl_field_token,
-    prelude::{
+    impl_field_token, prelude::{
         CompoundUnwrapper, CompoundWrapper, Edge, End, Field, FieldOffset, Len, PhantomEdge, Size,
         Vector, Vectored, UNSIZED,
-    },
-    Encode, Encoder,
+    }, Decode, Decoder, Encode, Encoder
 };
-
-// impl Encode for String {
-//     fn encode<E: crate::Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
-//         encoder.encode_u8(&(self.len() as u8))?;
-//         encoder.encode_bytes(self.as_bytes())?;
-//         Ok(())
-//     }
-// }
 
 impl Encode for &'static str {
     fn encode<E: crate::Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
         encoder.encode_str(self)
+    }
+}
+
+impl Decode for &'static str {
+    fn decode_in_place<D: crate::Decoder>(
+        decoder: &mut D,
+        out: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
+        todo!()
     }
 }
 
@@ -28,6 +29,15 @@ impl Encode for String {
         #[cfg(debug_assertions)]
         println!("HI vec<T> encoding!");
         Ok(())
+    }
+}
+
+impl Decode for String {
+    fn decode_in_place<D: Decoder>(
+        decoder: &mut D,
+        out: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
+        todo!()
     }
 }
 
@@ -56,7 +66,7 @@ const _: () = {
 
     impl FieldOffset for __FieldToken<String, u8, 1> {
         // type Offset = Const<{ <u8 as Size>::SIZE }>;
-        type Offset = Const<{0}>;
+        type Offset = Const<{ 0 }>;
     }
 
     impl Edge for String {

@@ -1,3 +1,28 @@
+use std::mem::MaybeUninit;
+
+pub struct Buffer {
+    ptr: *mut u8,
+    len: usize,
+}
+
+pub trait BufWrite {
+    fn write_array<T: Copy, const N: usize>(&mut self, src: &[T; N]);
+    fn write_slice<T: Copy>(&mut self, src: &[T]);
+}
+
+pub trait BufRead {
+    fn read_slice<const N: usize>(&mut self, out: &mut MaybeUninit<[u8; N]>);
+}
+
+impl From<&mut [u8]> for Buffer {
+    fn from(value: &mut [u8]) -> Self {
+        Self {
+            ptr: value.as_mut_ptr(),
+            len: value.len(),
+        }
+    }
+}
+
 /// Copies `N` or `n` bytes from `src` to `dst` depending on if `src` lies within a memory page.
 /// https://stackoverflow.com/questions/37800739/is-it-safe-to-read-past-the-end-of-a-buffer-within-the-same-page-on-x86-and-x64
 /// # Safety
@@ -28,5 +53,43 @@ macro_rules! unsafe_wild_copy {
         } else {
             $src.copy_to_nonoverlapping($dst, $n);
         }
+    }
+}
+
+impl BufWrite for Buffer {
+    fn write_array<T: Copy, const N: usize>(&mut self, src: &[T; N]) {
+        let dst = self.ptr as *mut T;
+        self.ptr = dst.wrapping_add(N) as *mut u8;
+        let src = src.as_ptr();
+        unsafe {
+            unsafe_wild_copy!([T; N], src, dst, N);
+        }
+    }
+
+    fn write_slice<T: Copy>(&mut self, src: &[T]) {
+        // Most cpu cache lane is 64 bytes or 128 bytes. so 1/4 size will be fine.
+        const CHUNK_SIZE: usize = if cfg!(any(
+            target_arch = "x86",
+            target_arch = "x86_64",
+            target_arch = "aarch64"
+        )) {
+            16
+        } else {
+            4
+        };
+        for chunk in src.chunks(CHUNK_SIZE) {
+            let dst = self.ptr as *mut T;
+            unsafe {
+                let src = chunk.as_ptr();
+                unsafe_wild_copy!([T; CHUNK_SIZE], src, dst, CHUNK_SIZE);
+            }
+            self.ptr = dst.wrapping_add(chunk.len()) as *mut u8;
+        }
+    }
+}
+
+impl BufRead for Buffer {
+    fn read_slice<const N: usize>(&mut self, out: &mut MaybeUninit<[u8; N]>) {
+        todo!()
     }
 }

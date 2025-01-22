@@ -130,8 +130,9 @@ mod tests {
     use std::{any::type_name, convert::Infallible, fmt::Debug, marker::PhantomData, str::FromStr};
 
     use crate::{
-        mock::Codec,
-        prelude::{EncodeActor, Mesh},
+        mock::BinaryCodecMock,
+        prelude::{Mesh, SegmentEncoder, SegmentHandler, SegmentWalker},
+        Buffer,
     };
 
     use super::*;
@@ -187,7 +188,7 @@ mod tests {
 
     fn test<T: Eq + Debug>(value: T)
     where
-        T: Mesh<Codec<*mut u8>, Output: EncodeActor<T, Codec<*mut u8>>>,
+        T: Mesh<BinaryCodecMock, Output: SegmentWalker<T, BinaryCodecMock, SegmentEncoder>>,
     {
         let mut dst = [0u8; 100000];
         crate::mock::encode(&value, &mut dst).unwrap();

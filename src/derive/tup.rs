@@ -1,3 +1,5 @@
+use std::mem::MaybeUninit;
+
 use typenum::Const;
 
 use crate::{
@@ -6,7 +8,7 @@ use crate::{
         sub_ptr, CompoundUnwrapper, CompoundWrapper, ConstifyPadding, Edge, End, FieldOffset, Len,
         Size, Sorted,
     },
-    Encode, Encoder,
+    Decode, Decoder, Encode, Encoder,
 };
 
 impl<A, B> Encode for (A, B)
@@ -18,6 +20,15 @@ where
         A::encode(&self.0, encoder)?;
         B::encode(&self.1, encoder)?;
         Ok(())
+    }
+}
+
+impl<A, B> Decode for (A, B) {
+    fn decode_in_place<D: crate::Decoder>(
+        decoder: &mut D,
+        out: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
+        todo!()
     }
 }
 
@@ -103,6 +114,15 @@ where
         B::encode(&self.1, encoder)?;
         C::encode(&self.2, encoder)?;
         Ok(())
+    }
+}
+
+impl<A, B, C> Decode for (A, B, C) {
+    fn decode_in_place<D: Decoder>(
+        decoder: &mut D,
+        out: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
+        todo!()
     }
 }
 

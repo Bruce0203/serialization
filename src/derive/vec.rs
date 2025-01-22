@@ -1,10 +1,12 @@
+use std::mem::MaybeUninit;
+
 use typenum::Const;
 
 use crate::prelude::{
     CompoundUnwrapper, CompoundWrapper, Edge, End, FieldOffset, Len, PhantomEdge, Size, Vector,
     Vectored, UNSIZED,
 };
-use crate::{impl_field_token, Encode, Encoder};
+use crate::{impl_field_token, Decode, Encode, Encoder};
 
 impl<T> Encode for Vec<T>
 where
@@ -14,6 +16,15 @@ where
         #[cfg(debug_assertions)]
         println!("HI vec<T> encoding!");
         Ok(())
+    }
+}
+
+impl<T> Decode for Vec<T> {
+    fn decode_in_place<D: crate::Decoder>(
+        decoder: &mut D,
+        out: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
+        todo!()
     }
 }
 

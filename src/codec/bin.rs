@@ -1,35 +1,44 @@
 use std::mem::MaybeUninit;
 
-use serialization::{
-    unsafe_wild_copy, BinaryDecoder, CompositeDecoder, CompositeEncoder, Decoder, Encoder,
+use crate::{
+    prelude::{walk_segment, Mesh, SegmentEncoder, SegmentWalker},
+    BufRead, BufWrite, Buffer, CompositeDecoder, CompositeEncoder, Decode, Decoder, Encode,
+    Encoder, EnumIdentifier,
 };
 
-pub struct Codec<T>(pub T);
-
-impl serialization::BinaryEncoder for Codec<*mut u8> {
-    fn encode_array<const N: usize>(&mut self, src: &[u8; N]) {
-        let dst = self.0;
-        let src = src.as_ptr();
-        self.0 = unsafe { self.0.byte_add(N) };
-        unsafe {
-            unsafe_wild_copy!([u8; N], src, dst, N);
-        }
-    }
-
-    fn encode_slice<T>(&mut self, src: &[T]) {
-        todo!()
-    }
+pub struct BinaryCodec {
+    buffer: Buffer,
 }
 
-impl BinaryDecoder for Codec<*mut u8> {
-    fn decode_slice<const N: usize>(self, out: &mut MaybeUninit<[u8; N]>) -> Self {
-        todo!()
-    }
-}
-
-impl<T> Encoder for Codec<T>
+pub fn encode<'a, T>(src: &T, dst: &mut [u8]) -> Result<(), <BinaryCodec as Encoder>::Error>
 where
-    Self: serialization::BinaryEncoder,
+    T: Mesh<BinaryCodec, Output: SegmentWalker<T, BinaryCodec, SegmentEncoder>>,
+{
+    let buffer = Buffer::from(dst);
+    let mut codec = BinaryCodec { buffer };
+    walk_segment(src, &mut codec)?;
+    Ok(())
+}
+
+impl BufWrite for BinaryCodec {
+    fn write_array<T: Copy, const N: usize>(&mut self, src: &[T; N]) {
+        self.buffer.write_array::<T, N>(src);
+    }
+
+    fn write_slice<T: Copy>(&mut self, src: &[T]) {
+        self.buffer.write_slice::<T>(src);
+    }
+}
+
+impl BufRead for BinaryCodec {
+    fn read_slice<const N: usize>(&mut self, out: &mut MaybeUninit<[u8; N]>) {
+        self.buffer.read_slice(out)
+    }
+}
+
+impl Encoder for BinaryCodec
+where
+    Self: BufWrite,
 {
     type Error = EncodeError;
 
@@ -141,13 +150,13 @@ where
     }
 }
 
-impl<T> CompositeEncoder for Codec<T>
+impl CompositeEncoder for BinaryCodec
 where
-    Self: serialization::BinaryEncoder,
+    Self: BufWrite,
 {
     type Error = EncodeError;
 
-    fn encode_element<E: serialization::Encode>(&mut self, v: &E) -> Result<(), Self::Error> {
+    fn encode_element<E: Encode>(&mut self, v: &E) -> Result<(), Self::Error> {
         v.encode(self)
     }
 
@@ -156,13 +165,14 @@ where
     }
 }
 
+#[derive(Debug)]
 pub enum EncodeError {
     NotEnoughSpaceInTheBuffer,
     TooLarge,
     Custom,
 }
 
-impl serialization::EncodeError for EncodeError {
+impl crate::EncodeError for EncodeError {
     fn not_enough_space_in_the_buffer() -> Self {
         Self::NotEnoughSpaceInTheBuffer
     }
@@ -176,9 +186,9 @@ impl serialization::EncodeError for EncodeError {
     }
 }
 
-impl<T> Decoder for Codec<T>
+impl Decoder for BinaryCodec
 where
-    Self: serialization::BinaryDecoder,
+    Self: BufRead,
 {
     type Error = DecodeError;
 
@@ -279,10 +289,7 @@ where
         todo!()
     }
 
-    fn decode_enum(
-        &mut self,
-        enum_name: &'static str,
-    ) -> Result<serialization::EnumIdentifier, Self::Error> {
+    fn decode_enum(&mut self, enum_name: &'static str) -> Result<EnumIdentifier, Self::Error> {
         todo!()
     }
 
@@ -291,16 +298,13 @@ where
     }
 }
 
-impl<T> CompositeDecoder for Codec<T>
+impl CompositeDecoder for BinaryCodec
 where
-    Self: serialization::BinaryDecoder,
+    Self: BufRead,
 {
     type Error = DecodeError;
 
-    fn decode_element<D: serialization::Decode>(
-        &mut self,
-        place: &mut MaybeUninit<D>,
-    ) -> Result<(), Self::Error> {
+    fn decode_element<D: Decode>(&mut self, place: &mut MaybeUninit<D>) -> Result<(), Self::Error> {
         todo!()
     }
 
@@ -309,6 +313,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub enum DecodeError {
     NotEnoughBytesInTheBuffer,
     TooLarge,
@@ -317,7 +322,7 @@ pub enum DecodeError {
     Custom,
 }
 
-impl serialization::DecodeError for DecodeError {
+impl crate::DecodeError for DecodeError {
     fn not_enough_bytes_in_the_buffer() -> Self {
         Self::NotEnoughBytesInTheBuffer
     }
@@ -348,5 +353,57 @@ impl serialization::DecodeError for DecodeError {
 
     fn nonzero_but_zero() -> Self {
         todo!()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use test::Bencher;
+
+    use crate::{codec::bin::encode, mock::model::foo::Foo};
+
+    extern crate test;
+
+    #[test]
+    fn actor() {
+        println!();
+        #[allow(invalid_value)]
+        println!("--------");
+        let mut dst: Box<[u8]> = Box::new([0_u8; 1000000]);
+        encode(&Foo::default(), &mut dst).unwrap();
+        println!("{:?}", &dst[..66]);
+        println!("--------");
+    }
+}
+
+#[cfg(test)]
+mod benches {
+    use std::hint::black_box;
+
+    use test::Bencher;
+
+    use crate::{bin::encode, mock::model::log::Logs};
+
+    #[bench]
+    fn bench_log_model(b: &mut Bencher) {
+        let model = Logs::default();
+        let mut dst = unsafe { Box::<[u8; 1000000]>::new_uninit().assume_init() } as Box<[u8]>;
+        black_box(&model);
+        b.iter(|| {
+            black_box(encode(&model, &mut dst).unwrap());
+        });
+        println!("{:?}", &dst[..66]);
+        black_box(&dst);
+    }
+
+    #[bench]
+    fn bench_log_model_with_bitcode(b: &mut Bencher) {
+        let model = Logs::default();
+        black_box(&model);
+        let mut buf = bitcode::Buffer::default();
+        b.iter(|| {
+            black_box(&buf.encode(&model));
+        });
+        black_box(&buf);
     }
 }

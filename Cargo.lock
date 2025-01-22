@@ -92,13 +92,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serialization_default_binary_encoder"
-version = "0.1.0"
-dependencies = [
- "serialization",
-]
-
-[[package]]
 name = "serialization_derive"
 version = "0.1.0"
 dependencies = [

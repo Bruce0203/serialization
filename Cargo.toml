@@ -1,9 +1,3 @@
-[workspace]
-members = [
-    "serialization_derive",
-    "serialization_default_binary_encoder",
-]
-
 [package]
 name = "serialization"
 version = "0.1.0"
@@ -17,6 +11,8 @@ include = [
     "Cargo.toml",
 ]
 
+[workspace]
+members = ["serialization_derive"]
 
 [dependencies]
 typenum = { version = "1.17.0", features = ["const-generics"] }
@@ -24,6 +20,10 @@ serialization_derive = { path = "./serialization_derive" }
 
 [dev-dependencies]
 bitcode = "0.6.3"
+
+[features]
+default = ["bin"]
+bin = []
 
 # [profile.release]
 # strip = false

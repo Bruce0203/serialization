@@ -1,3 +1,5 @@
+use std::mem::MaybeUninit;
+
 use typenum::Const;
 
 use crate::{
@@ -6,7 +8,7 @@ use crate::{
         CompoundUnwrapper, CompoundWrapper, Edge, End, Field, FieldOffset, Len, PhantomEdge, Size,
         UNSIZED,
     },
-    Encode, Encoder,
+    Decode, Encode, Encoder,
 };
 
 impl<T> Encode for Option<T> {
@@ -16,6 +18,15 @@ impl<T> Encode for Option<T> {
         } else {
             encoder.encode_none()
         }
+    }
+}
+
+impl<T> Decode for Option<T> {
+    fn decode_in_place<D: crate::Decoder>(
+        decoder: &mut D,
+        out: &mut MaybeUninit<Self>,
+    ) -> Result<(), D::Error> {
+        todo!()
     }
 }
 

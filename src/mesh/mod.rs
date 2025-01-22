@@ -1,6 +1,6 @@
-mod actor;
 mod edge;
 mod end;
+mod r#enum;
 mod field;
 mod flatten;
 mod impls;
@@ -9,6 +9,7 @@ mod len;
 mod macros;
 mod mesh;
 mod pad;
+mod segment;
 mod sort;
 mod vectored;
 
@@ -16,7 +17,6 @@ pub(crate) mod prelude {
     pub mod typenum {
         pub use typenum::*;
     }
-    pub use super::actor::*;
     pub use super::edge::*;
     pub use super::end::*;
     pub use super::field::*;
@@ -26,6 +26,8 @@ pub(crate) mod prelude {
     pub use super::macros::*;
     pub use super::mesh::*;
     pub use super::pad::*;
+    pub use super::r#enum::*;
+    pub use super::segment::*;
     pub use super::sort::*;
     pub use super::vectored::*;
 }

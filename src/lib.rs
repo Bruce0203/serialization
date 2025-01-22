@@ -1,3 +1,5 @@
+//TODO remove it
+#![allow(warnings, reason = "dev")]
 #![allow(
     incomplete_features,
     reason = "`generic_const_exprs` feature required for field offset calculation on generic type"
@@ -11,17 +13,16 @@ extern crate self as serialization;
 extern crate test;
 
 #[cfg(test)]
-mod benches;
-#[cfg(test)]
 mod fuzz;
-pub mod mock;
+#[cfg(test)]
+mod mock;
 
+mod buffer;
 mod codec;
 mod derive;
-mod macros;
 mod mesh;
 
+pub use buffer::*;
 pub use codec::*;
-pub use macros::*;
 pub use mesh::*;
 pub use serialization_derive::Serializable;

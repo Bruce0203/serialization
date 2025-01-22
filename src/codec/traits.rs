@@ -1,5 +1,7 @@
 use std::mem::MaybeUninit;
 
+use crate::{BufRead, BufWrite};
+
 pub trait Encode {
     fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error>;
 }
@@ -10,7 +12,7 @@ macro_rules! encode_value {
     )*};
 }
 
-pub trait Encoder: Sized + BinaryEncoder {
+pub trait Encoder: Sized + BufWrite {
     type Error: EncodeError;
     type TupleEncoder: CompositeEncoder<Error = Self::Error>;
     type StructEncoder: CompositeEncoder<Error = Self::Error>;
@@ -57,6 +59,10 @@ pub trait Decode: Sized {
         Self::decode_in_place(decoder, &mut place)?;
         Ok(unsafe { place.assume_init() })
     }
+
+    fn populate<D: Decoder>(_decoder: &mut D) -> Result<(), D::Error> {
+        Ok(())
+    }
 }
 
 macro_rules! decode_value {
@@ -65,7 +71,7 @@ macro_rules! decode_value {
      )*};
 }
 
-pub trait Decoder: Sized + BinaryDecoder {
+pub trait Decoder: Sized + BufRead {
     type Error: DecodeError;
     type TupleDecoder: CompositeDecoder<Error = Self::Error>;
     type StructDecoder: CompositeDecoder<Error = Self::Error>;
@@ -118,23 +124,14 @@ pub trait DecodeError {
     fn nonzero_but_zero() -> Self;
 }
 
-pub trait CompositeEncoder: BinaryEncoder {
+pub trait CompositeEncoder: BufWrite {
     type Error;
     fn encode_element<E: Encode>(&mut self, v: &E) -> Result<(), Self::Error>;
     fn end(&mut self) -> Result<(), Self::Error>;
 }
 
-pub trait CompositeDecoder: Sized + BinaryDecoder {
+pub trait CompositeDecoder: Sized + BufRead {
     type Error;
     fn decode_element<D: Decode>(&mut self, place: &mut MaybeUninit<D>) -> Result<(), Self::Error>;
     fn end(&mut self) -> Result<(), Self::Error>;
-}
-
-pub trait BinaryEncoder {
-    fn encode_array<T: Copy, const N: usize>(&mut self, src: &[T; N]);
-    fn encode_slice<T: Copy>(&mut self, src: &[T]);
-}
-
-pub trait BinaryDecoder {
-    fn decode_slice<const N: usize>(self, out: &mut MaybeUninit<[u8; N]>) -> Self;
 }
