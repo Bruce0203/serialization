@@ -4,3 +4,4 @@ mod std;
 mod str;
 mod tup;
 mod vec;
+mod array;
