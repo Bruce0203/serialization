@@ -1,5 +1,6 @@
 mod num;
-mod str;
-mod vec;
+mod option;
 mod std;
+mod str;
 mod tup;
+mod vec;

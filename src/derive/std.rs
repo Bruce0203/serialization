@@ -5,3 +5,4 @@ impl Encode for () {
         Ok(())
     }
 }
+
