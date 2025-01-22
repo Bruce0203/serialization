@@ -1,13 +1,10 @@
 use typenum::Const;
 
-use crate::{
-    impl_field_token,
-    prelude::{
-        CompoundUnwrapper, CompoundWrapper, Edge, End, Field, FieldOffset, Len, PhantomEdge, Size,
-        Vector, Vectored, UNSIZED,
-    },
-    Encode, Encoder,
+use crate::prelude::{
+    CompoundUnwrapper, CompoundWrapper, Edge, End, FieldOffset, Len, PhantomEdge, Size, Vector,
+    Vectored, UNSIZED,
 };
+use crate::{impl_field_token, Encode, Encoder};
 
 impl<T> Encode for Vec<T>
 where
@@ -44,7 +41,7 @@ const _: () = {
     }
 
     impl<T> FieldOffset for __FieldToken<Vec<T>, T, 1> {
-        type Offset = Const<{0}>;
+        type Offset = Const<0>;
     }
 
     impl<T> Edge for Vec<T>

@@ -321,7 +321,6 @@ mod tests {
 
     #[test]
     fn actor() {
-        println!("{}", type_name::<<Model as Mesh<Codec<*mut u8>>>::Output>());
         #[allow(invalid_value)]
         let mut dst = [0_u8; 1000000];
         println!("--------");
