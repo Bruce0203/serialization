@@ -4,7 +4,7 @@ use super::{
     edge::Edge,
     flatten::Flatten,
     pad::ConstifyPadding,
-    segment::{SegmentHandler, SegmentWalker},
+    segment::{SegmentCodec, SegmentEncoder, SegmentWalker},
     sort::Sorted,
 };
 
@@ -20,15 +20,22 @@ where
     type Output = <<<<T as Edge>::Second as Sorted>::Output as ConstifyPadding>::Output as Flatten<T>>::Output;
 }
 
+pub fn encode<T, C>(src: &T, codec: &mut C) -> Result<(), C::Error>
+where
+    T: Edge,
+    C: CompositeEncoder,
+{
+    walk_segment::<T, C, SegmentEncoder>(src, codec)?;
+    Ok(())
+}
+
 //TODO try remove inline never
 #[inline(never)]
-pub fn walk_segment<T, C, H>(mut src: &T, codec: &mut C) -> Result<(), H::Error>
+pub fn walk_segment<T, C, H>(src: &T, codec: &mut C) -> Result<(), H::Error>
 where
-    H: SegmentHandler<C>,
+    H: SegmentCodec<C>,
     C: CompositeEncoder,
     T: Mesh<C, Output: SegmentWalker<T, C, H>>,
 {
-    let src = &mut src;
-    const SKIP_ACC: usize = 0;
-    <T as Mesh<C>>::Output::walk(src, codec, SKIP_ACC)
+    <T as Mesh<C>>::Output::walk(src, codec, None)
 }

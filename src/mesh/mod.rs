@@ -7,7 +7,6 @@ mod impls;
 mod leaf;
 mod len;
 mod macros;
-mod mesh;
 mod pad;
 mod segment;
 mod sort;
@@ -24,7 +23,6 @@ pub(crate) mod prelude {
     pub use super::leaf::*;
     pub use super::len::*;
     pub use super::macros::*;
-    pub use super::mesh::*;
     pub use super::pad::*;
     pub use super::r#enum::*;
     pub use super::segment::*;

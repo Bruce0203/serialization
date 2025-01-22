@@ -131,7 +131,7 @@ mod tests {
 
     use crate::{
         mock::BinaryCodecMock,
-        prelude::{Mesh, SegmentEncoder, SegmentHandler, SegmentWalker},
+        prelude::{Mesh, SegmentEncoder, SegmentCodec, SegmentWalker},
         Buffer,
     };
 
@@ -188,7 +188,7 @@ mod tests {
 
     fn test<T: Eq + Debug>(value: T)
     where
-        T: Mesh<BinaryCodecMock, Output: SegmentWalker<T, BinaryCodecMock, SegmentEncoder>>,
+        T: Mesh<BinaryCodecMock, SegmentEncoder>,
     {
         let mut dst = [0u8; 100000];
         crate::mock::encode(&value, &mut dst).unwrap();

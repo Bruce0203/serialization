@@ -21,7 +21,7 @@ impl BufWrite for BinaryCodecMock {
 
 pub fn encode<'a, T>(src: &T, dst: &mut [u8]) -> Result<(), <BinaryCodecMock as Encoder>::Error>
 where
-    T: Mesh<BinaryCodecMock, Output: SegmentWalker<T, BinaryCodecMock, SegmentEncoder>>,
+    T: Mesh<BinaryCodecMock, SegmentEncoder>,
 {
     let buffer = Buffer::from(dst);
     let mut codec = BinaryCodecMock { buffer };
@@ -450,7 +450,7 @@ pub mod model {
                             code: 55,
                             size: 66,
                         };
-                        1
+                        10000
                     ],
                 }
             }

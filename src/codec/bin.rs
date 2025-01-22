@@ -12,7 +12,7 @@ pub struct BinaryCodec {
 
 pub fn encode<'a, T>(src: &T, dst: &mut [u8]) -> Result<(), <BinaryCodec as Encoder>::Error>
 where
-    T: Mesh<BinaryCodec, Output: SegmentWalker<T, BinaryCodec, SegmentEncoder>>,
+    T: Mesh<BinaryCodec, SegmentEncoder>,
 {
     let buffer = Buffer::from(dst);
     let mut codec = BinaryCodec { buffer };
