@@ -18,9 +18,11 @@ mod mock;
 mod buffer;
 mod codec;
 mod derive;
+mod endian;
 mod mesh;
 
 pub use buffer::*;
 pub use codec::*;
 pub use mesh::*;
 pub use serialization_derive::Serializable;
+pub use endian::*;

@@ -73,7 +73,7 @@ where
     );
 }
 
-impl<S, T, B, V> Len for PhantomEdge<S, (Vectored<T, V>, B)>
+impl<S, T, B> Len for PhantomEdge<S, (Vectored<T>, B)>
 where
     Self: Edge<Second: Len>,
 {

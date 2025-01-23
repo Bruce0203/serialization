@@ -3,10 +3,12 @@ use std::mem::MaybeUninit;
 use typenum::Const;
 
 use crate::{
-    impl_field_token, prelude::{
+    impl_field_token,
+    prelude::{
         CompoundUnwrapper, CompoundWrapper, Edge, End, Field, FieldOffset, Len, PhantomEdge, Size,
         Vector, Vectored, UNSIZED,
-    }, Decode, Decoder, Encode, Encoder
+    },
+    Decode, Decoder, Encode, Encoder,
 };
 
 impl Encode for &'static str {
@@ -60,19 +62,15 @@ impl Vector for String {
 const _: () = {
     impl_field_token!();
 
-    impl FieldOffset for __FieldToken<String, u8, 0> {
-        type Offset = Const<0>;
-    }
-
-    impl FieldOffset for __FieldToken<String, u8, 1> {
+    impl FieldOffset for __FieldToken<String, String, 0> {
         // type Offset = Const<{ <u8 as Size>::SIZE }>;
-        type Offset = Const<{ 0 }>;
+        type Offset = Const<0>;
     }
 
     impl Edge for String {
         type First = End<Self>;
 
-        type Second = PhantomEdge<Self, (Vectored<Self, __FieldToken<String, u8, 1>>, End<Self>)>;
+        type Second = PhantomEdge<Self, (Vectored<__FieldToken<String, String, 0>>, End<Self>)>;
     }
 
     impl Len for String {

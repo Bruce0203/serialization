@@ -77,13 +77,28 @@ impl BufWrite for Buffer {
         } else {
             4
         };
-        for chunk in src.chunks(CHUNK_SIZE) {
+        let mut iter = src.chunks_exact(CHUNK_SIZE);
+        loop {
+            let chunk = match iter.next() {
+                Some(v) => v,
+                None => {
+                    let remainder = iter.remainder();
+                    let dst = self.ptr as *mut T;
+                    let src = remainder.as_ptr();
+                    unsafe {
+                        //TODO DANGER!! must check buffer remaining size is more than CHUNK_SIZE
+                        unsafe_wild_copy!([T; CHUNK_SIZE], src, dst, CHUNK_SIZE);
+                    }
+                    self.ptr = dst.wrapping_add(remainder.len()) as *mut u8;
+                    break;
+                }
+            };
             let dst = self.ptr as *mut T;
             unsafe {
                 let src = chunk.as_ptr();
                 unsafe_wild_copy!([T; CHUNK_SIZE], src, dst, CHUNK_SIZE);
             }
-            self.ptr = dst.wrapping_add(chunk.len()) as *mut u8;
+            self.ptr = dst.wrapping_add(CHUNK_SIZE) as *mut u8;
         }
     }
 }

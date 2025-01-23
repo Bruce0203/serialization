@@ -106,6 +106,25 @@ macro_rules! impl_field_token {
                 T::decode_in_place(decoder, unsafe { core::mem::transmute(out) })
             }
         }
+
+        impl<S, T, const I: usize> $crate::__private::Vector for __FieldToken<S, T, I>
+        where
+            T: $crate::__private::Vector,
+        {
+            type Item = T::Item;
+
+            fn as_iter(&self) -> impl Iterator<Item = &Self::Item> {
+                self.0.as_iter()
+            }
+
+            fn as_ptr(&self) -> *const Self::Item {
+                self.0.as_ptr()
+            }
+
+            fn len(&self) -> usize {
+                self.0.len()
+            }
+        }
     };
 }
 

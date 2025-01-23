@@ -91,20 +91,20 @@ where
     }
 }
 
-impl<S, A, B, V> Add<B> for PhantomOrder<S, Vectored<A, V>>
+impl<S, A, B> Add<B> for PhantomOrder<S, Vectored<A>>
 where
     B: FieldOffset<Offset: ToUInt>,
-    Vectored<A, V>: FieldOffset<Offset: ToUInt>,
-    <<Vectored<A, V> as FieldOffset>::Offset as ToUInt>::Output:
+    Vectored<A>: FieldOffset<Offset: ToUInt>,
+    <<Vectored<A> as FieldOffset>::Offset as ToUInt>::Output:
         IsLess<<<B as FieldOffset>::Offset as ToUInt>::Output>,
-    PhantomEdge<S, (Vectored<A, V>, B)>: Order<
-        <<<Vectored<A, V> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
+    PhantomEdge<S, (Vectored<A>, B)>: Order<
+        <<<Vectored<A> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
             <<B as FieldOffset>::Offset as ToUInt>::Output,
         >>::Output,
     >,
 {
-    type Output = <PhantomEdge<S, (Vectored<A, V>, B)> as Order<
-        <<<Vectored<A, V> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
+    type Output = <PhantomEdge<S, (Vectored<A>, B)> as Order<
+        <<<Vectored<A> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
             <B::Offset as ToUInt>::Output,
         >>::Output,
     >>::Output;

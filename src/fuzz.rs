@@ -131,7 +131,7 @@ mod tests {
 
     use crate::{
         mock::BinaryCodecMock,
-        prelude::{Mesh, SegmentEncoder, SegmentCodec, SegmentWalker},
+        prelude::{Mesh, SegmentCodec, SegmentEncoder, SegmentWalker},
         Buffer,
     };
 

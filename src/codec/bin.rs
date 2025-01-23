@@ -1,10 +1,12 @@
 use std::mem::MaybeUninit;
 
 use crate::{
-    prelude::{walk_segment, Mesh, SegmentEncoder, SegmentWalker},
+    prelude::{walk_segment, Mesh, SegmentEncoder},
     BufRead, BufWrite, Buffer, CompositeDecoder, CompositeEncoder, Decode, Decoder, Encode,
-    Encoder, EnumIdentifier,
+    Encoder, Endian, EnumIdentifier,
 };
+
+use super::Codec;
 
 pub struct BinaryCodec {
     buffer: Buffer,
@@ -36,6 +38,12 @@ impl BufRead for BinaryCodec {
     }
 }
 
+impl Codec for BinaryCodec {
+    fn endian(&self) -> crate::Endian {
+        Endian::NATIVE
+    }
+}
+
 impl Encoder for BinaryCodec
 where
     Self: BufWrite,
@@ -49,7 +57,8 @@ where
     type SequenceEncoder = Self;
 
     fn encode_u8(&mut self, v: &u8) -> Result<(), Self::Error> {
-        todo!()
+        self.buffer.write_array(&v.to_ne_bytes());
+        Ok(())
     }
 
     fn encode_i8(&mut self, v: &i8) -> Result<(), Self::Error> {
@@ -57,7 +66,11 @@ where
     }
 
     fn encode_u16(&mut self, v: &u16) -> Result<(), Self::Error> {
-        todo!()
+        self.write_array(&match self.endian() {
+            Endian::Big => v.to_be_bytes(),
+            Endian::Little => v.to_le_bytes(),
+        });
+        Ok(())
     }
 
     fn encode_i16(&mut self, v: &i16) -> Result<(), Self::Error> {
@@ -120,7 +133,7 @@ where
         todo!()
     }
 
-    fn encode_enum_variant_key(
+    fn encode_enum_variant_discriminant(
         &mut self,
         enum_name: &'static str,
         variant_name: &'static str,
@@ -145,8 +158,16 @@ where
         todo!()
     }
 
-    fn encode_var_i32(&mut self, v: i32) -> Result<(), Self::Error> {
-        todo!()
+    fn encode_vec_len(&mut self, v: usize) -> Result<(), Self::Error> {
+        if v < (u8::MAX - 1) as usize {
+            self.encode_u8(&(v as u8))?;
+        } else if v < (u16::MAX - 1) as usize {
+            self.encode_u8(&255)?;
+            self.encode_u16(&(v as u16))?;
+        } else {
+            todo!()
+        }
+        Ok(())
     }
 }
 

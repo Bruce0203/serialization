@@ -1,4 +1,4 @@
-use std::mem::transmute;
+use std::{marker::PhantomData, mem::transmute};
 
 use crate::{CompositeDecoder, CompositeEncoder, Decode, Encode};
 
@@ -126,7 +126,7 @@ where
                 H::handle_element::<A>(segment, codec)?;
                 src = unsafe { &*(src as *const S).wrapping_byte_add(<A as Size>::SIZE) };
             } else {
-                let segment = unsafe { transmute::<_, &[u8; { <Self as Len>::SIZE }]>(src) };
+                let segment = unsafe { transmute::<_, &[u8; <Self as Len>::SIZE]>(src) };
                 H::handle_cluster::<{ <Self as Len>::SIZE }>(segment, codec);
                 src = unsafe { &*(src as *const S).wrapping_byte_add(<Self as Len>::SIZE) };
             }
@@ -135,18 +135,20 @@ where
     }
 }
 
-impl<S, C, H, B, T, V> SegmentWalker<S, C, H> for PhantomEdge<S, (Vectored<T, V>, B)>
+impl<S, S2, C, H, B, T> SegmentWalker<S, C, H> for PhantomEdge<S2, (Vectored<T>, B)>
 where
     H: SegmentCodec<C>,
     B: SegmentWalker<S, C, H>,
     T: Vector<Item: Size + Mesh<C, H, Output: SegmentWalker<<T as Vector>::Item, C, H> + Len>>
         + Size,
     [(); <<T as Vector>::Item as Size>::SIZE]:,
+    Vectored<T>: Decode,
 {
     fn walk(mut src: &S, codec: &mut C, _skip_len: Option<usize>) -> Result<(), H::Error> {
         let vector: &T = unsafe { transmute(src) };
         let clustered_len = <<<T as Vector>::Item as Mesh<C, H>>::Output as Len>::SIZE;
         let element_len = <<T as Vector>::Item as Size>::SIZE;
+        H::handle_element(unsafe { transmute::<_, &Vectored<T>>(src) }, codec)?;
         if clustered_len == element_len {
             let segment = unsafe {
                 core::slice::from_raw_parts(

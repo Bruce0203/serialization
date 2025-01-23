@@ -1,12 +1,18 @@
 use std::mem::MaybeUninit;
 
 use crate::{
-    prelude::{walk_segment, Mesh, SegmentEncoder, SegmentWalker},
-    BufRead, BufWrite, Buffer, CompositeDecoder, CompositeEncoder, Decoder, Encoder,
+    prelude::{walk_segment, Mesh, SegmentEncoder},
+    BufRead, BufWrite, Buffer, Codec, CompositeDecoder, CompositeEncoder, Decoder, Encoder, Endian,
 };
 
 pub struct BinaryCodecMock {
     buffer: Buffer,
+}
+
+impl Codec for BinaryCodecMock {
+    fn endian(&self) -> Endian {
+        Endian::NATIVE
+    }
 }
 
 impl BufWrite for BinaryCodecMock {
@@ -115,7 +121,7 @@ where
         Ok(self)
     }
 
-    fn encode_enum_variant_key(
+    fn encode_enum_variant_discriminant(
         &mut self,
         enum_name: &'static str,
         variant_name: &'static str,
@@ -142,8 +148,13 @@ where
         Ok(())
     }
 
-    fn encode_var_i32(&mut self, v: i32) -> Result<(), Self::Error> {
-        todo!()
+    fn encode_vec_len(&mut self, v: usize) -> Result<(), Self::Error> {
+        if v < 255 {
+            self.encode_u8(&(v as u8))?;
+        } else {
+            todo!()
+        }
+        Ok(())
     }
 }
 
@@ -442,7 +453,6 @@ pub mod model {
                                 x2: 33,
                                 x3: 44,
                             },
-
                             identity: String::from_str("abcd").unwrap(),
                             userid: String::from_str("a").unwrap(),
                             date: String::from_str("wijkl").unwrap(),
@@ -450,7 +460,7 @@ pub mod model {
                             code: 55,
                             size: 66,
                         };
-                        10000
+                        10_000
                     ],
                 }
             }

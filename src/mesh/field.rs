@@ -72,6 +72,6 @@ impl<S, T> FieldUnwrapper for Field<Compound<S, T>> {
     type Output = Compound<S, T>;
 }
 
-impl<T, V> FieldUnwrapper for Field<Vectored<T, V>> {
-    type Output = Vectored<T, V>;
+impl<T> FieldUnwrapper for Field<Vectored<T>> {
+    type Output = Vectored<T>;
 }

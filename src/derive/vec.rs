@@ -3,8 +3,8 @@ use std::mem::MaybeUninit;
 use typenum::Const;
 
 use crate::prelude::{
-    CompoundUnwrapper, CompoundWrapper, Edge, End, FieldOffset, Len, PhantomEdge, Size, Vector,
-    Vectored, UNSIZED,
+    CompoundUnwrapper, CompoundWrapper, Edge, End, Field, FieldOffset, Len, PhantomEdge, Size, Tag,
+    Vector, Vectored, UNSIZED,
 };
 use crate::{impl_field_token, Decode, Encode, Encoder};
 
@@ -47,11 +47,7 @@ impl<T> Vector for Vec<T> {
 const _: () = {
     impl_field_token!();
 
-    impl<T> FieldOffset for __FieldToken<Vec<T>, u8, 0> {
-        type Offset = Const<0>;
-    }
-
-    impl<T> FieldOffset for __FieldToken<Vec<T>, T, 1> {
+    impl<T> FieldOffset for __FieldToken<Vec<T>, Vec<T>, 0> {
         type Offset = Const<0>;
     }
 
@@ -61,7 +57,7 @@ const _: () = {
     {
         type First = End<Self>;
 
-        type Second = PhantomEdge<Self, (Vectored<Self, __FieldToken<Vec<T>, T, 1>>, End<Self>)>;
+        type Second = PhantomEdge<Self, (Vectored<__FieldToken<Vec<T>, Vec<T>, 0>>, End<Self>)>;
     }
 
     impl<T> Len for Vec<T>

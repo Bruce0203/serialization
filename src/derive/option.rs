@@ -8,7 +8,7 @@ use crate::{
         CompoundUnwrapper, CompoundWrapper, Edge, End, Field, FieldOffset, Len, PhantomEdge, Size,
         UNSIZED,
     },
-    Decode, Encode, Encoder,
+    Decode, Decoder, Encode, Encoder,
 };
 
 impl<T> Encode for Option<T> {
@@ -22,9 +22,9 @@ impl<T> Encode for Option<T> {
 }
 
 impl<T> Decode for Option<T> {
-    fn decode_in_place<D: crate::Decoder>(
-        decoder: &mut D,
-        out: &mut MaybeUninit<Self>,
+    fn decode_in_place<D: Decoder>(
+        _decoder: &mut D,
+        _out: &mut MaybeUninit<Self>,
     ) -> Result<(), D::Error> {
         todo!()
     }
@@ -38,7 +38,7 @@ const _: () = {
     }
 
     impl<T> FieldOffset for __FieldToken<Option<T>, T, 1> {
-        // type Offset = Const<{ <u8 as Size>::SIZE }>;
+        //TODO the size of discriminant is different Codec
         type Offset = Const<1>;
     }
 

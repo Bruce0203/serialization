@@ -52,7 +52,7 @@ const _: () = {
     {
         type First = End<Self>;
 
-        type Second = PhantomEdge<Self, (Field<Vectored<[T; N], [T; N]>>, End<Self>)>;
+        type Second = PhantomEdge<Self, (Field<Vectored<[T; N]>>, End<Self>)>;
     }
 
     impl<T, const N: usize> Len for [T; N] {

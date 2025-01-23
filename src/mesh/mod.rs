@@ -10,6 +10,7 @@ mod macros;
 mod pad;
 mod segment;
 mod sort;
+mod tag;
 mod vectored;
 
 pub(crate) mod prelude {
@@ -27,6 +28,7 @@ pub(crate) mod prelude {
     pub use super::r#enum::*;
     pub use super::segment::*;
     pub use super::sort::*;
+    pub use super::tag::*;
     pub use super::vectored::*;
 }
 

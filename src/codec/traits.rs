@@ -1,6 +1,6 @@
 use std::mem::MaybeUninit;
 
-use crate::{BufRead, BufWrite};
+use crate::{BufRead, BufWrite, Endian};
 
 pub trait Encode {
     fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error>;
@@ -12,7 +12,11 @@ macro_rules! encode_value {
     )*};
 }
 
-pub trait Encoder: Sized + BufWrite {
+pub trait Codec {
+    fn endian(&self) -> Endian;
+}
+
+pub trait Encoder: Codec + Sized + BufWrite {
     type Error: EncodeError;
     type TupleEncoder: CompositeEncoder<Error = Self::Error>;
     type StructEncoder: CompositeEncoder<Error = Self::Error>;
@@ -33,7 +37,7 @@ pub trait Encoder: Sized + BufWrite {
     fn encode_struct<'a>(&mut self) -> Result<&mut Self::StructEncoder, Self::Error>;
     fn encode_seq(&mut self, len: usize) -> Result<&mut Self::SequenceEncoder, Self::Error>;
 
-    fn encode_enum_variant_key(
+    fn encode_enum_variant_discriminant(
         &mut self,
         enum_name: &'static str,
         variant_name: &'static str,
@@ -45,7 +49,7 @@ pub trait Encoder: Sized + BufWrite {
 
     fn encode_str(&mut self, v: &str) -> Result<(), Self::Error>;
     fn encode_bytes(&mut self, v: &[u8]) -> Result<(), Self::Error>;
-    fn encode_var_i32(&mut self, v: i32) -> Result<(), Self::Error>;
+    fn encode_vec_len(&mut self, v: usize) -> Result<(), Self::Error>;
 }
 
 pub trait Decode: Sized {
@@ -71,7 +75,7 @@ macro_rules! decode_value {
      )*};
 }
 
-pub trait Decoder: Sized + BufRead {
+pub trait Decoder: Codec + Sized + BufRead {
     type Error: DecodeError;
     type TupleDecoder: CompositeDecoder<Error = Self::Error>;
     type StructDecoder: CompositeDecoder<Error = Self::Error>;
@@ -124,13 +128,13 @@ pub trait DecodeError {
     fn nonzero_but_zero() -> Self;
 }
 
-pub trait CompositeEncoder: BufWrite {
+pub trait CompositeEncoder: Codec + BufWrite {
     type Error;
     fn encode_element<E: Encode>(&mut self, v: &E) -> Result<(), Self::Error>;
     fn end(&mut self) -> Result<(), Self::Error>;
 }
 
-pub trait CompositeDecoder: Sized + BufRead {
+pub trait CompositeDecoder: Codec + Sized + BufRead {
     type Error;
     fn decode_element<D: Decode>(&mut self, place: &mut MaybeUninit<D>) -> Result<(), Self::Error>;
     fn end(&mut self) -> Result<(), Self::Error>;
