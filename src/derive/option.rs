@@ -42,17 +42,18 @@ const _: () = {
         type Offset = Const<1>;
     }
 
-    impl<T> Edge for Option<T>
+    impl<C, T> Edge<C> for Option<T>
     where
-        T: Edge,
+        T: Edge<C>,
     {
-        type First = End<Self>;
+        type First = End<C, Self>;
 
         type Second = PhantomEdge<
+            C,
             Self,
             (
                 Field<__FieldToken<Option<T>, Option<T>, 0>>,
-                PhantomEdge<Self, (Field<__FieldToken<Option<T>, T, 1>>, End<Self>)>,
+                PhantomEdge<C, Self, (Field<__FieldToken<Option<T>, T, 1>>, End<C, Self>)>,
             ),
         >;
     }
@@ -65,10 +66,10 @@ const _: () = {
         const SIZE: usize = size_of::<Self>();
     }
 
-    impl<S, T> CompoundWrapper<S> for Option<T>
+    impl<C, S, T> CompoundWrapper<C, S> for Option<T>
     where
-        T: Edge,
+        T: Edge<C>,
     {
-        type Compound = <Self as CompoundUnwrapper<S>>::Output;
+        type Compound = <Self as CompoundUnwrapper<C, S>>::Output;
     }
 };

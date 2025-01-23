@@ -1,8 +1,10 @@
 #![feature(concat_idents)]
 
 use proc_macro2::Span;
-use quote::{format_ident, quote};
-use syn::{parse_macro_input, parse_quote, Data, DeriveInput, GenericParam, Ident, Type};
+use quote::{format_ident, quote, ToTokens};
+use syn::{
+    parse_macro_input, parse_quote, Data, DeriveInput, GenericParam, Ident, Type, TypeGroup,
+};
 
 #[proc_macro_derive(Serializable)]
 pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -23,6 +25,14 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             GenericParam::Const(_) => {}
         }
     }
+
+    let type_generics_without_lt = type_generics
+        .iter()
+        .filter(|param| match param {
+            GenericParam::Lifetime(_) => false,
+            _ => true,
+        })
+        .collect::<Vec<_>>();
     let mut where_clause = input
         .generics
         .where_clause
@@ -39,7 +49,6 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             GenericParam::Type(type_param) => {
                 type_param.bounds.clear();
                 let ident = &type_param.ident;
-                where_clause.push(parse_quote!(#ident: #private::Edge));
             }
             GenericParam::Const(_) => {}
         }
@@ -48,6 +57,8 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         Data::Struct(data_struct) => {
             let impl_generics = impl_generics.iter();
             let where_clause = where_clause.iter();
+            let type_generics = type_generics.iter();
+            let type_generics_without_lt = type_generics_without_lt.iter();
             let Fields {
                 types,
                 idents,
@@ -55,8 +66,9 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             } = data_struct.fields.into();
             quote! {
                 #crate_path::impl_mesh!(
+                    {#(#type_generics_without_lt),*},
                     #brace,
-                    (#ident), {#type_generics},
+                    (#ident), {#(#type_generics),*},
                     impl {#(#impl_generics,)*} (#(#where_clause,)*);
                     #(#idents => {#types}),*
                 );
@@ -67,6 +79,8 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             for variant in data_enum.variants.into_iter() {
                 let impl_generics = impl_generics.iter();
                 let where_clause = where_clause.iter();
+                let type_generics = type_generics.iter();
+                let type_generics_without_lt = type_generics_without_lt.iter();
                 let Fields {
                     types,
                     idents,
@@ -75,8 +89,9 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 let variant_ident = variant.ident;
                 let quote = quote! {
                     #crate_path::impl_enum_mesh!(
+                        {#(#type_generics_without_lt),*},
                         #brace,
-                        (#ident), {#type_generics}, #variant_ident
+                        (#ident), {#(#type_generics),*}, #variant_ident
                         impl {#(#impl_generics,)*} (#(#where_clause,)*);
                         #(#idents => {#types}),*
                     );

@@ -10,65 +10,65 @@ use super::{
     len::{Len, Size}, prelude::Vectored,
 };
 
-pub struct Padding<S, FrontOffset>(PhantomData<(S, FrontOffset)>);
+pub struct Padding<C, S, FrontOffset>(PhantomData<(C, S, FrontOffset)>);
 
-pub struct ConstPadding<S, const N: usize>(PhantomData<S>);
+pub struct ConstPadding<C, S, const N: usize>(PhantomData<(C, S)>);
 
-impl<S, FrontOffset> FieldOffset for Padding<S, FrontOffset>
+impl<C, S, FrontOffset> FieldOffset for Padding<C, S, FrontOffset>
 where
     FrontOffset: FieldOffset,
 {
     type Offset = FrontOffset::Offset;
 }
 
-impl<S, const I: usize> FieldOffset for ConstPadding<S, I> {
+impl<C, S, const I: usize> FieldOffset for ConstPadding<C, S, I> {
     ///FieldOffset for Padding was just for ordering when meshup macro
     type Offset = typenum::Const<0>;
 }
 
-impl<S, FrontOffset> Edge for Padding<S, FrontOffset> {
-    type First = End<S>;
+impl<C, S, FrontOffset> Edge<C> for Padding<C, S, FrontOffset> {
+    type First = End<C, S>;
 
-    type Second = End<S>;
+    type Second = End<C, S>;
 }
 
-impl<S, const I: usize> Edge for ConstPadding<S, I> {
-    type First = End<S>;
+impl<C, S, const I: usize> Edge<C> for ConstPadding<C, S, I> {
+    type First = End<C, S>;
 
-    type Second = End<S>;
-}
-
-//Do not remove separation of S, and S2
-impl<S, S2, FrontOffset> CompoundWrapper<S> for Padding<S2, FrontOffset> {
-    type Compound = Padding<S, FrontOffset>;
+    type Second = End<C, S>;
 }
 
 //Do not remove separation of S, and S2
-impl<S, S2, const I: usize> CompoundWrapper<S> for ConstPadding<S2, I> {
-    type Compound = ConstPadding<S, I>;
+impl<C, S, S2, FrontOffset> CompoundWrapper<C, S> for Padding<C, S2, FrontOffset> {
+    type Compound = Padding<C, S, FrontOffset>;
 }
 
-impl<S, FrontOffset, Rhs> Add<Rhs> for Padding<S, FrontOffset> {
-    type Output = PhantomEdge<S, (Padding<S, FrontOffset>, Rhs)>;
+//Do not remove separation of S, and S2
+impl<C, S, S2, const I: usize> CompoundWrapper<C, S> for ConstPadding<C, S2, I> {
+    type Compound = ConstPadding<C, S, I>;
+}
+
+impl<C, S, FrontOffset, Rhs> Add<Rhs> for Padding<C, S, FrontOffset> {
+    type Output = PhantomEdge<C, S, (Padding<C, S, FrontOffset>, Rhs)>;
 
     fn add(self, _rhs: Rhs) -> Self::Output {
         unreachable!()
     }
 }
 
-impl<S, const I: usize, Rhs> Add<Rhs> for ConstPadding<S, I> {
-    type Output = PhantomEdge<S, (ConstPadding<S, I>, Rhs)>;
+impl<C, S, const I: usize, Rhs> Add<Rhs> for ConstPadding<C, S, I> {
+    type Output = PhantomEdge<C, S, (ConstPadding<C, S, I>, Rhs)>;
 
     fn add(self, _rhs: Rhs) -> Self::Output {
         unreachable!()
     }
 }
 
-impl<S, FrontOffset> Len for Padding<S, FrontOffset> {
+impl<C, S, FrontOffset> Len for Padding<C, S, FrontOffset> {
     const SIZE: usize = 0;
 }
 
-impl<S, const I: usize> Len for ConstPadding<S, I> {
+impl<C, S, const I: usize> Len for ConstPadding<C, S, I> {
     const SIZE: usize = 0;
 }
 
@@ -78,45 +78,46 @@ pub trait ConstifyPadding {
 }
 
 //TODO try remove S3 (becareful)
-impl<S, S2, S3, FrontOffset, B, C> ConstifyPadding
-    for PhantomEdge<S, (Padding<S2, FrontOffset>, PhantomEdge<S3, (Field<B>, C)>)>
+impl<Codec, S, S2, S3, FrontOffset, B, C> ConstifyPadding
+    for PhantomEdge<Codec, S, (Padding<Codec, S2, FrontOffset>, PhantomEdge<Codec, S3, (Field<B>, C)>)>
 where
     Self: Len,
     FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>> + Size,
     Field<B>: FieldOffset<Offset: ToUInt<Output: Unsigned>>,
     [(); padding_of::<FrontOffset, Field<B>>()]:,
-    PhantomEdge<S, (Field<B>, C)>: ConstifyPadding,
+    PhantomEdge<Codec, S, (Field<B>, C)>: ConstifyPadding,
 {
     type Output = PhantomEdge<
+        Codec,
         S,
         (
-            ConstPadding<S, { padding_of::<FrontOffset, Field<B>>() }>,
+            ConstPadding<Codec, S, { padding_of::<FrontOffset, Field<B>>() }>,
             //TODO watch out! there is S3
-            <PhantomEdge<S, (Field<B>, C)> as ConstifyPadding>::Output,
+            <PhantomEdge<Codec, S, (Field<B>, C)> as ConstifyPadding>::Output,
         ),
     >;
 }
 
-impl<S, A, B> ConstifyPadding for PhantomEdge<S, (Field<A>, B)>
+impl<C, S, A, B> ConstifyPadding for PhantomEdge<C, S, (Field<A>, B)>
 where
     B: ConstifyPadding,
 {
-    type Output = PhantomEdge<S, (Field<A>, <B as ConstifyPadding>::Output)>;
+    type Output = PhantomEdge<C, S, (Field<A>, <B as ConstifyPadding>::Output)>;
 }
 
-impl<S, A, B> ConstifyPadding for PhantomEdge<S, (Vectored<A>, B)>
+impl<C, S, A, B> ConstifyPadding for PhantomEdge<C, S, (Vectored<A>, B)>
 where
     B: ConstifyPadding,
 {
-    type Output = PhantomEdge<S, (Vectored<A>, <B as ConstifyPadding>::Output)>;
+    type Output = PhantomEdge<C, S, (Vectored<A>, <B as ConstifyPadding>::Output)>;
 }
 
 
-impl<S> ConstifyPadding for End<S> {
-    type Output = End<S>;
+impl<C, S> ConstifyPadding for End<C, S> {
+    type Output = End<C, S>;
 }
 
-impl<S, S2, S3, FrontOffset> ConstifyPadding for PhantomEdge<S, (Padding<S2, FrontOffset>, End<S3>)>
+impl<C, S, S2, S3, FrontOffset> ConstifyPadding for PhantomEdge<C, S, (Padding<C, S2, FrontOffset>, End<C, S3>)>
 where
     S3: Size,
     FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>> + Size,
@@ -126,10 +127,10 @@ where
                 + <FrontOffset as Size>::SIZE)
     }]:,
 {
-    type Output = PhantomEdge<
+    type Output = PhantomEdge<C,
         S,
         (
-            ConstPadding<
+            ConstPadding<C,
                 S,
                 {
                     <S3 as Size>::SIZE - (
@@ -138,7 +139,7 @@ where
                     )
                 },
             >,
-            End<S3>,
+            End<C, S3>,
         ),
     >;
 }

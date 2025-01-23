@@ -10,7 +10,7 @@ use super::{
 /// newtype of `PhantomEdge<S, T>` that represents its the root of a struct
 pub struct Compound<S, T>(PhantomData<(S, T)>);
 
-pub trait CompoundWrapper<S> {
+pub trait CompoundWrapper<C, S> {
     /// Convert `Edge` to be wrapped as `Compound` or not
     type Compound;
 }
@@ -19,30 +19,32 @@ pub trait Flatten<S> {
     type Output;
 }
 
-pub trait CompoundUnwrapper<S> {
+pub trait CompoundUnwrapper<C, S> {
     type Output;
 }
 
-impl<S, T> CompoundUnwrapper<S> for T
+impl<C, S, T> CompoundUnwrapper<C, S> for T
 where
-    T: Edge<Second: Sorted<Output: ConstifyPadding>>,
+    T: Edge<C, Second: Sorted<Output: ConstifyPadding>>,
 {
-    type Output = Compound<S, <<<T as Edge>::Second as Sorted>::Output as ConstifyPadding>::Output>;
+    type Output =
+        Compound<S, <<<T as Edge<C>>::Second as Sorted>::Output as ConstifyPadding>::Output>;
 }
 
-impl<S, S2, A, B> Flatten<S> for PhantomEdge<S2, (A, B)>
+impl<C, S, S2, A, B> Flatten<S> for PhantomEdge<C, S2, (A, B)>
 where
-    A: CompoundWrapper<S, Compound: Add<<B as Flatten<S>>::Output>>,
+    A: CompoundWrapper<C, S, Compound: Add<<B as Flatten<S>>::Output>>,
     B: Flatten<S>,
 {
-    type Output = <<A as CompoundWrapper<S>>::Compound as Add<<B as Flatten<S>>::Output>>::Output;
+    type Output =
+        <<A as CompoundWrapper<C, S>>::Compound as Add<<B as Flatten<S>>::Output>>::Output;
 }
 
-impl<S, S2> Flatten<S> for End<S2> {
-    type Output = End<S>;
+impl<C, S, S2> Flatten<S> for End<C, S2> {
+    type Output = End<C, S>;
 }
 
-impl<S, S2, B> Add<B> for Compound<S, End<S2>> {
+impl<C, S, S2, B> Add<B> for Compound<S, End<C, S2>> {
     type Output = B;
 
     fn add(self, _rhs: B) -> Self::Output {
@@ -50,14 +52,14 @@ impl<S, S2, B> Add<B> for Compound<S, End<S2>> {
     }
 }
 
-impl<S, S2, A, B, C> Add<C> for Compound<S, PhantomEdge<S2, (A, B)>>
+impl<Codec, S, S2, A, B, C> Add<C> for Compound<S, PhantomEdge<Codec, S2, (A, B)>>
 where
-    A: CompoundWrapper<S>,
+    A: CompoundWrapper<Codec, S>,
     Compound<S, B>: Add<C>,
-    <A as CompoundWrapper<S>>::Compound: Add<<Compound<S, B> as Add<C>>::Output>,
+    <A as CompoundWrapper<Codec, S>>::Compound: Add<<Compound<S, B> as Add<C>>::Output>,
 {
     type Output =
-        <<A as CompoundWrapper<S>>::Compound as Add<<Compound<S, B> as Add<C>>::Output>>::Output;
+        <<A as CompoundWrapper<Codec, S>>::Compound as Add<<Compound<S, B> as Add<C>>::Output>>::Output;
 
     fn add(self, _rhs: C) -> Self::Output {
         unreachable!()

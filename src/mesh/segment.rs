@@ -23,11 +23,12 @@ where
 impl<T, C, H> Mesh<C, H> for T
 where
     T: Edge<
+        C,
         Second: Sorted<Output: ConstifyPadding<Output: Flatten<T, Output: SegmentWalker<T, C, H>>>>,
     >,
     H: SegmentCodec<C>,
 {
-    type Output = <<<<T as Edge>::Second as Sorted>::Output as ConstifyPadding>::Output as Flatten<T>>::Output;
+    type Output = <<<<T as Edge<C>>::Second as Sorted>::Output as ConstifyPadding>::Output as Flatten<T>>::Output;
 }
 
 pub fn encode<T, C>(src: &T, codec: &mut C) -> Result<(), C::Error>
@@ -108,7 +109,7 @@ where
     fn walk(src: &S, codec: &mut C, skip_len: Option<usize>) -> Result<(), H::Error>;
 }
 
-impl<S, A, B, C, H> SegmentWalker<S, C, H> for PhantomEdge<S, (Field<A>, B)>
+impl<S, A, B, C, H> SegmentWalker<S, C, H> for PhantomEdge<C, S, (Field<A>, B)>
 where
     Self: Len,
     H: SegmentCodec<C>,
@@ -135,7 +136,7 @@ where
     }
 }
 
-impl<S, S2, C, H, B, T> SegmentWalker<S, C, H> for PhantomEdge<S2, (Vectored<T>, B)>
+impl<S, S2, C, H, B, T> SegmentWalker<S, C, H> for PhantomEdge<C, S2, (Vectored<T>, B)>
 where
     H: SegmentCodec<C>,
     B: SegmentWalker<S, C, H>,
@@ -173,7 +174,7 @@ where
 }
 
 impl<S, S2, H, C, B, const I: usize> SegmentWalker<S, C, H>
-    for PhantomEdge<S, (ConstPadding<S2, I>, B)>
+    for PhantomEdge<C, S, (ConstPadding<C, S2, I>, B)>
 where
     H: SegmentCodec<C>,
     B: SegmentWalker<S, C, H>,
@@ -187,7 +188,7 @@ where
     }
 }
 
-impl<S, S2, C, H> SegmentWalker<S, C, H> for End<S2>
+impl<S, S2, C, H> SegmentWalker<S, C, H> for End<C, S2>
 where
     H: SegmentCodec<C>,
 {

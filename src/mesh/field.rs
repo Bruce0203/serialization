@@ -14,9 +14,9 @@ pub trait FieldOffset {
 
 pub struct Field<T>(T);
 
-impl<T> Edge for Field<T>
+impl<C, T> Edge<C> for Field<T>
 where
-    T: Edge,
+    T: Edge<C>,
 {
     type First = T::First;
 
@@ -30,10 +30,10 @@ where
     type Offset = T::Offset;
 }
 
-impl<S, T> CompoundWrapper<S> for Field<T>
+impl<C, S, T> CompoundWrapper<C, S> for Field<T>
 where
-    T: CompoundWrapper<S>,
-    Field<<T as CompoundWrapper<S>>::Compound>: FieldUnwrapper,
+    T: CompoundWrapper<C, S>,
+    Field<<T as CompoundWrapper<C, S>>::Compound>: FieldUnwrapper,
 {
     type Compound = <Field<T::Compound> as FieldUnwrapper>::Output;
 }
@@ -52,10 +52,10 @@ where
     const SIZE: usize = T::SIZE;
 }
 
-impl<S, A, B, T> Add<PhantomEdge<S, (A, B)>> for Field<T> {
-    type Output = PhantomEdge<S, (Field<T>, PhantomEdge<S, (A, B)>)>;
+impl<C, S, A, B, T> Add<PhantomEdge<C, S, (A, B)>> for Field<T> {
+    type Output = PhantomEdge<C, S, (Field<T>, PhantomEdge<C, S, (A, B)>)>;
 
-    fn add(self, _rhs: PhantomEdge<S, (A, B)>) -> Self::Output {
+    fn add(self, _rhs: PhantomEdge<C, S, (A, B)>) -> Self::Output {
         unreachable!()
     }
 }

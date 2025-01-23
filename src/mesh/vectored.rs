@@ -26,7 +26,7 @@ where
     T: Vector,
 {
     fn encode<E: crate::Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
-        encoder.encode_vec_len(self.0.len())
+        Ok(())
     }
 }
 
@@ -39,18 +39,18 @@ impl<T> Decode for Vectored<T> {
     }
 }
 
-impl<S, S2> Add<End<S2>> for Vectored<S> {
-    type Output = PhantomEdge<S, (Vectored<S>, End<S>)>;
+impl<C, S, S2> Add<End<C, S2>> for Vectored<S> {
+    type Output = PhantomEdge<C, S, (Vectored<S>, End<C, S>)>;
 
-    fn add(self, _rhs: End<S2>) -> Self::Output {
+    fn add(self, _rhs: End<C, S2>) -> Self::Output {
         unreachable!()
     }
 }
 
-impl<S, T, B> Add<PhantomEdge<S, B>> for Vectored<T> {
-    type Output = PhantomEdge<S, (Vectored<T>, PhantomEdge<S, B>)>;
+impl<C, S, T, B> Add<PhantomEdge<C, S, B>> for Vectored<T> {
+    type Output = PhantomEdge<C, S, (Vectored<T>, PhantomEdge<C, S, B>)>;
 
-    fn add(self, _rhs: PhantomEdge<S, B>) -> Self::Output {
+    fn add(self, _rhs: PhantomEdge<C, S, B>) -> Self::Output {
         unreachable!()
     }
 }
@@ -62,13 +62,13 @@ where
     type Offset = T::Offset;
 }
 
-impl<T> Edge for Vectored<T>
+impl<C, T> Edge<C> for Vectored<T>
 where
-    T: Vector<Item: Edge>,
+    T: Vector<Item: Edge<C>>,
 {
-    type First = End<Self>;
+    type First = End<C, Self>;
 
-    type Second = <<T as Vector>::Item as Edge>::Second;
+    type Second = <<T as Vector>::Item as Edge<C>>::Second;
 }
 
 impl<T> Len for Vectored<T> {
@@ -82,6 +82,6 @@ where
     const SIZE: usize = T::SIZE;
 }
 
-impl<S, T> CompoundWrapper<S> for Vectored<T> {
+impl<C, S, T> CompoundWrapper<C, S> for Vectored<T> {
     type Compound = Vectored<T>;
 }

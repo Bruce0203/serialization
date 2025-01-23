@@ -13,53 +13,53 @@ pub trait Sorted {
     type Output;
 }
 
-impl<S, A, B> Sorted for PhantomEdge<S, (A, B)>
+impl<C, S, A, B> Sorted for PhantomEdge<C, S, (A, B)>
 where
     B: Sorted,
-    PhantomOrder<S, B::Output>: Add<A>,
+    PhantomOrder<C, S, B::Output>: Add<A>,
 {
-    type Output = <PhantomOrder<S, <B as Sorted>::Output> as Add<A>>::Output;
+    type Output = <PhantomOrder<C, S, <B as Sorted>::Output> as Add<A>>::Output;
 }
 
-impl<S> Sorted for End<S> {
-    type Output = End<S>;
+impl<C, S> Sorted for End<C, S> {
+    type Output = End<C, S>;
 }
 
 pub trait Order<T> {
     type Output;
 }
 
-pub struct PhantomOrder<S, T>(PhantomData<(S, T)>);
+pub struct PhantomOrder<C, S, T>(PhantomData<(C, S, T)>);
 
-impl<S, A, B> Order<B1> for PhantomEdge<S, (A, B)> {
-    type Output = PhantomEdge<S, (A, B)>;
+impl<C, S, A, B> Order<B1> for PhantomEdge<C, S, (A, B)> {
+    type Output = PhantomEdge<C, S, (A, B)>;
 }
 
-impl<S, A, B> Order<B0> for PhantomEdge<S, (A, B)> {
-    type Output = PhantomEdge<S, (B, A)>;
+impl<C, S, A, B> Order<B0> for PhantomEdge<C, S, (A, B)> {
+    type Output = PhantomEdge<C, S, (B, A)>;
 }
 
-impl<S, S2, B> Add<B> for PhantomOrder<S, End<S2>> {
-    type Output = PhantomEdge<S, (B, End<S2>)>;
+impl<C, S, S2, B> Add<B> for PhantomOrder<C, S, End<C, S2>> {
+    type Output = PhantomEdge<C, S, (B, End<C, S2>)>;
 
     fn add(self, _rhs: B) -> Self::Output {
         unreachable!()
     }
 }
 
-impl<S, A, B> Add<B> for PhantomOrder<S, PhantomLeaf<A>>
+impl<C, S, A, B> Add<B> for PhantomOrder<C, S, PhantomLeaf<A>>
 where
     A: FieldOffset<Offset: ToUInt>,
     B: FieldOffset<Offset: ToUInt>,
     <<A as FieldOffset>::Offset as ToUInt>::Output:
         IsLess<<<B as FieldOffset>::Offset as ToUInt>::Output>,
-    PhantomEdge<S, (A, B)>: Order<
+    PhantomEdge<C, S, (A, B)>: Order<
         <<<A as FieldOffset>::Offset as ToUInt>::Output as IsLess<
             <<B as FieldOffset>::Offset as ToUInt>::Output,
         >>::Output,
     >,
 {
-    type Output = <PhantomEdge<S, (A, B)> as Order<
+    type Output = <PhantomEdge<C, S, (A, B)> as Order<
         <<A::Offset as ToUInt>::Output as IsLess<<B::Offset as ToUInt>::Output>>::Output,
     >>::Output;
 
@@ -68,19 +68,19 @@ where
     }
 }
 
-impl<S, A, B> Add<B> for PhantomOrder<S, Field<A>>
+impl<C, S, A, B> Add<B> for PhantomOrder<C, S, Field<A>>
 where
     B: FieldOffset<Offset: ToUInt>,
     Field<A>: FieldOffset<Offset: ToUInt>,
     <<Field<A> as FieldOffset>::Offset as ToUInt>::Output:
         IsLess<<<B as FieldOffset>::Offset as ToUInt>::Output>,
-    PhantomEdge<S, (Field<A>, B)>: Order<
+    PhantomEdge<C, S, (Field<A>, B)>: Order<
         <<<Field<A> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
             <<B as FieldOffset>::Offset as ToUInt>::Output,
         >>::Output,
     >,
 {
-    type Output = <PhantomEdge<S, (Field<A>, B)> as Order<
+    type Output = <PhantomEdge<C, S, (Field<A>, B)> as Order<
         <<<Field<A> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
             <B::Offset as ToUInt>::Output,
         >>::Output,
@@ -91,19 +91,19 @@ where
     }
 }
 
-impl<S, A, B> Add<B> for PhantomOrder<S, Vectored<A>>
+impl<C, S, A, B> Add<B> for PhantomOrder<C, S, Vectored<A>>
 where
     B: FieldOffset<Offset: ToUInt>,
     Vectored<A>: FieldOffset<Offset: ToUInt>,
     <<Vectored<A> as FieldOffset>::Offset as ToUInt>::Output:
         IsLess<<<B as FieldOffset>::Offset as ToUInt>::Output>,
-    PhantomEdge<S, (Vectored<A>, B)>: Order<
+    PhantomEdge<C, S, (Vectored<A>, B)>: Order<
         <<<Vectored<A> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
             <<B as FieldOffset>::Offset as ToUInt>::Output,
         >>::Output,
     >,
 {
-    type Output = <PhantomEdge<S, (Vectored<A>, B)> as Order<
+    type Output = <PhantomEdge<C, S, (Vectored<A>, B)> as Order<
         <<<Vectored<A> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
             <B::Offset as ToUInt>::Output,
         >>::Output,
@@ -114,31 +114,31 @@ where
     }
 }
 
-impl<S, A, B, C> Add<C> for PhantomOrder<S, PhantomEdge<S, (A, B)>>
+impl<Codec, S, A, B, C> Add<C> for PhantomOrder<Codec, S, PhantomEdge<Codec, S, (A, B)>>
 where
     A: FieldOffset<Offset: ToUInt>,
     C: FieldOffset<Offset: ToUInt>,
     <<A as FieldOffset>::Offset as ToUInt>::Output:
         IsLess<<<C as FieldOffset>::Offset as ToUInt>::Output>,
-    PhantomEdge<S, (A, C)>: Order<
+    PhantomEdge<Codec, S, (A, C)>: Order<
             <<<A as FieldOffset>::Offset as ToUInt>::Output as IsLess<
                 <<C as FieldOffset>::Offset as ToUInt>::Output,
             >>::Output,
-            Output: Edge,
+            Output: Edge<Codec>,
         >,
-    PhantomOrder<S, B>: Add<
-        <<PhantomEdge<S, (A, C)> as Order<
+    PhantomOrder<Codec, S, B>: Add<
+        <<PhantomEdge<Codec, S, (A, C)> as Order<
             <<<A as FieldOffset>::Offset as ToUInt>::Output as IsLess<
                 <<C as FieldOffset>::Offset as ToUInt>::Output,
             >>::Output,
-        >>::Output as Edge>::Second,
+        >>::Output as Edge<Codec>>::Second,
     >,
 {
     type Output =
-        PhantomEdge<S, (
-            <<PhantomEdge<S, (A, C)> as Order<<<A::Offset as ToUInt>::Output as IsLess<<C::Offset as ToUInt>::Output>>::Output>>::Output as Edge>::First, 
-            <PhantomOrder<S,  B> 
-            as Add<<<PhantomEdge<S, (A, C)> as Order<<<A::Offset as ToUInt>::Output as IsLess<<C::Offset as ToUInt>::Output>>::Output>>::Output as Edge>::Second>>::Output
+        PhantomEdge<Codec, S, (
+            <<PhantomEdge<Codec, S, (A, C)> as Order<<<A::Offset as ToUInt>::Output as IsLess<<C::Offset as ToUInt>::Output>>::Output>>::Output as Edge<Codec>>::First, 
+            <PhantomOrder<Codec, S, B> 
+            as Add<<<PhantomEdge<Codec, S, (A, C)> as Order<<<A::Offset as ToUInt>::Output as IsLess<<C::Offset as ToUInt>::Output>>::Output>>::Output as Edge<Codec>>::Second>>::Output
         )>;
 
     fn add(self, _rhs: C) -> Self::Output {

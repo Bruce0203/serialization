@@ -67,10 +67,11 @@ const _: () = {
         type Offset = Const<0>;
     }
 
-    impl Edge for String {
-        type First = End<Self>;
+    impl<C> Edge<C> for String {
+        type First = End<C, Self>;
 
-        type Second = PhantomEdge<Self, (Vectored<__FieldToken<String, String, 0>>, End<Self>)>;
+        type Second =
+            PhantomEdge<C, Self, (Vectored<__FieldToken<String, String, 0>>, End<C, Self>)>;
     }
 
     impl Len for String {
@@ -81,7 +82,7 @@ const _: () = {
         const SIZE: usize = size_of::<Self>();
     }
 
-    impl<S> CompoundWrapper<S> for String {
-        type Compound = <Self as CompoundUnwrapper<S>>::Output;
+    impl<C, S> CompoundWrapper<C, S> for String {
+        type Compound = <Self as CompoundUnwrapper<C, S>>::Output;
     }
 };

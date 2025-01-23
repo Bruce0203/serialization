@@ -1,28 +1,28 @@
 use std::{marker::PhantomData, ops::Add};
 
-pub trait Edge {
+pub trait Edge<C> {
     /// Indicate leaf
-    type First: Edge;
+    type First: Edge<C>;
 
     /// Indicate another edge
-    type Second: Edge;
+    type Second: Edge<C>;
 }
 
 /// Generic type `S` represents a struct containing a edges.
-pub struct PhantomEdge<S, T>(PhantomData<(S, T)>);
+pub struct PhantomEdge<C, S, T>(PhantomData<(C, S, T)>);
 
-impl<S, First, Second> Edge for PhantomEdge<S, (First, Second)>
+impl<C, S, First, Second> Edge<C> for PhantomEdge<C, S, (First, Second)>
 where
-    First: Edge,
-    Second: Edge,
+    First: Edge<C>,
+    Second: Edge<C>,
 {
     type First = First;
 
     type Second = Second;
 }
 
-impl<S, A, B, Rhs> Add<Rhs> for PhantomEdge<S, (A, B)> {
-    type Output = PhantomEdge<S, (Rhs, PhantomEdge<S, (A, B)>)>;
+impl<C, S, A, B, Rhs> Add<Rhs> for PhantomEdge<C, S, (A, B)> {
+    type Output = PhantomEdge<C, S, (Rhs, PhantomEdge<C, S, (A, B)>)>;
 
     fn add(self, _rhs: Rhs) -> Self::Output {
         unreachable!()

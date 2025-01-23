@@ -18,7 +18,7 @@ pub trait Len {
     const SIZE: usize;
 }
 
-impl<S, S2, const I: usize, B> Len for PhantomEdge<S, (ConstPadding<S2, I>, B)>
+impl<C, S, S2, const I: usize, B> Len for PhantomEdge<C, S, (ConstPadding<C, S2, I>, B)>
 where
     B: Len,
 {
@@ -31,13 +31,13 @@ where
     };
 }
 
-impl<S, S2, S3, FrontOffset, B, C> Len
-    for PhantomEdge<S, (Padding<S2, FrontOffset>, PhantomEdge<S3, (B, C)>)>
+impl<Codec, S, S2, S3, FrontOffset, B, C> Len
+    for PhantomEdge<Codec, S, (Padding<Codec, S2, FrontOffset>, PhantomEdge<Codec, S3, (B, C)>)>
 where
     C: Len,
     B: FieldOffset<Offset: ToUInt<Output: Unsigned>> + Len,
     FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>> + Len,
-    PhantomEdge<S3, (B, C)>: Len,
+    PhantomEdge<Codec, S3, (B, C)>: Len,
 {
     const SIZE: usize = {
         let front = <<<FrontOffset as FieldOffset>::Offset as ToUInt>::Output as Unsigned>::USIZE;
@@ -45,7 +45,7 @@ where
         let back = <<B::Offset as ToUInt>::Output as Unsigned>::USIZE;
         if front_size != UNSIZED && front_size + front == back {
             // field_size_of(<B as Len>::SIZE, <C as Len>::SIZE);
-            <PhantomEdge<S3, (B, C)> as Len>::SIZE
+            <PhantomEdge<Codec, S3, (B, C)> as Len>::SIZE
         } else {
             0
         }
@@ -53,7 +53,8 @@ where
 }
 
 //TODO try remove S3 and replace it to S
-impl<S, S2, S3, FrontOffset> Len for PhantomEdge<S, (Padding<S3, FrontOffset>, End<S2>)>
+impl<Codec, S, S2, S3, FrontOffset> Len
+    for PhantomEdge<Codec, S, (Padding<Codec, S3, FrontOffset>, End<Codec, S2>)>
 where
     S2: Len + Size,
     FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>> + Len + Size,
@@ -63,21 +64,21 @@ where
             + <FrontOffset as Size>::SIZE);
 }
 
-impl<S, A, B> Len for PhantomEdge<S, (Field<A>, B)>
+impl<C, S, A, B> Len for PhantomEdge<C, S, (Field<A>, B)>
 where
-    Self: Edge<First: Len, Second: Len>,
+    Self: Edge<C, First: Len, Second: Len>,
 {
     const SIZE: usize = field_size_of(
-        <<Self as Edge>::First as Len>::SIZE,
-        <<Self as Edge>::Second as Len>::SIZE,
+        <<Self as Edge<C>>::First as Len>::SIZE,
+        <<Self as Edge<C>>::Second as Len>::SIZE,
     );
 }
 
-impl<S, T, B> Len for PhantomEdge<S, (Vectored<T>, B)>
+impl<C, S, T, B> Len for PhantomEdge<C, S, (Vectored<T>, B)>
 where
-    Self: Edge<Second: Len>,
+    Self: Edge<C, Second: Len>,
 {
-    const SIZE: usize = field_size_of(UNSIZED, <<Self as Edge>::Second as Len>::SIZE);
+    const SIZE: usize = field_size_of(UNSIZED, <<Self as Edge<C>>::Second as Len>::SIZE);
 }
 
 const fn field_size_of(a: usize, b: usize) -> usize {

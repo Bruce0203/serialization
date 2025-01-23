@@ -83,23 +83,23 @@ const _: () = {
         }
     };
 
-    impl<S, A, B> CompoundWrapper<S> for (A, B)
+    impl<C, S, A, B> CompoundWrapper<C, S> for (A, B)
     where
-        Self: Edge<Second: Sorted<Output: ConstifyPadding>>,
+        Self: Edge<C, Second: Sorted<Output: ConstifyPadding>>,
     {
-        type Compound = <Self as CompoundUnwrapper<S>>::Output;
+        type Compound = <Self as CompoundUnwrapper<C, S>>::Output;
     }
 
     pub type Tup<A, B> = (A, B);
 
-    impl<A, B> Edge for (A, B)
+    impl<__C, A, B> Edge<__C> for (A, B)
     where
-        A: Edge,
-        B: Edge,
+        A: Edge<__C>,
+        B: Edge<__C>,
     {
-        type First = End<Self>;
+        type First = End<__C, Self>;
 
-        type Second = meshup!(0, (Tup), {A, B,}; {A} {B});
+        type Second = meshup!(0, (Tup), {A, B}; {A} {B});
     }
 };
 
@@ -197,23 +197,23 @@ const _: () = {
         }
     };
 
-    impl<S, A, B, C> CompoundWrapper<S> for (A, B, C)
+    impl<Codec, S, A, B, C> CompoundWrapper<Codec, S> for (A, B, C)
     where
-        Self: Edge<Second: Sorted<Output: ConstifyPadding>>,
+        Self: Edge<Codec, Second: Sorted<Output: ConstifyPadding>>,
     {
-        type Compound = <Self as CompoundUnwrapper<S>>::Output;
+        type Compound = <Self as CompoundUnwrapper<Codec, S>>::Output;
     }
 
     pub type Tup<A, B, C> = (A, B, C);
 
-    impl<A, B, C> Edge for (A, B, C)
+    impl<__C, A, B, C> Edge<__C> for (A, B, C)
     where
-        A: Edge,
-        B: Edge,
-        C: Edge,
+        A: Edge<__C>,
+        B: Edge<__C>,
+        C: Edge<__C>,
     {
-        type First = End<Self>;
+        type First = End<__C, Self>;
 
-        type Second = meshup!(0, (Tup), {A, B, C,}; {A} {B} {C});
+        type Second = meshup!(0, (Tup), {A, B, C}; {A} {B} {C});
     }
 };

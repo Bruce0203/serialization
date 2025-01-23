@@ -7,5 +7,4 @@
 #![feature(panic_internals)]
 #![feature(rustc_attrs)]
 #![feature(print_internals)]
-#![feature(prelude_import)]
-#![allow(incomplete_features)]
+

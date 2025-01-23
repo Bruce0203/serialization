@@ -31,8 +31,8 @@ const _: () = {
         type Offset = typenum::Const<{ offset_of_enum!(parentheses, A, {}, V1, (v0), v0) }>;
     }
 
-    impl Edge for __VariantToken<0> {
-        type First = End<Self>;
+    impl<__C> Edge<__C> for __VariantToken<0> {
+        type First = End<__C, Self>;
 
         type Second = meshup!(0, (__VariantToken), {0}; {u32});
     }
@@ -41,8 +41,8 @@ const _: () = {
         type Offset = typenum::Const<{ offset_of_enum!(parentheses, A, {}, V2, (v0), v0) }>;
     }
 
-    impl Edge for __VariantToken<1> {
-        type First = End<Self>;
+    impl<__C> Edge<__C> for __VariantToken<1> {
+        type First = End<__C, Self>;
 
         type Second = meshup!(0, (__VariantToken), {0}; {u32});
     }

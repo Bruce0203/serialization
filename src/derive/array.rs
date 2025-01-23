@@ -46,13 +46,13 @@ const _: () = {
         type Offset = Const<0>;
     }
 
-    impl<T, const N: usize> Edge for [T; N]
+    impl<C, T, const N: usize> Edge<C> for [T; N]
     where
-        T: Edge,
+        T: Edge<C>,
     {
-        type First = End<Self>;
+        type First = End<C, Self>;
 
-        type Second = PhantomEdge<Self, (Field<Vectored<[T; N]>>, End<Self>)>;
+        type Second = PhantomEdge<C, Self, (Field<Vectored<[T; N]>>, End<C, Self>)>;
     }
 
     impl<T, const N: usize> Len for [T; N] {
@@ -63,10 +63,10 @@ const _: () = {
         const SIZE: usize = size_of::<Self>();
     }
 
-    impl<S, T, const N: usize> CompoundWrapper<S> for [T; N]
+    impl<C, S, T, const N: usize> CompoundWrapper<C, S> for [T; N]
     where
-        T: Edge,
+        T: Edge<C>,
     {
-        type Compound = <Self as CompoundUnwrapper<S>>::Output;
+        type Compound = <Self as CompoundUnwrapper<C, S>>::Output;
     }
 };

@@ -44,13 +44,13 @@ const _: () = {
         type Offset = Const<0>;
     }
 
-    impl<T> Edge for Tag<T>
+    impl<C, T> Edge<C> for Tag<T>
     where
-        T: Edge,
+        T: Edge<C>,
     {
-        type First = End<Self>;
+        type First = End<C, Self>;
 
-        type Second = PhantomEdge<Self, (Field<__FieldToken<Self, u8, 0>>, End<Self>)>;
+        type Second = PhantomEdge<C, Self, (Field<__FieldToken<Self, u8, 0>>, End<C, Self>)>;
     }
 
     impl<T> Len for Tag<T>
@@ -67,10 +67,10 @@ const _: () = {
         const SIZE: usize = 0;
     }
 
-    impl<S, T> CompoundWrapper<S> for Tag<T>
+    impl<C, S, T> CompoundWrapper<C, S> for Tag<T>
     where
-        T: Edge,
+        T: Edge<C>,
     {
-        type Compound = <Self as CompoundUnwrapper<S>>::Output;
+        type Compound = <Self as CompoundUnwrapper<C, S>>::Output;
     }
 };
