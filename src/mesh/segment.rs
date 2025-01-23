@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, mem::transmute};
+use std::mem::transmute;
 
 use crate::{CompositeDecoder, CompositeEncoder, Decode, Encode};
 
