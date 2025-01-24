@@ -159,13 +159,22 @@ where
     }
 
     fn encode_vec_len(&mut self, v: usize) -> Result<(), Self::Error> {
-        if v < (u8::MAX - 1) as usize {
+        if v < u8::MAX as usize - 1 {
             self.encode_u8(&(v as u8))?;
-        } else if v < (u16::MAX - 1) as usize {
-            self.encode_u8(&255)?;
-            self.encode_u16(&(v as u16))?;
+        } else if v < u16::MAX as usize - 1 {
+            let v = match self.endian() {
+                Endian::Big => (v as u16).to_be_bytes(),
+                Endian::Little => (v as u16).to_le_bytes(),
+            };
+            self.write_array(&[255, v[0], v[1]]);
+        } else if v < u32::MAX as usize - 1 {
+            let v = match self.endian() {
+                Endian::Big => (v as u32).to_be_bytes(),
+                Endian::Little => (v as u32).to_le_bytes(),
+            };
+            self.write_array(&[255, v[0], v[1], v[2], v[3]]);
         } else {
-            todo!()
+            return Err(EncodeError::TooLarge);
         }
         Ok(())
     }

@@ -10,7 +10,6 @@ use super::{
     len::{Len, Size, UNSIZED},
 };
 
-//TODO replace V to Vector::Item
 #[repr(transparent)]
 pub struct Vectored<T>(pub(crate) T);
 
@@ -26,6 +25,7 @@ where
     T: Vector,
 {
     fn encode<E: crate::Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
+        encoder.encode_vec_len(self.0.len())?;
         Ok(())
     }
 }
