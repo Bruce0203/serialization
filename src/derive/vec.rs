@@ -1,4 +1,4 @@
-use std::mem::MaybeUninit;
+use std::mem::{transmute, MaybeUninit};
 
 use typenum::Const;
 
@@ -41,6 +41,12 @@ impl<T> Vector for Vec<T> {
 
     fn len(&self) -> usize {
         self.len()
+    }
+
+    fn set_len(&mut self, len: usize) {
+        let mut vec = unsafe { transmute::<_, &mut MaybeUninit<Vec<T>>>(self) };
+        *vec = MaybeUninit::new(Vec::with_capacity(len));
+        unsafe { vec.assume_init_mut().set_len(len) };
     }
 }
 

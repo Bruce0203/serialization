@@ -64,7 +64,7 @@ macro_rules! wrap_brace {
 macro_rules! impl_field_token {
     () => {
         #[repr(transparent)]
-        pub struct __FieldToken<S, T, const I: usize>(T, core::marker::PhantomData<S>);
+        pub struct __FieldToken<S, T, const I: usize>(core::mem::MaybeUninit<T>, core::marker::PhantomData<S>);
         impl<C, S, T, const I: usize> $crate::__private::Edge<C> for __FieldToken<S, T, I>
         where
             T: $crate::__private::Edge<C>,
@@ -89,7 +89,7 @@ macro_rules! impl_field_token {
             T: $crate::Encode,
         {
             fn encode<E: $crate::Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
-                self.0.encode(encoder)
+                unsafe { self.0.assume_init_ref() }.encode(encoder)
             }
         }
         impl<C, S, S2, T, const I: usize> $crate::__private::CompoundWrapper<C, S>
@@ -118,15 +118,19 @@ macro_rules! impl_field_token {
             type Item = T::Item;
 
             fn as_iter(&self) -> impl Iterator<Item = &Self::Item> {
-                self.0.as_iter()
+                unsafe { self.0.assume_init_ref() } .as_iter()
             }
 
             fn as_ptr(&self) -> *const Self::Item {
-                self.0.as_ptr()
+                unsafe { self.0.assume_init_ref() }.as_ptr()
             }
 
             fn len(&self) -> usize {
-                self.0.len()
+                unsafe { self.0.assume_init_ref() }.len()
+            }
+
+            fn set_len(&mut self, len: usize) {
+                unsafe { self.0.assume_init_mut() } .set_len(len)
             }
         }
     };

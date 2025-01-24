@@ -1,1 +1,3 @@
-pub struct Enum<T>(T);
+use std::mem::MaybeUninit;
+
+pub struct Enum<T>(MaybeUninit<T>);

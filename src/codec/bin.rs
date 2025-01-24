@@ -18,7 +18,7 @@ where
 {
     let buffer = Buffer::from(dst);
     let mut codec = BinaryCodec { buffer };
-    walk_segment(src, &mut codec)?;
+    walk_segment::<T, BinaryCodec, SegmentEncoder>(src as *const _ as *mut u8, &mut codec)?;
     Ok(())
 }
 
@@ -33,8 +33,12 @@ impl BufWrite for BinaryCodec {
 }
 
 impl BufRead for BinaryCodec {
-    fn read_slice<const N: usize>(&mut self, out: &mut MaybeUninit<[u8; N]>) {
-        self.buffer.read_slice(out)
+    fn read_array<T: Copy, const N: usize>(&mut self, out: &mut MaybeUninit<[T; N]>) {
+        self.buffer.read_array::<T, N>(out);
+    }
+
+    fn read_slice<T: Copy>(&mut self, out: &mut [MaybeUninit<T>]) {
+        self.buffer.read_slice::<T>(out)
     }
 }
 

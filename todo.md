@@ -34,3 +34,5 @@ AllPrimitiveSizeCheck 에 따라서 Edge구현하기...? -> Actor의 Field<A>로
 learn usecase of repr(transparent)
 
 rename pad.rs to padding.rs
+decode_element의 place와 out이 혼용됨
+&'static str 은 인코딩만 되서 Serializable을 Serialize, Deserialize로 분리해서 &'static str을 지원해야 함

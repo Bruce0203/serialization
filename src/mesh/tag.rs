@@ -13,6 +13,7 @@ use crate::{
 
 use super::prelude::Vector;
 
+#[repr(transparent)]
 pub struct Tag<T>(T);
 
 impl<T> Encode for Tag<T>

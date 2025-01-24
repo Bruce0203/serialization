@@ -89,10 +89,11 @@ enum A20 {
     E = 10,
 }
 
-#[derive(serialization::Serializable, Debug, Eq, PartialEq)]
-struct A21 {
-    value: &'static str,
-}
+//TODO support only Encode, so Serializable -> Serialize, Deserialize
+// #[derive(serialization::Serializable, Debug, Eq, PartialEq)]
+// struct A21 {
+//     value: &'static str,
+// }
 #[derive(serialization::Serializable, Debug, Eq, PartialEq)]
 enum A22 {
     A { value: i32 },
@@ -102,6 +103,7 @@ enum A22 {
 struct A23 {
     value: Vec<u8>,
 }
+
 #[derive(serialization::Serializable, Debug, Eq, PartialEq)]
 struct A24 {
     value: Vec<String>,
@@ -131,7 +133,7 @@ mod tests {
 
     use crate::{
         mock::BinaryCodecMock,
-        prelude::{Mesh, SegmentCodec, SegmentEncoder, SegmentWalker},
+        prelude::{Mesh, SegmentCodec, SegmentDecoder, SegmentEncoder, SegmentWalker},
         Buffer,
     };
 
@@ -160,7 +162,7 @@ mod tests {
         test(A18 { value: 123 });
         //A19 is infallible type
         // test(A20::E);
-        test(A21 { value: "hi" });
+        // test(A21 { value: "hi" });
         // test(A22::A { value: 123 });
         test(A23 { value: vec![123] });
         test(A24 {
@@ -189,8 +191,21 @@ mod tests {
     fn test<T: Eq + Debug>(value: T)
     where
         T: Mesh<BinaryCodecMock, SegmentEncoder>,
+        T: Mesh<BinaryCodecMock, SegmentDecoder>,
+        [(); size_of::<T>()]:,
     {
+        println!("{}", type_name::<T>());
         let mut dst = [0u8; 100000];
+        println!("A1");
         crate::mock::encode(&value, &mut dst).unwrap();
+        println!("A2");
+        let decoded = crate::mock::decode::<T>(&mut dst).unwrap();
+        println!("A3");
+        println!("{:?}", unsafe {
+            std::mem::transmute::<_, &[u8; size_of::<T>()]>(&decoded)
+        });
+        println!("A4");
+        assert_eq!(value, decoded);
+        println!("A5");
     }
 }

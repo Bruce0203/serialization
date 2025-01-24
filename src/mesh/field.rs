@@ -1,4 +1,4 @@
-use std::ops::Add;
+use std::{mem::MaybeUninit, ops::Add};
 
 use super::{
     edge::{Edge, PhantomEdge},
@@ -12,7 +12,8 @@ pub trait FieldOffset {
     type Offset;
 }
 
-pub struct Field<T>(T);
+#[repr(transparent)]
+pub struct Field<T>(MaybeUninit<T>);
 
 impl<C, T> Edge<C> for Field<T>
 where

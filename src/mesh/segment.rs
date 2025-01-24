@@ -1,4 +1,4 @@
-use std::mem::transmute;
+use std::mem::{transmute, MaybeUninit};
 
 use crate::{CompositeDecoder, CompositeEncoder, Decode, Encode};
 
@@ -31,32 +31,45 @@ where
     type Output = <<<<T as Edge<C>>::Second as Sorted>::Output as ConstifyPadding>::Output as Flatten<T>>::Output;
 }
 
+//TODO use this instead of walk_segment
 pub fn encode<T, C>(src: &T, codec: &mut C) -> Result<(), C::Error>
 where
     T: Mesh<C, SegmentEncoder>,
     C: CompositeEncoder,
 {
-    walk_segment::<T, C, SegmentEncoder>(src, codec)?;
+    walk_segment::<T, C, SegmentEncoder>(src as *const _ as *mut u8, codec)?;
+    Ok(())
+}
+
+//TODO use this instead of walk_segment
+pub fn decode<T, C>(src: &T, codec: &mut C) -> Result<(), C::Error>
+where
+    T: Mesh<C, SegmentDecoder>,
+    C: CompositeDecoder,
+{
+    walk_segment::<T, C, SegmentDecoder>(src as *const _ as *mut u8, codec)?;
     Ok(())
 }
 
 //TODO try remove inline never
 #[inline(never)]
-pub fn walk_segment<T, C, H>(src: &T, codec: &mut C) -> Result<(), H::Error>
+pub fn walk_segment<T, C, H>(src: *mut u8, codec: &mut C) -> Result<(), H::Error>
 where
     H: SegmentCodec<C>,
-    C: CompositeEncoder,
     T: Mesh<C, H>,
 {
-    <T as Mesh<C, H>>::Output::walk(src, codec, None)
+    <T as Mesh<C, H>>::Output::walk(src as *mut _ as *mut u8, codec, None)
 }
 
 pub trait SegmentCodec<C> {
     type Error;
 
-    fn handle_element<T: Encode + Decode>(element: &T, codec: &mut C) -> Result<(), Self::Error>;
-    fn handle_cluster<const N: usize>(cluster: &[u8; N], codec: &mut C);
-    fn handle_clusters<const N: usize>(clsuters: &[[u8; N]], codec: &mut C);
+    fn handle_element<T: Encode + Decode>(
+        element: &mut T,
+        codec: &mut C,
+    ) -> Result<(), Self::Error>;
+    fn handle_cluster<const N: usize>(cluster: &mut [u8; N], codec: &mut C);
+    fn handle_clusters<const N: usize>(clusters: &mut [[u8; N]], codec: &mut C);
 }
 
 pub struct SegmentEncoder;
@@ -67,16 +80,16 @@ where
 {
     type Error = C::Error;
 
-    fn handle_element<T: Encode>(element: &T, codec: &mut C) -> Result<(), Self::Error> {
+    fn handle_element<T: Encode>(element: &mut T, codec: &mut C) -> Result<(), Self::Error> {
         codec.encode_element(element)
     }
 
-    fn handle_clusters<const N: usize>(clusters: &[[u8; N]], codec: &mut C) {
+    fn handle_clusters<const N: usize>(clusters: &mut [[u8; N]], codec: &mut C) {
         codec.write_slice(clusters);
     }
 
-    fn handle_cluster<const N: usize>(cluster: &[u8; N], codec: &mut C) {
-        codec.write_array(cluster);
+    fn handle_cluster<const N: usize>(cluster: &mut [u8; N], codec: &mut C) {
+        codec.write_array::<u8, N>(cluster);
     }
 }
 
@@ -88,16 +101,21 @@ where
 {
     type Error = C::Error;
 
-    fn handle_element<T: Encode + Decode>(element: &T, codec: &mut C) -> Result<(), Self::Error> {
-        todo!()
+    fn handle_element<T: Encode + Decode>(
+        element: &mut T,
+        codec: &mut C,
+    ) -> Result<(), Self::Error> {
+        C::decode_element(codec, unsafe {
+            transmute::<_, &mut MaybeUninit<T>>(element)
+        })
     }
 
-    fn handle_cluster<const N: usize>(cluster: &[u8; N], codec: &mut C) {
-        todo!()
+    fn handle_cluster<const N: usize>(cluster: &mut [u8; N], codec: &mut C) {
+        codec.read_array(unsafe { transmute::<_, &mut MaybeUninit<[u8; N]>>(cluster) })
     }
 
-    fn handle_clusters<const N: usize>(clsuters: &[[u8; N]], codec: &mut C) {
-        todo!()
+    fn handle_clusters<const N: usize>(clusters: &mut [[u8; N]], codec: &mut C) {
+        codec.read_slice(unsafe { transmute::<_, &mut [MaybeUninit<[u8; N]>]>(clusters) });
     }
 }
 
@@ -106,7 +124,7 @@ where
     H: SegmentCodec<C>,
 {
     // try change src type to raw pointer
-    fn walk(src: &S, codec: &mut C, skip_len: Option<usize>) -> Result<(), H::Error>;
+    fn walk(src: *mut u8, codec: &mut C, skip_len: Option<usize>) -> Result<(), H::Error>;
 }
 
 impl<S, A, B, C, H> SegmentWalker<S, C, H> for PhantomEdge<C, S, (Field<A>, B)>
@@ -117,7 +135,7 @@ where
     B: SegmentWalker<S, C, H>,
     [(); <Self as Len>::SIZE]:,
 {
-    fn walk(mut src: &S, codec: &mut C, mut skip_len: Option<usize>) -> Result<(), H::Error> {
+    fn walk(mut src: *mut u8, codec: &mut C, mut skip_len: Option<usize>) -> Result<(), H::Error> {
         if let Some(len) = skip_len {
             skip_len = Some(len - <A as Size>::SIZE);
         } else {
@@ -125,11 +143,11 @@ where
             if <Self as Len>::SIZE == 0 {
                 let segment = unsafe { transmute(src) };
                 H::handle_element::<A>(segment, codec)?;
-                src = unsafe { &*(src as *const S).wrapping_byte_add(<A as Size>::SIZE) };
+                src = src.wrapping_byte_add(<A as Size>::SIZE);
             } else {
-                let segment = unsafe { transmute::<_, &[u8; <Self as Len>::SIZE]>(src) };
+                let segment = unsafe { transmute::<_, &mut [u8; <Self as Len>::SIZE]>(src) };
                 H::handle_cluster::<{ <Self as Len>::SIZE }>(segment, codec);
-                src = unsafe { &*(src as *const S).wrapping_byte_add(<Self as Len>::SIZE) };
+                src = src.wrapping_byte_add(<Self as Len>::SIZE);
             }
         }
         B::walk(src, codec, skip_len)
@@ -145,15 +163,15 @@ where
     [(); <<T as Vector>::Item as Size>::SIZE]:,
     Vectored<T>: Decode,
 {
-    fn walk(mut src: &S, codec: &mut C, _skip_len: Option<usize>) -> Result<(), H::Error> {
+    fn walk(mut src: *mut u8, codec: &mut C, _skip_len: Option<usize>) -> Result<(), H::Error> {
+        H::handle_element(unsafe { transmute::<_, &mut Vectored<T>>(src) }, codec)?;
         let vector: &T = unsafe { transmute(src) };
         let clustered_len = <<<T as Vector>::Item as Mesh<C, H>>::Output as Len>::SIZE;
         let element_len = <<T as Vector>::Item as Size>::SIZE;
-        H::handle_element(unsafe { transmute::<_, &Vectored<T>>(src) }, codec)?;
         if clustered_len == element_len {
             let segment = unsafe {
-                core::slice::from_raw_parts(
-                    vector.as_ptr() as *const [u8; <<T as Vector>::Item as Size>::SIZE],
+                core::slice::from_raw_parts_mut(
+                    vector.as_ptr() as *mut [u8; <<T as Vector>::Item as Size>::SIZE],
                     vector.len(),
                 )
             };
@@ -165,10 +183,10 @@ where
                     <T as Vector>::Item,
                     C,
                     H,
-                >>::walk(elem, codec, None)?;
+                >>::walk(elem as *const _ as *mut u8, codec, None)?;
             }
         }
-        src = unsafe { &*(src as *const S).wrapping_byte_add(<T as Size>::SIZE) };
+        src = src.wrapping_byte_add(<T as Size>::SIZE);
         B::walk(src, codec, None)
     }
 }
@@ -179,11 +197,11 @@ where
     H: SegmentCodec<C>,
     B: SegmentWalker<S, C, H>,
 {
-    fn walk(mut src: &S, codec: &mut C, mut skip_len: Option<usize>) -> Result<(), H::Error> {
+    fn walk(mut src: *mut u8, codec: &mut C, mut skip_len: Option<usize>) -> Result<(), H::Error> {
         if I != 0 {
             skip_len = None;
         }
-        src = unsafe { &*(src as *const S).wrapping_byte_add(I) };
+        src = src.wrapping_byte_add(I);
         B::walk(src, codec, skip_len)
     }
 }
@@ -192,7 +210,7 @@ impl<S, S2, C, H> SegmentWalker<S, C, H> for End<C, S2>
 where
     H: SegmentCodec<C>,
 {
-    fn walk(_src: &S, _codec: &mut C, _skip_len: Option<usize>) -> Result<(), H::Error> {
+    fn walk(_src: *mut u8, _codec: &mut C, _skip_len: Option<usize>) -> Result<(), H::Error> {
         Ok(())
     }
 }

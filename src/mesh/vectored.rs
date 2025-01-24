@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, ops::Add};
+use std::{marker::PhantomData, mem::MaybeUninit, ops::Add};
 
 use crate::{Decode, Encode};
 
@@ -11,13 +11,14 @@ use super::{
 };
 
 #[repr(transparent)]
-pub struct Vectored<T>(pub(crate) T);
+pub struct Vectored<T>(pub(crate) MaybeUninit<T>);
 
 pub trait Vector {
     type Item;
     fn as_iter(&self) -> impl Iterator<Item = &Self::Item>;
     fn as_ptr(&self) -> *const Self::Item;
     fn len(&self) -> usize;
+    fn set_len(&mut self, len: usize);
 }
 
 impl<T> Encode for Vectored<T>
@@ -25,16 +26,20 @@ where
     T: Vector,
 {
     fn encode<E: crate::Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
-        encoder.encode_vec_len(self.0.len())?;
+        encoder.encode_vec_len(unsafe { self.0.assume_init_ref() }.len())?;
         Ok(())
     }
 }
 
-impl<T> Decode for Vectored<T> {
+impl<T> Decode for Vectored<T>
+where
+    T: Vector,
+{
     fn decode_in_place<D: crate::Decoder>(
         decoder: &mut D,
         out: &mut std::mem::MaybeUninit<Self>,
     ) -> Result<(), D::Error> {
+        unsafe { out.assume_init_mut().0.assume_init_mut() }.set_len(decoder.decode_seq_len()?);
         Ok(())
     }
 }

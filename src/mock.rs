@@ -1,8 +1,9 @@
-use std::mem::MaybeUninit;
+use std::mem::{transmute, MaybeUninit};
 
 use crate::{
-    prelude::{walk_segment, Mesh, SegmentEncoder},
-    BufRead, BufWrite, Buffer, Codec, CompositeDecoder, CompositeEncoder, Decoder, Encoder, Endian,
+    prelude::{walk_segment, Mesh, SegmentDecoder, SegmentEncoder},
+    BufRead, BufWrite, Buffer, Codec, CompositeDecoder, CompositeEncoder, Decode, Decoder, Encoder,
+    Endian,
 };
 
 pub struct BinaryCodecMock {
@@ -31,7 +32,22 @@ where
 {
     let buffer = Buffer::from(dst);
     let mut codec = BinaryCodecMock { buffer };
-    walk_segment(src, &mut codec)
+    let src: *const T = &*src;
+    walk_segment::<T, BinaryCodecMock, SegmentEncoder>(src as *const _ as *mut u8, &mut codec)
+}
+
+pub fn decode<'a, T>(src: &[u8]) -> Result<T, <BinaryCodecMock as Decoder>::Error>
+where
+    T: Mesh<BinaryCodecMock, SegmentDecoder>,
+{
+    let mut out = MaybeUninit::uninit();
+    let buffer = Buffer::from(src);
+    let mut codec = BinaryCodecMock { buffer };
+    walk_segment::<T, BinaryCodecMock, SegmentDecoder>(
+        out.as_ptr() as *const _ as *mut u8,
+        &mut codec,
+    )?;
+    Ok(unsafe { out.assume_init() })
 }
 
 impl Encoder for BinaryCodecMock
@@ -139,6 +155,7 @@ where
     }
 
     fn encode_str(&mut self, v: &str) -> Result<(), Self::Error> {
+        //TODO encode str impl
         Ok(())
     }
 
@@ -204,7 +221,8 @@ impl Decoder for BinaryCodecMock {
     type SequenceDecoder = Self;
 
     fn decode_u8(&mut self, place: &mut MaybeUninit<u8>) -> Result<(), Self::Error> {
-        todo!()
+        self.buffer.read_array::<u8, 1>(unsafe { transmute(place) });
+        Ok(())
     }
 
     fn decode_i8(&mut self, place: &mut MaybeUninit<i8>) -> Result<(), Self::Error> {
@@ -263,18 +281,16 @@ impl Decoder for BinaryCodecMock {
         todo!()
     }
 
-    fn decode_str(&mut self, place: &mut std::mem::MaybeUninit<&str>) -> Result<(), Self::Error> {
-        todo!()
+    fn decode_str(&mut self, place: &mut MaybeUninit<&str>) -> Result<(), Self::Error> {
+        //TODO decode str impl
+        Ok(())
     }
 
     fn decode_bytes<'a>(&mut self) -> Result<&'a [u8], Self::Error> {
         todo!()
     }
 
-    fn decode_var_i32(
-        &mut self,
-        place: &mut std::mem::MaybeUninit<i32>,
-    ) -> Result<(), Self::Error> {
+    fn decode_var_i32(&mut self, place: &mut MaybeUninit<i32>) -> Result<(), Self::Error> {
         todo!()
     }
 
@@ -291,7 +307,10 @@ impl Decoder for BinaryCodecMock {
     }
 
     fn decode_seq_len(&mut self) -> Result<usize, Self::Error> {
-        todo!()
+        let mut read = MaybeUninit::uninit();
+        self.decode_u8(&mut read)?;
+        let read = unsafe { read.assume_init() };
+        Ok(if read < 255 { read as usize } else { todo!() })
     }
 
     fn decode_enum(
@@ -309,21 +328,22 @@ impl Decoder for BinaryCodecMock {
 impl CompositeDecoder for BinaryCodecMock {
     type Error = DecodeError;
 
-    fn decode_element<D: crate::Decode>(
-        &mut self,
-        place: &mut MaybeUninit<D>,
-    ) -> Result<(), Self::Error> {
-        todo!()
+    fn decode_element<D: Decode>(&mut self, place: &mut MaybeUninit<D>) -> Result<(), Self::Error> {
+        D::decode_in_place(self, place)
     }
 
     fn end(&mut self) -> Result<(), Self::Error> {
-        todo!()
+        Ok(())
     }
 }
 
 impl BufRead for BinaryCodecMock {
-    fn read_slice<const N: usize>(&mut self, out: &mut MaybeUninit<[u8; N]>) {
-        self.buffer.read_slice::<N>(out)
+    fn read_array<T: Copy, const N: usize>(&mut self, out: &mut MaybeUninit<[T; N]>) {
+        self.buffer.read_array::<T, N>(out);
+    }
+
+    fn read_slice<T: Copy>(&mut self, out: &mut [MaybeUninit<T>]) {
+        self.buffer.read_slice::<T>(out)
     }
 }
 

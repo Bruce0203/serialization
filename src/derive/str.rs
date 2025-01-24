@@ -1,4 +1,4 @@
-use std::mem::MaybeUninit;
+use std::mem::{transmute, MaybeUninit};
 
 use typenum::Const;
 
@@ -11,18 +11,18 @@ use crate::{
     Decode, Decoder, Encode, Encoder,
 };
 
-impl Encode for &'static str {
+impl<'a> Encode for &'a str {
     fn encode<E: crate::Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
         encoder.encode_str(self)
     }
 }
 
-impl Decode for &'static str {
+impl<'a> Decode for &'a str {
     fn decode_in_place<D: crate::Decoder>(
         decoder: &mut D,
         out: &mut MaybeUninit<Self>,
     ) -> Result<(), D::Error> {
-        todo!()
+        decoder.decode_str(out)
     }
 }
 
@@ -34,12 +34,13 @@ impl Encode for String {
     }
 }
 
+//TODO try remove impl block
 impl Decode for String {
     fn decode_in_place<D: Decoder>(
         decoder: &mut D,
         out: &mut MaybeUninit<Self>,
     ) -> Result<(), D::Error> {
-        todo!()
+        Ok(())
     }
 }
 
@@ -56,6 +57,12 @@ impl Vector for String {
 
     fn len(&self) -> usize {
         self.len()
+    }
+
+    fn set_len(&mut self, len: usize) {
+        let mut s = unsafe { transmute::<_, &mut MaybeUninit<String>>(self) };
+        *s = MaybeUninit::new(String::with_capacity(len));
+        unsafe { s.assume_init_mut().as_mut_vec().set_len(len) };
     }
 }
 

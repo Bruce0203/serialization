@@ -1,4 +1,4 @@
-use std::mem::MaybeUninit;
+use std::mem::{transmute, MaybeUninit};
 
 pub struct Buffer {
     ptr: *mut u8,
@@ -11,7 +11,17 @@ pub trait BufWrite {
 }
 
 pub trait BufRead {
-    fn read_slice<const N: usize>(&mut self, out: &mut MaybeUninit<[u8; N]>);
+    fn read_array<T: Copy, const N: usize>(&mut self, out: &mut MaybeUninit<[T; N]>);
+    fn read_slice<T: Copy>(&mut self, out: &mut [MaybeUninit<T>]);
+}
+
+impl From<&[u8]> for Buffer {
+    fn from(value: &[u8]) -> Self {
+        Self {
+            ptr: value.as_ptr() as *const _ as *mut u8,
+            len: value.len(),
+        }
+    }
 }
 
 impl From<&mut [u8]> for Buffer {
@@ -104,7 +114,49 @@ impl BufWrite for Buffer {
 }
 
 impl BufRead for Buffer {
-    fn read_slice<const N: usize>(&mut self, out: &mut MaybeUninit<[u8; N]>) {
-        todo!()
+    fn read_slice<T: Copy>(&mut self, out: &mut [MaybeUninit<T>]) {
+        // Most cpu cache lane is 64 bytes or 128 bytes. so 1/4 size will be fine.
+        const CHUNK_SIZE: usize = if cfg!(any(
+            target_arch = "x86",
+            target_arch = "x86_64",
+            target_arch = "aarch64"
+        )) {
+            16
+        } else {
+            4
+        };
+        let mut iter = out.chunks_exact_mut(CHUNK_SIZE);
+        loop {
+            let chunk = match iter.next() {
+                Some(v) => v,
+                None => {
+                    let remainder = iter.into_remainder();
+                    unsafe {
+                        for v in remainder.into_iter() {
+                            let src = self.ptr as *const T;
+                            self.ptr = src.wrapping_add(1) as *mut u8;
+                            let dst = v.as_ptr() as *mut T;
+                            unsafe_wild_copy!([T; 1], src, dst, 1);
+                        }
+                    }
+                    break;
+                }
+            };
+            let src = self.ptr as *const T;
+            let dst = chunk.as_ptr() as *mut T;
+            unsafe {
+                unsafe_wild_copy!([T; CHUNK_SIZE], src, dst, CHUNK_SIZE);
+            }
+            self.ptr = src.wrapping_add(CHUNK_SIZE) as *mut u8;
+        }
+    }
+
+    fn read_array<T: Copy, const N: usize>(&mut self, out: &mut MaybeUninit<[T; N]>) {
+        let src = self.ptr as *const [T; N];
+        let dst = out.as_mut_ptr() as *mut [T; N];
+        self.ptr = src.wrapping_add(1) as *mut u8;
+        unsafe {
+            unsafe_wild_copy!([T; N], src, dst, N);
+        }
     }
 }

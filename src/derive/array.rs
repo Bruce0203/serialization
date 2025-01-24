@@ -39,6 +39,8 @@ impl<T, const N: usize> Vector for [T; N] {
     fn len(&self) -> usize {
         N
     }
+
+    fn set_len(&mut self, len: usize) {}
 }
 
 const _: () = {
