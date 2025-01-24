@@ -1,4 +1,4 @@
-use std::mem::MaybeUninit;
+use std::mem::{transmute, transmute_copy, MaybeUninit};
 
 use crate::{
     prelude::{walk_segment, Mesh, SegmentEncoder},
@@ -159,20 +159,21 @@ where
     }
 
     fn encode_vec_len(&mut self, v: usize) -> Result<(), Self::Error> {
-        if v < u8::MAX as usize - 1 {
-            self.encode_u8(&(v as u8))?;
+        let v_u8 = v as u8;
+        if v_u8 < u8::MAX - 1 {
+            self.encode_u8(&v_u8)?;
         } else if v < u16::MAX as usize - 1 {
             let v = match self.endian() {
                 Endian::Big => (v as u16).to_be_bytes(),
                 Endian::Little => (v as u16).to_le_bytes(),
             };
-            self.write_array(&[255, v[0], v[1]]);
+            self.write_array(&[u8::MAX, v[0], v[1]]);
         } else if v < u32::MAX as usize - 1 {
             let v = match self.endian() {
                 Endian::Big => (v as u32).to_be_bytes(),
                 Endian::Little => (v as u32).to_le_bytes(),
             };
-            self.write_array(&[255, v[0], v[1], v[2], v[3]]);
+            self.write_array(&[u8::MAX, u8::MAX, v[0], v[1], v[2], v[3]]);
         } else {
             return Err(EncodeError::TooLarge);
         }
