@@ -1,4 +1,7 @@
-use std::mem::{transmute, transmute_copy, MaybeUninit};
+use std::{
+    mem::{transmute, transmute_copy, MaybeUninit},
+    rc::Weak,
+};
 
 use crate::{
     prelude::{walk_segment, Mesh, SegmentDecoder, SegmentEncoder},
@@ -256,7 +259,24 @@ where
     }
 
     fn decode_u16(&mut self, place: &mut MaybeUninit<u16>) -> Result<(), Self::Error> {
-        self.buffer.read_array::<u8, 2>(unsafe { transmute(place) });
+        match self.endian() {
+            Endian::Big => match Endian::NATIVE {
+                Endian::Big => self.buffer.read_array::<u8, 2>(unsafe { transmute(place) }),
+                Endian::Little => {
+                    let out: &mut [MaybeUninit<[u8; 1]>; 2] = unsafe { transmute(place) };
+                    self.buffer.read_array::<u8, 1>(&mut out[1]);
+                    self.buffer.read_array::<u8, 1>(&mut out[0]);
+                }
+            },
+            Endian::Little => match Endian::NATIVE {
+                Endian::Big => {
+                    let out: &mut [MaybeUninit<[u8; 1]>; 2] = unsafe { transmute(place) };
+                    self.buffer.read_array::<u8, 1>(&mut out[1]);
+                    self.buffer.read_array::<u8, 1>(&mut out[0]);
+                }
+                Endian::Little => self.buffer.read_array::<u8, 2>(unsafe { transmute(place) }),
+            },
+        };
         Ok(())
     }
 
