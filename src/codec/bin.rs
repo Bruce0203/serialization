@@ -256,8 +256,7 @@ where
     }
 
     fn decode_u16(&mut self, place: &mut MaybeUninit<u16>) -> Result<(), Self::Error> {
-        self.buffer
-            .read_array::<u16, 1>(unsafe { transmute(place) });
+        self.buffer.read_array::<u8, 2>(unsafe { transmute(place) });
         Ok(())
     }
 
@@ -347,21 +346,10 @@ where
             self.decode_u16(&mut out)?;
             let read = unsafe { out.assume_init() };
             let native_endian = Endian::NATIVE;
-            let front_byte = match self.endian() {
-                Endian::Big => {
-                    if matches!(native_endian, Endian::Big) {
-                        read.to_be_bytes()[0]
-                    } else {
-                        read.to_le_bytes()[0]
-                    }
-                }
-                Endian::Little => {
-                    if matches!(native_endian, Endian::Little) {
-                        read.to_le_bytes()[0]
-                    } else {
-                        read.to_be_bytes()[0]
-                    }
-                }
+            let front_byte = if matches!(native_endian, Endian::Big) {
+                read.to_be_bytes()[0]
+            } else {
+                read.to_le_bytes()[0]
             };
             if front_byte < 255 {
                 read as usize
@@ -487,7 +475,7 @@ mod benches {
     #[bench]
     fn bench_log_model_decode(b: &mut Bencher) {
         let model = Logs::default();
-        let mut dst = unsafe { Box::<[u8; 1000000]>::new_uninit().assume_init() } as Box<[u8]>;
+        let mut dst = unsafe { Box::<[u8; 5000000]>::new_uninit().assume_init() } as Box<[u8]>;
         black_box(&model);
         encode(&model, &mut dst).unwrap();
         b.iter(|| {

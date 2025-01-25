@@ -66,6 +66,17 @@ macro_rules! unsafe_wild_copy {
     }
 }
 
+// Most cpu cache lane is 64 bytes or 128 bytes. so 1/4 size of 64 will be fine.
+pub const CHUNK_SIZE: usize = if cfg!(any(
+    target_arch = "x86",
+    target_arch = "x86_64",
+    target_arch = "aarch64"
+)) {
+    16
+} else {
+    4
+};
+
 impl BufWrite for Buffer {
     fn write_array<T: Copy, const N: usize>(&mut self, src: &[T; N]) {
         let dst = self.ptr as *mut T;
@@ -77,16 +88,6 @@ impl BufWrite for Buffer {
     }
 
     fn write_slice<T: Copy>(&mut self, src: &[T]) {
-        // Most cpu cache lane is 64 bytes or 128 bytes. so 1/4 size will be fine.
-        const CHUNK_SIZE: usize = if cfg!(any(
-            target_arch = "x86",
-            target_arch = "x86_64",
-            target_arch = "aarch64"
-        )) {
-            16
-        } else {
-            4
-        };
         let mut iter = src.chunks_exact(CHUNK_SIZE);
         loop {
             let chunk = match iter.next() {
@@ -115,16 +116,6 @@ impl BufWrite for Buffer {
 
 impl BufRead for Buffer {
     fn read_slice<T: Copy>(&mut self, out: &mut [MaybeUninit<T>]) {
-        // Most cpu cache lane is 64 bytes or 128 bytes. so 1/4 size will be fine.
-        const CHUNK_SIZE: usize = if cfg!(any(
-            target_arch = "x86",
-            target_arch = "x86_64",
-            target_arch = "aarch64"
-        )) {
-            4
-        } else {
-            4
-        };
         let mut iter = out.chunks_exact_mut(CHUNK_SIZE);
         loop {
             let chunk = match iter.next() {
@@ -132,18 +123,18 @@ impl BufRead for Buffer {
                 None => {
                     let remainder = iter.into_remainder();
                     unsafe {
-                         for v in remainder.into_iter() {
-                             let src = self.ptr as *const T;
-                             self.ptr = src.wrapping_add(1) as *mut u8;
-                             let dst = v.as_ptr() as *mut T;
-                             unsafe_wild_copy!([T; 1], src, dst, 1);
-                         }
+                        for v in remainder.into_iter() {
+                            let src = self.ptr as *const T;
+                            self.ptr = src.wrapping_add(1) as *mut u8;
+                            let dst = v.as_ptr() as *mut T;
+                            unsafe_wild_copy!([T; 1], src, dst, 1);
+                        }
 
-                        //let src = self.ptr as *const T;
-                        //self.ptr = src.wrapping_add(remainder.len()) as *mut u8;
-                        //let dst = remainder.as_ptr() as *mut T;
-                        ////TODO DANGER!! must check buffer remaining size is more than CHUNK_SIZE
-                        //unsafe_wild_copy!([T; CHUNK_SIZE], src, dst, CHUNK_SIZE);
+                        // let src = self.ptr as *const T;
+                        // self.ptr = src.wrapping_add(remainder.len()) as *mut u8;
+                        // let dst = remainder.as_ptr() as *mut T;
+                        // //TODO DANGER!! must check buffer remaining size is more than CHUNK_SIZE
+                        // unsafe_wild_copy!([T; CHUNK_SIZE], src, dst, CHUNK_SIZE);
                     }
                     break;
                 }
