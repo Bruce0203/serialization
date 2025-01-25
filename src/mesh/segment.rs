@@ -31,26 +31,6 @@ where
     type Output = <<<<T as Edge<C>>::Second as Sorted>::Output as ConstifyPadding>::Output as Flatten<T>>::Output;
 }
 
-//TODO use this instead of walk_segment
-pub fn encode<T, C>(src: &T, codec: &mut C) -> Result<(), C::Error>
-where
-    T: Mesh<C, SegmentEncoder>,
-    C: CompositeEncoder,
-{
-    walk_segment::<T, C, SegmentEncoder>(src as *const _ as *mut u8, codec)?;
-    Ok(())
-}
-
-//TODO use this instead of walk_segment
-pub fn decode<T, C>(src: &T, codec: &mut C) -> Result<(), C::Error>
-where
-    T: Mesh<C, SegmentDecoder>,
-    C: CompositeDecoder,
-{
-    walk_segment::<T, C, SegmentDecoder>(src as *const _ as *mut u8, codec)?;
-    Ok(())
-}
-
 //TODO try remove inline never
 #[inline(never)]
 pub fn walk_segment<T, C, H>(src: *mut u8, codec: &mut C) -> Result<(), H::Error>

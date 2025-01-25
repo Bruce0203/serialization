@@ -49,7 +49,7 @@ pub trait Encoder: Codec + Sized + BufWrite {
 
     fn encode_str(&mut self, v: &str) -> Result<(), Self::Error>;
     fn encode_bytes(&mut self, v: &[u8]) -> Result<(), Self::Error>;
-    fn encode_vec_len(&mut self, v: usize) -> Result<(), Self::Error>;
+    fn encode_seq_len(&mut self, v: usize) -> Result<(), Self::Error>;
 }
 
 pub trait Decode: Sized {

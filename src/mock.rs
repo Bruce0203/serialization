@@ -165,7 +165,7 @@ where
         Ok(())
     }
 
-    fn encode_vec_len(&mut self, v: usize) -> Result<(), Self::Error> {
+    fn encode_seq_len(&mut self, v: usize) -> Result<(), Self::Error> {
         if v < 255 {
             self.encode_u8(&(v as u8))?;
         } else {
@@ -417,6 +417,7 @@ pub mod model {
             Eq,
             Clone,
             bitcode::Encode,
+            bitcode::Decode,
         )]
         pub struct Log {
             pub address: Address,
@@ -439,6 +440,7 @@ pub mod model {
             Eq,
             Clone,
             bitcode::Encode,
+            bitcode::Decode,
         )]
         pub struct Logs {
             pub logs: Vec<Log>,
@@ -454,6 +456,7 @@ pub mod model {
             Eq,
             Clone,
             bitcode::Encode,
+            bitcode::Decode,
         )]
         pub struct Address {
             pub x0: u8,
@@ -488,7 +491,7 @@ pub mod model {
 
         #[ignore]
         #[bench]
-        fn bench_log_model(b: &mut Bencher) {
+        fn bench_log_model_encode(b: &mut Bencher) {
             let model = Logs::default();
             let mut dst = unsafe { Box::<[u8; 1000000]>::new_uninit().assume_init() } as Box<[u8]>;
             black_box(&model);
@@ -501,13 +504,24 @@ pub mod model {
 
         #[ignore]
         #[bench]
-        fn bench_log_model_with_bitcode(b: &mut Bencher) {
+        fn bench_log_model_with_encode_bitcode(b: &mut Bencher) {
             let model = Logs::default();
             black_box(&model);
             let mut buf = bitcode::Buffer::default();
             b.iter(|| {
                 black_box(&buf.encode(&model));
             });
+            black_box(&buf);
+        }
+
+        #[ignore]
+        #[bench]
+        fn bench_log_model_with_decode_bitcode(b: &mut Bencher) {
+            let model = Logs::default();
+            black_box(&model);
+            let mut buf = bitcode::Buffer::default();
+            let encoded: Vec<u8> = black_box(&buf.encode(&model)).iter().cloned().collect();
+            b.iter(|| black_box(buf.decode::<Logs>(&encoded)));
             black_box(&buf);
         }
     }

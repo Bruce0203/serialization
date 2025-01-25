@@ -26,7 +26,7 @@ where
     T: Vector,
 {
     fn encode<E: crate::Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
-        encoder.encode_vec_len(unsafe { self.0.assume_init_ref() }.len())?;
+        encoder.encode_seq_len(unsafe { self.0.assume_init_ref() }.len())?;
         Ok(())
     }
 }

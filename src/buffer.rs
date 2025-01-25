@@ -121,7 +121,7 @@ impl BufRead for Buffer {
             target_arch = "x86_64",
             target_arch = "aarch64"
         )) {
-            16
+            4
         } else {
             4
         };
@@ -132,12 +132,18 @@ impl BufRead for Buffer {
                 None => {
                     let remainder = iter.into_remainder();
                     unsafe {
-                        for v in remainder.into_iter() {
-                            let src = self.ptr as *const T;
-                            self.ptr = src.wrapping_add(1) as *mut u8;
-                            let dst = v.as_ptr() as *mut T;
-                            unsafe_wild_copy!([T; 1], src, dst, 1);
-                        }
+                         for v in remainder.into_iter() {
+                             let src = self.ptr as *const T;
+                             self.ptr = src.wrapping_add(1) as *mut u8;
+                             let dst = v.as_ptr() as *mut T;
+                             unsafe_wild_copy!([T; 1], src, dst, 1);
+                         }
+
+                        //let src = self.ptr as *const T;
+                        //self.ptr = src.wrapping_add(remainder.len()) as *mut u8;
+                        //let dst = remainder.as_ptr() as *mut T;
+                        ////TODO DANGER!! must check buffer remaining size is more than CHUNK_SIZE
+                        //unsafe_wild_copy!([T; CHUNK_SIZE], src, dst, CHUNK_SIZE);
                     }
                     break;
                 }

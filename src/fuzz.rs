@@ -127,6 +127,11 @@ struct A27 {
     value2: (u32, String, String),
 }
 
+#[derive(serialization::Serializable, Debug, Eq, PartialEq)]
+struct A28 {
+    vec: Vec<(u8, String, String)>,
+}
+
 #[cfg(test)]
 mod tests {
     use std::{any::type_name, convert::Infallible, fmt::Debug, marker::PhantomData, str::FromStr};
@@ -186,6 +191,13 @@ mod tests {
                 String::from_str("hihi").unwrap(),
             ),
         });
+        test(A28 {
+            vec: vec![(
+                1,
+                String::from_str("HIHIHIHHIH").unwrap(),
+                String::from_str("asdfasdfa").unwrap(),
+            )],
+        });
     }
 
     fn test<T: Eq + Debug>(value: T)
@@ -194,18 +206,9 @@ mod tests {
         T: Mesh<BinaryCodecMock, SegmentDecoder>,
         [(); size_of::<T>()]:,
     {
-        println!("{}", type_name::<T>());
         let mut dst = [0u8; 100000];
-        println!("A1");
         crate::mock::encode(&value, &mut dst).unwrap();
-        println!("A2");
         let decoded = crate::mock::decode::<T>(&mut dst).unwrap();
-        println!("A3");
-        println!("{:?}", unsafe {
-            std::mem::transmute::<_, &[u8; size_of::<T>()]>(&decoded)
-        });
-        println!("A4");
         assert_eq!(value, decoded);
-        println!("A5");
     }
 }
