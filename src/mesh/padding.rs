@@ -3,11 +3,7 @@ use std::{marker::PhantomData, ops::Add};
 use typenum::{ToUInt, Unsigned};
 
 use super::{
-    edge::{Edge, PhantomEdge},
-    end::End,
-    field::{Field, FieldOffset},
-    flatten::CompoundWrapper,
-    len::{Len, Size}, prelude::Vectored,
+    edge::{Edge, PhantomEdge}, end::End, r#enum::Enum, field::{Field, FieldOffset}, flatten::CompoundWrapper, len::{Len, Size}, prelude::Vectored
 };
 
 pub struct Padding<C, S, FrontOffset>(PhantomData<(C, S, FrontOffset)>);
@@ -111,6 +107,14 @@ where
 {
     type Output = PhantomEdge<C, S, (Vectored<A>, <B as ConstifyPadding>::Output)>;
 }
+
+impl<C, S, A, B> ConstifyPadding for PhantomEdge<C, S, (Enum<A>, B)>
+where
+    B: ConstifyPadding,
+{
+    type Output = PhantomEdge<C, S, (Enum<A>, <B as ConstifyPadding>::Output)>;
+}
+
 
 
 impl<C, S> ConstifyPadding for End<C, S> {

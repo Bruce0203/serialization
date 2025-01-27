@@ -7,10 +7,9 @@ mod impls;
 mod leaf;
 mod len;
 mod macros;
-mod pad;
+mod padding;
 mod segment;
 mod sort;
-mod tag;
 mod vectored;
 
 pub(crate) mod prelude {
@@ -24,11 +23,10 @@ pub(crate) mod prelude {
     pub use super::leaf::*;
     pub use super::len::*;
     pub use super::macros::*;
-    pub use super::pad::*;
+    pub use super::padding::*;
     pub use super::r#enum::*;
     pub use super::segment::*;
     pub use super::sort::*;
-    pub use super::tag::*;
     pub use super::vectored::*;
 }
 

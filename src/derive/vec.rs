@@ -3,7 +3,7 @@ use std::mem::{transmute, MaybeUninit};
 use typenum::Const;
 
 use crate::prelude::{
-    CompoundUnwrapper, CompoundWrapper, Edge, End, Field, FieldOffset, Len, PhantomEdge, Size, Tag,
+    CompoundUnwrapper, CompoundWrapper, Edge, End, Field, FieldOffset, Len, PhantomEdge, Size,
     Vector, Vectored, UNSIZED,
 };
 use crate::{impl_field_token, Decode, Encode, Encoder};

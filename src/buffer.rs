@@ -1,8 +1,8 @@
 use std::mem::{transmute, MaybeUninit};
 
 pub struct Buffer {
-    ptr: *mut u8,
-    len: usize,
+    pub(crate) ptr: *mut u8,
+    pub(crate) len: usize,
 }
 
 pub trait BufWrite {
@@ -66,7 +66,7 @@ macro_rules! unsafe_wild_copy {
     }
 }
 
-// Most cpu cache lane is 64 bytes or 128 bytes. so 1/4 size of 64 will be fine.
+// Most cpu cache lane is 64 bytes or 128 bytes. so 1/4 size of 64 will be fine to copy fast.
 pub const CHUNK_SIZE: usize = if cfg!(any(
     target_arch = "x86",
     target_arch = "x86_64",
@@ -149,9 +149,9 @@ impl BufRead for Buffer {
     }
 
     fn read_array<T: Copy, const N: usize>(&mut self, out: &mut MaybeUninit<[T; N]>) {
-        let src = self.ptr as *const [T; N];
-        let dst = out.as_mut_ptr() as *mut [T; N];
-        self.ptr = src.wrapping_add(1) as *mut u8;
+        let src = self.ptr as *const T;
+        let dst = out.as_mut_ptr() as *mut T;
+        self.ptr = src.wrapping_add(N) as *mut u8;
         unsafe {
             unsafe_wild_copy!([T; N], src, dst, N);
         }

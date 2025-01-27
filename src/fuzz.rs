@@ -153,22 +153,22 @@ mod tests {
         test(A5 { v: 123 });
         test(A6 { v1: 11, v2: 22 });
         test(A7(11, 22));
-        // test(A8::A);
-        // test(A9::B);
-        // test(A10::A(123));
-        // test(A10::A(123));
-        // test(A11::A(11, 22));
-        // test(A12::B(11, 22));
-        // test(A13::C);
+        test(A8::A);
+        test(A9::B);
+        test(A10::A(123));
+        test(A10::A(123));
+        test(A11::A(11, 22));
+        test(A12::B(11, 22));
+        test(A13::C);
         // test(A14::<usize> { vaule: PhantomData });
         // test(A15::<usize> { value: 123 });
         // test(A16::<usize, usize>::A(123));
         // test(A17 { value: "hi" });
         test(A18 { value: 123 });
         //A19 is infallible type
-        // test(A20::E);
+         test(A20::E);
         // test(A21 { value: "hi" });
-        // test(A22::A { value: 123 });
+         test(A22::A { value: 123 });
         test(A23 { value: vec![123] });
         test(A24 {
             value: vec![String::from_str("hi").unwrap()],

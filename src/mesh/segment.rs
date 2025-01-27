@@ -1,4 +1,4 @@
-use std::mem::{transmute, MaybeUninit};
+use std::mem::{discriminant, transmute, MaybeUninit};
 
 use crate::{CompositeDecoder, CompositeEncoder, Decode, Encode};
 
@@ -8,8 +8,9 @@ use super::{
     field::Field,
     flatten::Flatten,
     len::{Len, Size},
-    pad::{ConstPadding, ConstifyPadding},
+    padding::{ConstPadding, ConstifyPadding},
     prelude::{Vector, Vectored},
+    r#enum::Enum,
     sort::Sorted,
 };
 
@@ -31,14 +32,13 @@ where
     type Output = <<<<T as Edge<C>>::Second as Sorted>::Output as ConstifyPadding>::Output as Flatten<T>>::Output;
 }
 
-//TODO try remove inline never
 #[inline(never)]
-pub fn walk_segment<T, C, H>(src: *mut u8, codec: &mut C) -> Result<(), H::Error>
+pub fn walk_segment<T, C, H>(src: *const T, codec: &mut C) -> Result<(), H::Error>
 where
     H: SegmentCodec<C>,
     T: Mesh<C, H>,
 {
-    <T as Mesh<C, H>>::Output::walk(src as *mut _ as *mut u8, codec, None)
+    <T as Mesh<C, H>>::Output::walk(src as *const _ as *mut u8, codec, None)
 }
 
 pub trait SegmentCodec<C> {
@@ -166,6 +166,20 @@ where
                 >>::walk(elem as *const _ as *mut u8, codec, None)?;
             }
         }
+        src = src.wrapping_byte_add(<T as Size>::SIZE);
+        B::walk(src, codec, None)
+    }
+}
+
+impl<S, S2, C, H, B, T> SegmentWalker<S, C, H> for PhantomEdge<C, S2, (Enum<T>, B)>
+where
+    H: SegmentCodec<C>,
+    B: SegmentWalker<S, C, H>,
+    T: Size,
+{
+    fn walk(mut src: *mut u8, codec: &mut C, _skip_len: Option<usize>) -> Result<(), H::Error> {
+        H::handle_element(unsafe { transmute::<_, &mut Enum<T>>(src) }, codec)?;
+        // <>::walk(elem as *const _ as *mut u8, codec, None)?;
         src = src.wrapping_byte_add(<T as Size>::SIZE);
         B::walk(src, codec, None)
     }

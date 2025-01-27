@@ -33,7 +33,7 @@ where
     let buffer = Buffer::from(dst);
     let mut codec = BinaryCodecMock { buffer };
     let src: *const T = &*src;
-    walk_segment::<T, BinaryCodecMock, SegmentEncoder>(src as *const _ as *mut u8, &mut codec)
+    walk_segment::<T, BinaryCodecMock, SegmentEncoder>(src, &mut codec)
 }
 
 pub fn decode<'a, T>(src: &[u8]) -> Result<T, <BinaryCodecMock as Decoder>::Error>
@@ -43,10 +43,7 @@ where
     let mut out = MaybeUninit::uninit();
     let buffer = Buffer::from(src);
     let mut codec = BinaryCodecMock { buffer };
-    walk_segment::<T, BinaryCodecMock, SegmentDecoder>(
-        out.as_ptr() as *const _ as *mut u8,
-        &mut codec,
-    )?;
+    walk_segment::<T, BinaryCodecMock, SegmentDecoder>(out.as_ptr(), &mut codec)?;
     Ok(unsafe { out.assume_init() })
 }
 

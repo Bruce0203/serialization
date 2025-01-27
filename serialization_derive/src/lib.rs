@@ -65,17 +65,32 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 brace,
             } = data_struct.fields.into();
             quote! {
-                #crate_path::impl_mesh!(
-                    {#(#type_generics_without_lt),*},
-                    #brace,
-                    (#ident), {#(#type_generics),*},
-                    impl {#(#impl_generics,)*} (#(#where_clause,)*);
-                    #(#idents => {#types}),*
-                );
+                const _: () = {
+                    #crate_path::impl_mesh!(
+                        {#(#type_generics_without_lt),*},
+                        #brace,
+                        (#ident), {#(#type_generics),*},
+                        impl {#(#impl_generics,)*} (#(#where_clause,)*);
+                        #(#idents => {#types}),*
+                    );
+                };
             }
         }
         Data::Enum(data_enum) => {
-            let mut quotes = quote!();
+            let mut quotes = {
+                let impl_generics = impl_generics.iter();
+                let where_clause = where_clause.iter();
+                let type_generics = type_generics.iter();
+                let type_generics_without_lt = type_generics_without_lt.iter();
+                quote! {
+                    #crate_path::impl_enum_mesh!(
+                        {#(#type_generics_without_lt),*},
+                        (#ident), {#(#type_generics),*},
+                        impl {#(#impl_generics,)*} (#(#where_clause,)*);
+                    );
+                }
+            };
+            let mut variant_index = 0_usize;
             for variant in data_enum.variants.into_iter() {
                 let impl_generics = impl_generics.iter();
                 let where_clause = where_clause.iter();
@@ -87,18 +102,24 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                     brace,
                 } = variant.fields.into();
                 let variant_ident = variant.ident;
+
                 let quote = quote! {
-                    #crate_path::impl_enum_mesh!(
+                    #crate_path::impl_enum_variant_mesh!(
                         {#(#type_generics_without_lt),*},
                         #brace,
-                        (#ident), {#(#type_generics),*}, #variant_ident
+                        (#ident), {#(#type_generics),*}, #variant_ident, #variant_index,
                         impl {#(#impl_generics,)*} (#(#where_clause,)*);
                         #(#idents => {#types}),*
                     );
                 };
                 quotes.extend(quote);
+                variant_index += 1;
             }
-            quotes
+            quote! {
+                const _: () = {
+                    #quotes
+                };
+            }
         }
         Data::Union(_data_union) => {
             panic!("union not support")

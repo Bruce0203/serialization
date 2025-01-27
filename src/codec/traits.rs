@@ -6,14 +6,14 @@ pub trait Encode {
     fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error>;
 }
 
+pub trait Codec {
+    fn endian(&self) -> Endian;
+}
+
 macro_rules! encode_value {
     ($($fn_name:ident: $type:ty),*) => {$(
         fn $fn_name(&mut self, v: &$type) -> Result<(), Self::Error>;
     )*};
-}
-
-pub trait Codec {
-    fn endian(&self) -> Endian;
 }
 
 pub trait Encoder: Codec + Sized + BufWrite {

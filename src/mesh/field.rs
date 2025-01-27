@@ -1,11 +1,7 @@
 use std::{mem::MaybeUninit, ops::Add};
 
 use super::{
-    edge::{Edge, PhantomEdge},
-    flatten::{Compound, CompoundWrapper},
-    leaf::PhantomLeaf,
-    len::{Len, Size},
-    prelude::Vectored,
+    edge::{Edge, PhantomEdge}, r#enum::Enum, flatten::{Compound, CompoundWrapper}, leaf::PhantomLeaf, len::{Len, Size}, prelude::Vectored
 };
 
 pub trait FieldOffset {
@@ -74,5 +70,9 @@ impl<S, T> FieldUnwrapper for Field<Compound<S, T>> {
 }
 
 impl<T> FieldUnwrapper for Field<Vectored<T>> {
+    type Output = Vectored<T>;
+}
+
+impl<T> FieldUnwrapper for Field<Enum<T>> {
     type Output = Vectored<T>;
 }

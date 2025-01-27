@@ -26,6 +26,5 @@ default = ["bin"]
 bin = []
 
 # [profile.release]
-# strip = false
 # lto = true
 # codegen-units = 1

@@ -20,8 +20,8 @@ where
     T: Mesh<BinaryCodec, SegmentEncoder>,
 {
     let buffer = Buffer::from(dst);
-    let mut codec = BinaryCodec { buffer };
-    walk_segment::<T, BinaryCodec, SegmentEncoder>(src as *const _ as *mut u8, &mut codec)?;
+    let ref mut codec = BinaryCodec { buffer };
+    walk_segment::<T, BinaryCodec, SegmentEncoder>(src, codec);
     Ok(())
 }
 
@@ -32,10 +32,7 @@ where
     let out = MaybeUninit::uninit();
     let buffer = Buffer::from(src);
     let mut codec = BinaryCodec { buffer };
-    walk_segment::<T, BinaryCodec, SegmentDecoder>(
-        out.as_ptr() as *const _ as *mut u8,
-        &mut codec,
-    )?;
+    walk_segment::<T, BinaryCodec, SegmentDecoder>(out.as_ptr(), &mut codec)?;
     Ok(unsafe { out.assume_init() })
 }
 
@@ -99,7 +96,11 @@ where
     }
 
     fn encode_u32(&mut self, v: &u32) -> Result<(), Self::Error> {
-        todo!()
+        self.write_array(&match self.endian() {
+            Endian::Big => v.to_be_bytes(),
+            Endian::Little => v.to_le_bytes(),
+        });
+        Ok(())
     }
 
     fn encode_i32(&mut self, v: &i32) -> Result<(), Self::Error> {
@@ -107,7 +108,11 @@ where
     }
 
     fn encode_u64(&mut self, v: &u64) -> Result<(), Self::Error> {
-        todo!()
+        self.write_array(&match self.endian() {
+            Endian::Big => v.to_be_bytes(),
+            Endian::Little => v.to_le_bytes(),
+        });
+        Ok(())
     }
 
     fn encode_i64(&mut self, v: &i64) -> Result<(), Self::Error> {
@@ -180,24 +185,8 @@ where
     }
 
     fn encode_seq_len(&mut self, v: usize) -> Result<(), Self::Error> {
-        if v < u8::MAX as usize {
-            self.encode_u8(&(v as u8))?;
-        } else if v < u16::MAX as usize {
-            let v = match self.endian() {
-                Endian::Big => (v as u16).to_be_bytes(),
-                Endian::Little => (v as u16).to_le_bytes(),
-            };
-            self.write_array(&[u8::MAX, v[0], v[1]]);
-        } else if v < u32::MAX as usize {
-            let v = match self.endian() {
-                Endian::Big => (v as u32).to_be_bytes(),
-                Endian::Little => (v as u32).to_le_bytes(),
-            };
-            self.write_array(&[u8::MAX, u8::MAX, v[0], v[1], v[2], v[3]]);
-        } else {
-            return Err(EncodeError::TooLarge);
-        }
-        Ok(())
+        debug_assert!(v < u32::MAX as usize);
+        self.encode_u64(&(v as u64))
     }
 }
 
@@ -259,6 +248,7 @@ where
     }
 
     fn decode_u16(&mut self, place: &mut MaybeUninit<u16>) -> Result<(), Self::Error> {
+        //TODO fix endian
         match self.endian() {
             Endian::Big => match Endian::NATIVE {
                 Endian::Big => self.buffer.read_array::<u8, 2>(unsafe { transmute(place) }),
@@ -274,7 +264,9 @@ where
                     self.buffer.read_array::<u8, 1>(&mut out[1]);
                     self.buffer.read_array::<u8, 1>(&mut out[0]);
                 }
-                Endian::Little => self.buffer.read_array::<u8, 2>(unsafe { transmute(place) }),
+                Endian::Little => {
+                    self.buffer.read_array::<u8, 2>(unsafe { transmute(place) });
+                }
             },
         };
         Ok(())
@@ -285,7 +277,28 @@ where
     }
 
     fn decode_u32(&mut self, place: &mut MaybeUninit<u32>) -> Result<(), Self::Error> {
-        todo!()
+        //TODO fix endian
+        match self.endian() {
+            Endian::Big => match Endian::NATIVE {
+                Endian::Big => self.buffer.read_array::<u8, 2>(unsafe { transmute(place) }),
+                Endian::Little => {
+                    let out: &mut [MaybeUninit<[u8; 1]>; 2] = unsafe { transmute(place) };
+                    self.buffer.read_array::<u8, 1>(&mut out[1]);
+                    self.buffer.read_array::<u8, 1>(&mut out[0]);
+                }
+            },
+            Endian::Little => match Endian::NATIVE {
+                Endian::Big => {
+                    let out: &mut [MaybeUninit<[u8; 1]>; 4] = unsafe { transmute(place) };
+                    self.buffer.read_array::<u8, 1>(&mut out[1]);
+                    self.buffer.read_array::<u8, 1>(&mut out[0]);
+                }
+                Endian::Little => {
+                    self.buffer.read_array::<u8, 4>(unsafe { transmute(place) });
+                }
+            },
+        };
+        Ok(())
     }
 
     fn decode_i32(&mut self, place: &mut MaybeUninit<i32>) -> Result<(), Self::Error> {
@@ -293,7 +306,28 @@ where
     }
 
     fn decode_u64(&mut self, place: &mut MaybeUninit<u64>) -> Result<(), Self::Error> {
-        todo!()
+        //TODO fix endian
+        match self.endian() {
+            Endian::Big => match Endian::NATIVE {
+                Endian::Big => self.buffer.read_array::<u8, 2>(unsafe { transmute(place) }),
+                Endian::Little => {
+                    let out: &mut [MaybeUninit<[u8; 1]>; 2] = unsafe { transmute(place) };
+                    self.buffer.read_array::<u8, 1>(&mut out[1]);
+                    self.buffer.read_array::<u8, 1>(&mut out[0]);
+                }
+            },
+            Endian::Little => match Endian::NATIVE {
+                Endian::Big => {
+                    let out: &mut [MaybeUninit<[u8; 1]>; 4] = unsafe { transmute(place) };
+                    self.buffer.read_array::<u8, 1>(&mut out[1]);
+                    self.buffer.read_array::<u8, 1>(&mut out[0]);
+                }
+                Endian::Little => {
+                    self.buffer.read_array::<u8, 8>(unsafe { transmute(place) });
+                }
+            },
+        };
+        Ok(())
     }
 
     fn decode_i64(&mut self, place: &mut MaybeUninit<i64>) -> Result<(), Self::Error> {
@@ -357,29 +391,8 @@ where
 
     fn decode_seq_len(&mut self) -> Result<usize, Self::Error> {
         let mut out = MaybeUninit::uninit();
-        self.decode_u8(&mut out)?;
-        let read = unsafe { out.assume_init() };
-        Ok(if read < 255 {
-            read as usize
-        } else {
-            let mut out = MaybeUninit::uninit();
-            self.decode_u16(&mut out)?;
-            let read = unsafe { out.assume_init() };
-            let native_endian = Endian::NATIVE;
-            let front_byte = if matches!(native_endian, Endian::Big) {
-                read.to_be_bytes()[0]
-            } else {
-                read.to_le_bytes()[0]
-            };
-            if front_byte < 255 {
-                read as usize
-            } else {
-                let mut out = MaybeUninit::uninit();
-                self.decode_u32(&mut out)?;
-                let read = unsafe { out.assume_init() };
-                read as usize
-            }
-        })
+        self.decode_u64(&mut out)?;
+        Ok(unsafe { out.assume_init() } as usize)
     }
 
     fn decode_enum(&mut self, enum_name: &'static str) -> Result<EnumIdentifier, Self::Error> {
@@ -471,15 +484,17 @@ mod tests {
 
 #[cfg(test)]
 mod benches {
-    use std::hint::black_box;
+    use std::{hint::black_box, mem::MaybeUninit};
 
     use test::Bencher;
 
     use crate::{
         bin::{decode, encode},
         mock::model::log::Logs,
-        Decode,
+        Buffer, Decode, Decoder,
     };
+
+    use super::BinaryCodec;
 
     #[bench]
     fn bench_log_model_encode(b: &mut Bencher) {

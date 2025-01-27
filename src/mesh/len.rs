@@ -1,11 +1,7 @@
 use typenum::{ToUInt, Unsigned};
 
 use super::{
-    edge::{Edge, PhantomEdge},
-    end::End,
-    field::{Field, FieldOffset},
-    pad::{ConstPadding, Padding},
-    prelude::Vectored,
+    edge::{Edge, PhantomEdge}, end::End, r#enum::Enum, field::{Field, FieldOffset}, padding::{ConstPadding, Padding}, prelude::Vectored
 };
 
 pub const UNSIZED: usize = usize::MAX;
@@ -32,7 +28,14 @@ where
 }
 
 impl<Codec, S, S2, S3, FrontOffset, B, C> Len
-    for PhantomEdge<Codec, S, (Padding<Codec, S2, FrontOffset>, PhantomEdge<Codec, S3, (B, C)>)>
+    for PhantomEdge<
+        Codec,
+        S,
+        (
+            Padding<Codec, S2, FrontOffset>,
+            PhantomEdge<Codec, S3, (B, C)>,
+        ),
+    >
 where
     C: Len,
     B: FieldOffset<Offset: ToUInt<Output: Unsigned>> + Len,
@@ -75,6 +78,13 @@ where
 }
 
 impl<C, S, T, B> Len for PhantomEdge<C, S, (Vectored<T>, B)>
+where
+    Self: Edge<C, Second: Len>,
+{
+    const SIZE: usize = field_size_of(UNSIZED, <<Self as Edge<C>>::Second as Len>::SIZE);
+}
+
+impl<C, S, T, B> Len for PhantomEdge<C, S, (Enum<T>, B)>
 where
     Self: Edge<C, Second: Len>,
 {

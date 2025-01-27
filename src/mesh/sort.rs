@@ -3,10 +3,7 @@ use std::{marker::PhantomData, ops::Add};
 use typenum::{B0, B1, IsLess, ToUInt};
 
 use super::{
-    edge::{Edge, PhantomEdge},
-    end::End,
-    field::{Field, FieldOffset},
-    leaf::PhantomLeaf, prelude::Vectored,
+    edge::{Edge, PhantomEdge}, end::End, r#enum::Enum, field::{Field, FieldOffset}, leaf::PhantomLeaf, prelude::Vectored
 };
 
 pub trait Sorted {
@@ -113,6 +110,30 @@ where
         unreachable!()
     }
 }
+
+impl<C, S, A, B> Add<B> for PhantomOrder<C, S, Enum<A>>
+where
+    B: FieldOffset<Offset: ToUInt>,
+    Enum<A>: FieldOffset<Offset: ToUInt>,
+    <<Enum<A> as FieldOffset>::Offset as ToUInt>::Output:
+        IsLess<<<B as FieldOffset>::Offset as ToUInt>::Output>,
+    PhantomEdge<C, S, (Enum<A>, B)>: Order<
+        <<<Enum<A> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
+            <<B as FieldOffset>::Offset as ToUInt>::Output,
+        >>::Output,
+    >,
+{
+    type Output = <PhantomEdge<C, S, (Enum<A>, B)> as Order<
+        <<<Enum<A> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
+            <B::Offset as ToUInt>::Output,
+        >>::Output,
+    >>::Output;
+
+    fn add(self, _rhs: B) -> Self::Output {
+        unreachable!()
+    }
+}
+
 
 impl<Codec, S, A, B, C> Add<C> for PhantomOrder<Codec, S, PhantomEdge<Codec, S, (A, B)>>
 where
