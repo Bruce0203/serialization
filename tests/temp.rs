@@ -8,7 +8,7 @@ use serialization::{
     impl_field_token, meshup, offset_of_enum, wrap_brace,
 };
 
- enum A {
+enum A {
     V1(u32),
     V2(u8),
     V3(u8, i16),
@@ -66,7 +66,7 @@ const _: () = {
         unsafe {
             let origin = {
                 let value = MaybeUninit::zeroed().assume_init();
-                let origin= wrap_brace!(brace, (A::V6), value);
+                let origin = wrap_brace!(brace, (A::V6), value);
                 MaybeUninit::new(origin)
             };
         }

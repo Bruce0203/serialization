@@ -36,7 +36,7 @@ macro_rules! impl_mesh {
 
 #[macro_export]
 macro_rules! impl_enum_mesh {
-    ({$($type_generics_without_lt:tt),*}, ($($type:tt)+), {$($type_generics:tt),*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $($field_ident:tt => {$($field:tt)*}),*) => {
+    ({$($type_generics_without_lt:tt),*}, ($($type:tt)+), {$($type_generics:tt),*} /*, ($($variants:ident),*),*/ impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $($field_ident:tt => {$($field:tt)*}),*) => {
 
  struct __VariantToken<$($impl_generics,)* const I: usize>(core::marker::PhantomData<($($type_generics),*)>);
         $crate::impl_field_token!();
@@ -101,7 +101,7 @@ where
         type Offset = $crate::__private::typenum::Const<{ __field_offset::<$($impl_generics,)*>() }>;
     }
 pub const fn __field_offset<$($impl_generics,)*>() -> usize where $($where_clause)* {
-                 $crate::offset_of_enum!($brace, $($type)+, {$($type_generics),*}, $variant, ($($fields_idents),*), $first_field_ident) 
+                 $crate::offset_of_enum!($brace, $($type)+, {$($type_generics),*}, $variant, ($($fields_idents),*), $first_field_ident)
             }
 
                                 };

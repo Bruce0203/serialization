@@ -1,16 +1,12 @@
-#![feature(concat_idents)]
-
 use proc_macro2::Span;
-use quote::{format_ident, quote, ToTokens};
-use syn::{
-    parse_macro_input, parse_quote, Data, DeriveInput, GenericParam, Ident, Type, TypeGroup,
-};
+use quote::{format_ident, quote};
+use syn::{parse_macro_input, parse_quote, Data, DeriveInput, GenericParam, Ident, Type};
 
 #[proc_macro_derive(Serializable)]
 pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let crate_path = quote!(serialization);
-    let private = quote!(#crate_path::__private);
+    // let private = quote!(#crate_path::__private);
     let ident = input.ident;
     let mut impl_generics = input.generics.params.clone();
     let mut type_generics = input.generics.params.clone();
@@ -82,10 +78,11 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 let where_clause = where_clause.iter();
                 let type_generics = type_generics.iter();
                 let type_generics_without_lt = type_generics_without_lt.iter();
+                let variants = data_enum.variants.iter();
                 quote! {
                     #crate_path::impl_enum_mesh!(
                         {#(#type_generics_without_lt),*},
-                        (#ident), {#(#type_generics),*},
+                        (#ident), {#(#type_generics),*}//, (#(#variants),*),
                         impl {#(#impl_generics,)*} (#(#where_clause,)*);
                     );
                 }

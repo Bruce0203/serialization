@@ -179,6 +179,7 @@ where
 {
     fn walk(mut src: *mut u8, codec: &mut C, _skip_len: Option<usize>) -> Result<(), H::Error> {
         H::handle_element(unsafe { transmute::<_, &mut Enum<T>>(src) }, codec)?;
+        //decode discriminant
         // <>::walk(elem as *const _ as *mut u8, codec, None)?;
         src = src.wrapping_byte_add(<T as Size>::SIZE);
         B::walk(src, codec, None)

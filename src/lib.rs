@@ -1,3 +1,4 @@
+#![feature(core_intrinsics)]
 #![allow(warnings)]
 #![allow(
     incomplete_features,
