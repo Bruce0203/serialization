@@ -1,9 +1,10 @@
 #![allow(warnings)]
-use std::mem::MaybeUninit;
+use std::mem::{discriminant, MaybeUninit};
 
 use serialization::{
     __private::{
-        sub_ptr, CompoundWrapper, Edge, End, Enum, FieldOffset, Len, PhantomEdge, Size, UNSIZED,
+        sub_ptr, CompoundWrapper, Edge, End, Enum, FieldOffset, Len, PhantomEdge,
+        SegmentWalker, Size, UNSIZED,
     },
     impl_field_token, meshup, offset_of_enum, wrap_brace,
 };
@@ -51,6 +52,9 @@ const _: () = {
         type First = End<__C, Self>;
 
         type Second = meshup!(0, (__VariantToken), {0}; {u32});
+    }
+    impl Size for __VariantToken<0> {
+        const SIZE: usize = <A as Size>::SIZE;
     }
 
     impl FieldOffset for __VariantToken<1> {

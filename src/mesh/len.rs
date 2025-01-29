@@ -1,7 +1,12 @@
 use typenum::{ToUInt, Unsigned};
 
 use super::{
-    edge::{Edge, PhantomEdge}, end::End, r#enum::Enum, field::{Field, FieldOffset}, padding::{ConstPadding, Padding}, prelude::Vectored
+    edge::{Edge, PhantomEdge},
+    end::End,
+    field::{Field, FieldOffset},
+    padding::{ConstPadding, Padding},
+    prelude::Vectored,
+    r#enum::Enum,
 };
 
 pub const UNSIZED: usize = usize::MAX;

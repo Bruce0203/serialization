@@ -68,19 +68,20 @@ macro_rules! impl_enum_mesh {
                 Ok(())
             }
         }
+
     };
 }
 
 #[macro_export]
 macro_rules! impl_enum_variant_mesh {
     ({$($type_generics_without_lt:tt),*}, $brace:ident, ($($type:tt)+), {$($type_generics:tt),*}, $variant:ident, $variant_index:expr, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $($field_ident:tt => {$($field:tt)*}),*) => {
-            impl<$($impl_generics,)* __C> $crate::__private::Edge<__C> for __VariantToken<$($impl_generics,)* $variant_index>
+            impl<$($impl_generics,)* __C> $crate::__private::Edge<__C> for __VariantToken<$($type_generics,)* $variant_index>
                 where
                     $($where_clause)*
                     $($type_generics_without_lt: $crate::__private::Edge<__C>),*
             {
                 type First = $crate::__private::End<__C, $($type)+ <$($type_generics),*>>;
-                type Second = $crate::meshup!(0, ($($type)+), {$($type_generics),*}; $({$($field)*})*);
+                type Second = $crate::meshup!(0, (__VariantToken), {$($type_generics,)* $variant_index}; $({$($field)*})*);
             }
 
         $crate::impl_enum_field_offset!($brace, 0, ($($type)+), {$($type_generics),*}, $variant, $variant_index, impl {$($impl_generics,)*} ($($where_clause)*); ($($field_ident),*), $($field_ident => {$($field)*}),*);

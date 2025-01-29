@@ -1,6 +1,6 @@
 use std::mem::{discriminant, transmute, MaybeUninit};
 
-use crate::{CompositeDecoder, CompositeEncoder, Decode, Encode};
+use crate::{Codec, CompositeDecoder, CompositeEncoder, Decode, Encode};
 
 use super::{
     edge::{Edge, PhantomEdge},
@@ -103,7 +103,6 @@ pub trait SegmentWalker<S, C, H>
 where
     H: SegmentCodec<C>,
 {
-    // try change src type to raw pointer
     fn walk(src: *mut u8, codec: &mut C, skip_len: Option<usize>) -> Result<(), H::Error>;
 }
 
@@ -176,10 +175,18 @@ where
     H: SegmentCodec<C>,
     B: SegmentWalker<S, C, H>,
     T: Size,
+    C: Codec,
 {
     fn walk(mut src: *mut u8, codec: &mut C, _skip_len: Option<usize>) -> Result<(), H::Error> {
         H::handle_element(unsafe { transmute::<_, &mut Enum<T>>(src) }, codec)?;
-        //decode discriminant
+        let enum_value: MaybeUninit<T> = MaybeUninit::uninit();
+        //let v = <T as EnumMatcher>::edge_of::<C, H>(unsafe { enum_value.assume_init_ref() });
+        //stopship: enum discriminant를 decoding하는 함수를 만들어라
+        //discriminant size를 그대로 decode/encode하라
+        //decode [u8; size_of::<Discriminant<T>>()]을 디코딩하고
+        //discriminant를 입력값으로 받고 VariantToken을 반환하라
+        //discriminant matching한 함수의 반환값을 함수 포인터로 하는 것을 고려하라
+        //또는 type Output을 associated type으로 가지고 있는 trait을 impl Type형태로 반환하고
         // <>::walk(elem as *const _ as *mut u8, codec, None)?;
         src = src.wrapping_byte_add(<T as Size>::SIZE);
         B::walk(src, codec, None)

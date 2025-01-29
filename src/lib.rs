@@ -1,3 +1,4 @@
+#![feature(discriminant_kind)]
 #![feature(core_intrinsics)]
 #![allow(warnings)]
 #![allow(
