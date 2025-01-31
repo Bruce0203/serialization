@@ -1,4 +1,7 @@
-use std::mem::{Discriminant, MaybeUninit};
+use std::{
+    mem::{Discriminant, MaybeUninit},
+    ops::Index,
+};
 
 use crate::{BufRead, BufWrite, Endian};
 
@@ -15,6 +18,15 @@ macro_rules! encode_value {
         fn $fn_name(&mut self, v: &$type) -> Result<(), Self::Error>;
     )*};
 }
+
+#[repr(transparent)]
+pub struct EnumVariantIndex(pub usize);
+
+#[repr(transparent)]
+pub struct EnumVariantName(pub &'static str);
+
+#[repr(transparent)]
+pub struct EnumVariantDiscriminant<T>(pub Discriminant<T>);
 
 pub trait Encoder: Codec + Sized + BufWrite {
     type Error: EncodeError;
@@ -37,12 +49,9 @@ pub trait Encoder: Codec + Sized + BufWrite {
     fn encode_struct<'a>(&mut self) -> Result<&mut Self::StructEncoder, Self::Error>;
     fn encode_seq(&mut self, len: usize) -> Result<&mut Self::SequenceEncoder, Self::Error>;
 
-    fn encode_enum_variant<T>(
-        &mut self,
-        enum_name: &'static str,
-        variant_name: &'static str,
-        variant_discriminant: Discriminant<T>,
-    ) -> Result<(), Self::Error>;
+    fn encode_enum_identifier<T>(&mut self, value: &T) -> Result<(), Self::Error>
+    where
+        for<'a> &'a T: Into<EnumVariantName> + Into<EnumVariantDiscriminant<T>>;
 
     fn encode_some(&mut self) -> Result<(), Self::Error>;
     fn encode_none(&mut self) -> Result<(), Self::Error>;
@@ -101,17 +110,12 @@ pub trait Decoder: Codec + Sized + BufRead {
     fn decode_seq(&mut self) -> Result<&mut Self::SequenceDecoder, Self::Error>;
 
     fn decode_seq_len(&mut self) -> Result<usize, Self::Error>;
-    fn decode_enum_variant<T>(
-        &mut self,
-        enum_name: &'static str,
-    ) -> Result<EnumIdentifier<T>, Self::Error>;
+    fn decode_enum_variant<T>(&mut self) -> Result<EnumVariantIndex, Self::Error>
+    where
+        for<'a> &'a T: Index<EnumVariantName, Output = EnumVariantIndex>
+            + Index<EnumVariantDiscriminant<T>, Output = EnumVariantIndex>;
 
     fn decode_is_some(&mut self) -> Result<bool, Self::Error>;
-}
-
-pub enum EnumIdentifier<T> {
-    VariantName(&'static str),
-    Discriminant(Discriminant<T>),
 }
 
 pub trait EncodeError {
@@ -123,8 +127,7 @@ pub trait EncodeError {
 pub trait DecodeError {
     fn not_enough_bytes_in_the_buffer() -> Self;
     fn too_large() -> Self;
-    fn invalid_enum_variant_name() -> Self;
-    fn invalid_enum_variant_index() -> Self;
+    fn invalid_enum_identifier() -> Self;
     fn custom() -> Self;
     fn invalid_utf8() -> Self;
     fn nonmax_but_max() -> Self;

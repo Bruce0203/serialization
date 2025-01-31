@@ -34,14 +34,61 @@ macro_rules! impl_mesh {
     };
 }
 
+//TODO remove it
+// #[macro_export]
+// macro_rules! impl_match_branches_of_into_enum_id {
+//     ($index:expr, ($($type:tt)+), {$($type_generics:tt),*};) => {};
+//     ($index:expr, ($($type:tt)+), {$($type_generics:tt),*}; {$($first:tt)*} $({$($field:tt)*})*) => {
+//         $($type)+::<$($type_generics),*>::$first => {}
+//         $crate::impl_match_branches!({ ($index) + 1 }, ($($type)+), {$($type_generics),*}; $({$($field)*})*)
+//     };
+// }
+
 #[macro_export]
 macro_rules! impl_enum_mesh {
-    ({$($type_generics_without_lt:tt),*}, ($($type:tt)+), {$($type_generics:tt),*}, ($($variants:ident),*), impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $($field_ident:tt => {$($field:tt)*}),*) => {
+    ({$($type_generics_without_lt:tt),*}, ($($type:tt)+), {$($type_generics:tt),*}, ($($variants:ident),*), ($($variant_indices:expr),*), ($($discriminants:expr),*), impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $($field_ident:tt => {$($field:tt)*}),*) => {
+        impl<$($impl_generics),*> core::convert::Into<$crate::EnumVariantName> for &$($type)+ <$($type_generics),*> {
+            fn into(self) -> $crate::EnumVariantName {
+                todo!()
+            }
+        }
+
+        impl<$()*>
 
  pub struct __VariantToken<$($impl_generics,)* const I: usize>(core::marker::PhantomData<($($type_generics),*)>) where $($where_clause:tt)*;
 pub struct __Variants<$($impl_generics,)*>(core::marker::PhantomData<($($type_generics,)*)>) where $($where_clause:tt)*;
 
-        impl<$($impl_generics,)* __C> $crate::__private::Edge<__C> for __Variants<$($type_generics),*> {
+        impl<$($impl_generics,)*> $crate::__private::VariantIndexById for $($type)+ <$($type_generics),*>
+        where
+            $($where_clause:tt)*
+            [(); core::mem::size_of::<core::mem::Discriminant<Self>>()]:
+        {
+            fn index_by_identifier(id: $crate::EnumIdentifier<Self>) -> Result<usize, $crate::__private::EnumIdentifierToVariantIndexError> {
+                match id {
+                    $crate::EnumIdentifier::VariantName(string) => match string {
+                        $(stringify!($variants) => Ok($variant_indices),)*
+                        _ => Err($crate::__private::EnumIdentifierToVariantIndexError::InvalidIdentifier)
+                    },
+                    $crate::EnumIdentifier::Discriminant(discriminant) => {
+                        $(
+                        #[allow(unused_variables, non_snake_case)]
+                        let $variants = unsafe { core::mem::transmute::<_, [u8; core::mem::size_of::<core::mem::Discriminant<Self>>()]>($discriminants) };
+                        )*
+                        match unsafe { core::mem::transmute::<_, [u8; core::mem::size_of::<core::mem::Discriminant<Self>>()]>(discriminant) } {
+                            $(#[allow(unused_variables, non_snake_case)] $variants => Ok($variant_indices),)*
+                                _ => Err($crate::__private::EnumIdentifierToVariantIndexError::InvalidIdentifier)
+
+                        }
+                    }
+                }
+            }
+        }
+
+        impl<$($impl_generics,)* __C> $crate::__private::Edge<__C> for __Variants<$($type_generics),*>
+            where
+                $($where_clause)*
+                $($type_generics_without_lt: $crate::__private::Edge<__C>),*
+        {
             type First = $crate::__private::End<__C, Self>;
             type Second = $crate::variant_meshup!(0, (__VariantToken), {$($type_generics,)*}; $({$variants})*);
         }

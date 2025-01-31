@@ -58,8 +58,9 @@ where
     Compound<S, B>: Add<C>,
     <A as CompoundWrapper<Codec, S>>::Compound: Add<<Compound<S, B> as Add<C>>::Output>,
 {
-    type Output =
-        <<A as CompoundWrapper<Codec, S>>::Compound as Add<<Compound<S, B> as Add<C>>::Output>>::Output;
+    type Output = <<A as CompoundWrapper<Codec, S>>::Compound as Add<
+        <Compound<S, B> as Add<C>>::Output,
+    >>::Output;
 
     fn add(self, _rhs: C) -> Self::Output {
         unreachable!()

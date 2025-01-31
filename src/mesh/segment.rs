@@ -3,7 +3,10 @@ use std::{
     mem::{discriminant, transmute, transmute_copy, Discriminant, MaybeUninit},
 };
 
-use crate::{Codec, CompositeDecoder, CompositeEncoder, Decode, Encode, EnumIdentifier};
+use crate::{
+    Codec, CompositeDecoder, CompositeEncoder, Decode, DecodeError, Encode, EncodeError,
+    EnumVariantIndex,
+};
 
 use super::{
     edge::{Edge, PhantomEdge},
@@ -13,7 +16,7 @@ use super::{
     len::{Len, Size},
     padding::{ConstPadding, ConstifyPadding},
     prelude::{Instantiate, Vector, Vectored},
-    r#enum::{Enum, Variant, VariantIndexById},
+    r#enum::{Enum, Variant},
     sort::Sorted,
 };
 
@@ -53,10 +56,10 @@ pub trait SegmentCodec<C> {
     ) -> Result<(), Self::Error>;
     fn handle_cluster<const N: usize>(cluster: &mut [u8; N], codec: &mut C);
     fn handle_clusters<const N: usize>(clusters: &mut [[u8; N]], codec: &mut C);
-    fn get_enum_identifier<T>(src: &T, codec: &mut C) -> EnumIdentifier<T>
+    fn get_variant_index<T>(src: &T, codec: &mut C) -> Result<EnumVariantIndex, Self::Error>
     where
-        T: VariantIndexById,
-        for<'a> &'a T: Into<EnumIdentifier<T>>,
+        //TODO consider removing this
+        for<'a> &'a T: Into<EnumVariantIndex>,
         [(); size_of::<Discriminant<T>>()]:;
 }
 
@@ -80,13 +83,14 @@ where
         codec.write_array::<u8, N>(cluster);
     }
 
-    fn get_enum_identifier<T>(src: &T, codec: &mut C) -> EnumIdentifier<T>
+    fn get_variant_index<T>(src: &T, codec: &mut C) -> Result<EnumVariantIndex, Self::Error>
     where
-        T: VariantIndexById,
-        for<'a> &'a T: Into<EnumIdentifier<T>>,
+        for<'a> &'a T: Into<EnumVariantIndex>,
         [(); size_of::<Discriminant<T>>()]:,
     {
-        src.into()
+        let id = src.into();
+        codec.encode_enum_identifier::<T>(&id)?;
+        Ok(id)
     }
 }
 
@@ -115,17 +119,12 @@ where
         codec.read_slice(unsafe { transmute::<_, &mut [MaybeUninit<[u8; N]>]>(clusters) });
     }
 
-    fn get_enum_identifier<T>(src: &T, codec: &mut C) -> EnumIdentifier<T>
+    fn get_variant_index<T>(src: &T, codec: &mut C) -> Result<EnumVariantIndex, Self::Error>
     where
-        T: VariantIndexById,
-        for<'a> &'a T: Into<EnumIdentifier<T>>,
+        for<'a> &'a T: Into<EnumVariantIndex>,
         [(); size_of::<Discriminant<T>>()]:,
     {
-        let mut out = MaybeUninit::uninit();
-        codec.read_array::<u8, { size_of::<Discriminant<T>>() }>(&mut out);
-        //TODO try use const_transmute for performance
-        codec.decode_enum_variant(enum_name)
-        T::index_by_identifier(unsafe { transmute_copy(&out.assume_init()) })
+        codec.decode_enum_variant::<T>()
     }
 }
 
@@ -204,15 +203,17 @@ impl<S2, C, H, B, T, V> SegmentWalker<C, H> for PhantomEdge<C, S2, (Enum<T, V>, 
 where
     H: SegmentCodec<C>,
     B: SegmentWalker<C, H>,
-    T: Size + VariantIndexById,
+    T: Size,
+    for<'a> &'a T: Into<EnumVariantIndex>,
     C: Codec,
-    V: Mesh<C, H, Output: SegmentWalker<C, H>>,
+    V: Edge<C, Second: SegmentWalker<C, H>>,
     [(); size_of::<Discriminant<T>>()]:,
 {
     fn walk(mut src: *mut u8, codec: &mut C, skip_len: Option<usize>) -> Result<(), H::Error> {
         H::handle_element(unsafe { transmute::<_, &mut Enum<T, V>>(src) }, codec)?;
-        let variant_index = H::get_enum_identifier::<T>(unsafe { transmute(src) }, codec);
-        <<V as Mesh<C, H>>::Output as SegmentWalker<C, H>>::walk(src, codec, Some(variant_index))?;
+        let variant_index = H::get_variant_index::<T>(unsafe { transmute(src) }, codec)?;
+        // let variant_index = T::index_by_identifier(id).map_err(|EnumIdentifierToVariantIndexError::InvalidIdentifier|  );
+        <<V as Edge<C>>::Second as SegmentWalker<C, H>>::walk(src, codec, Some(variant_index.0))?;
         src = src.wrapping_byte_add(<T as Size>::SIZE);
         B::walk(src, codec, skip_len)
     }

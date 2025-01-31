@@ -3,7 +3,7 @@ use std::mem::{transmute, MaybeUninit};
 use crate::{
     prelude::{walk_segment, Mesh, SegmentDecoder, SegmentEncoder},
     BufRead, BufWrite, Buffer, Codec, CompositeDecoder, CompositeEncoder, Decode, Decoder, Encoder,
-    Endian,
+    Endian, EnumVariantIndex,
 };
 
 pub struct BinaryCodecMock {
@@ -162,12 +162,7 @@ where
         Ok(())
     }
 
-    fn encode_enum_variant<T>(
-        &mut self,
-        enum_name: &'static str,
-        variant_name: &'static str,
-        variant_discriminant: std::mem::Discriminant<T>,
-    ) -> Result<(), Self::Error> {
+    fn encode_enum_identifier<T>(&mut self, id: &EnumVariantIndex) -> Result<(), Self::Error> {
         todo!()
     }
 }
@@ -312,10 +307,7 @@ impl Decoder for BinaryCodecMock {
         todo!()
     }
 
-    fn decode_enum_variant<T>(
-        &mut self,
-        enum_name: &'static str,
-    ) -> Result<crate::EnumIdentifier<T>, Self::Error> {
+    fn decode_enum_variant<T>(&mut self) -> Result<EnumVariantIndex, Self::Error> {
         todo!()
     }
 }
@@ -344,8 +336,7 @@ impl BufRead for BinaryCodecMock {
 pub enum DecodeError {
     NotEnoughBytesInTheBuffer,
     TooLarge,
-    InvalidEnumVariantName,
-    InvalidEnumVarirantIndex,
+    InvalidEnumIdentifier,
     Custom,
     InvalidUtf8,
     NonMaxButMax,
@@ -361,12 +352,8 @@ impl crate::DecodeError for DecodeError {
         todo!()
     }
 
-    fn invalid_enum_variant_name() -> Self {
-        todo!()
-    }
-
-    fn invalid_enum_variant_index() -> Self {
-        todo!()
+    fn invalid_enum_identifier() -> Self {
+        Self::InvalidEnumIdentifier
     }
 
     fn custom() -> Self {

@@ -145,7 +145,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_a() {
+    fn test_fuzzing() {
         test(A1);
         test(A2 {});
         test(A3 {});
@@ -166,9 +166,9 @@ mod tests {
         // test(A17 { value: "hi" });
         test(A18 { value: 123 });
         //A19 is infallible type
-         test(A20::E);
+        test(A20::E);
         // test(A21 { value: "hi" });
-         test(A22::A { value: 123 });
+        test(A22::A { value: 123 });
         test(A23 { value: vec![123] });
         test(A24 {
             value: vec![String::from_str("hi").unwrap()],

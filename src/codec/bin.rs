@@ -6,10 +6,10 @@ use std::{
 use crate::{
     prelude::{walk_segment, Mesh, SegmentDecoder, SegmentEncoder},
     BufRead, BufWrite, Buffer, CompositeDecoder, CompositeEncoder, Decode, Decoder, Encode,
-    Encoder, Endian, EnumIdentifier,
+    Encoder, Endian,
 };
 
-use super::Codec;
+use super::{Codec, EnumVariantIndex};
 
 pub struct BinaryCodec {
     buffer: Buffer,
@@ -180,12 +180,7 @@ where
         self.encode_u64(&(v as u64))
     }
 
-    fn encode_enum_variant<T>(
-        &mut self,
-        enum_name: &'static str,
-        variant_name: &'static str,
-        variant_discriminant: std::mem::Discriminant<T>,
-    ) -> Result<(), Self::Error> {
+    fn encode_enum_identifier<T>(&mut self, value: &EnumVariantIndex) -> Result<(), Self::Error> {
         todo!()
     }
 }
@@ -397,10 +392,7 @@ where
         todo!()
     }
 
-    fn decode_enum_variant<T>(
-        &mut self,
-        enum_name: &'static str,
-    ) -> Result<EnumIdentifier<T>, Self::Error> {
+    fn decode_enum_variant<T>(&mut self) -> Result<EnumVariantIndex, Self::Error> {
         todo!()
     }
 }
@@ -422,8 +414,7 @@ where
 pub enum DecodeError {
     NotEnoughBytesInTheBuffer,
     TooLarge,
-    InvalidEnumVariantName,
-    InvalidEnumVarirantIndex,
+    InvalidEnumIdentifier,
     Custom,
 }
 
@@ -436,12 +427,8 @@ impl crate::DecodeError for DecodeError {
         Self::TooLarge
     }
 
-    fn invalid_enum_variant_name() -> Self {
-        Self::InvalidEnumVariantName
-    }
-
-    fn invalid_enum_variant_index() -> Self {
-        Self::InvalidEnumVarirantIndex
+    fn invalid_enum_identifier() -> Self {
+        Self::InvalidEnumIdentifier
     }
 
     fn custom() -> Self {

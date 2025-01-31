@@ -1,3 +1,5 @@
+//! TODO  collect Add<End> for Field,Vectored,Enum... -> and make macro for it
+
 use std::{marker::PhantomData, ops::Add};
 
 use super::{

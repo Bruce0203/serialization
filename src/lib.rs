@@ -1,5 +1,3 @@
-#![feature(discriminant_kind)]
-#![feature(core_intrinsics)]
 #![allow(warnings)]
 #![allow(
     incomplete_features,
@@ -26,6 +24,6 @@ mod mesh;
 
 pub use buffer::*;
 pub use codec::*;
+pub use endian::*;
 pub use mesh::*;
 pub use serialization_derive::Serializable;
-pub use endian::*;

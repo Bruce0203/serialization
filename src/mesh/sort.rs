@@ -1,9 +1,14 @@
 use std::{marker::PhantomData, ops::Add};
 
-use typenum::{B0, B1, IsLess, ToUInt};
+use typenum::{IsLess, ToUInt, B0, B1};
 
 use super::{
-    edge::{Edge, PhantomEdge}, end::End, r#enum::Enum, field::{Field, FieldOffset}, leaf::PhantomLeaf, prelude::Vectored
+    edge::{Edge, PhantomEdge},
+    end::End,
+    field::{Field, FieldOffset},
+    leaf::PhantomLeaf,
+    prelude::Vectored,
+    r#enum::Enum,
 };
 
 pub trait Sorted {
@@ -134,7 +139,6 @@ where
     }
 }
 
-
 impl<Codec, S, A, B, C> Add<C> for PhantomOrder<Codec, S, PhantomEdge<Codec, S, (A, B)>>
 where
     A: FieldOffset<Offset: ToUInt>,
@@ -142,11 +146,11 @@ where
     <<A as FieldOffset>::Offset as ToUInt>::Output:
         IsLess<<<C as FieldOffset>::Offset as ToUInt>::Output>,
     PhantomEdge<Codec, S, (A, C)>: Order<
-            <<<A as FieldOffset>::Offset as ToUInt>::Output as IsLess<
-                <<C as FieldOffset>::Offset as ToUInt>::Output,
-            >>::Output,
-            Output: Edge<Codec>,
-        >,
+        <<<A as FieldOffset>::Offset as ToUInt>::Output as IsLess<
+            <<C as FieldOffset>::Offset as ToUInt>::Output,
+        >>::Output,
+        Output: Edge<Codec>,
+    >,
     PhantomOrder<Codec, S, B>: Add<
         <<PhantomEdge<Codec, S, (A, C)> as Order<
             <<<A as FieldOffset>::Offset as ToUInt>::Output as IsLess<

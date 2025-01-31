@@ -1,6 +1,6 @@
 use proc_macro2::Span;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, parse_quote, Data, DeriveInput, GenericParam, Ident, Type};
+use syn::{parse_macro_input, parse_quote, Data, DeriveInput, Expr, GenericParam, Ident, Type};
 
 #[proc_macro_derive(Serializable)]
 pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -79,10 +79,29 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 let type_generics = type_generics.iter();
                 let type_generics_without_lt = type_generics_without_lt.iter();
                 let variants = data_enum.variants.iter().map(|variant| &variant.ident);
+                let variant_indices = 0..data_enum.variants.len();
+                let ref mut last_discriminant: Option<Expr> = None;
+                let discriminants = data_enum.variants.iter().map(|variant| {
+                        let result = variant
+                           .discriminant
+                           .as_ref()
+                           .map(|(_eq, expr)| parse_quote!((#expr) as isize))
+                           .unwrap_or_else(|| {
+                               if let Some(last_discriminant) = last_discriminant {
+                                   parse_quote!((#last_discriminant) as isize + 1_isize)
+                               } else {
+                                   let result: Expr = parse_quote!(0_isize);
+                                   *last_discriminant = Some(result.clone());
+                                   result
+                               }
+                           });
+                    *last_discriminant= Some(result.clone());
+                    result
+                });
                 quote! {
                     #crate_path::impl_enum_mesh!(
                         {#(#type_generics_without_lt),*},
-                        (#ident), {#(#type_generics),*}, (#(#variants),*),
+                        (#ident), {#(#type_generics),*}, (#(#variants),*), (#(#variant_indices),*), (#(#discriminants),*),
                         impl {#(#impl_generics,)*} (#(#where_clause,)*);
                     );
                 }

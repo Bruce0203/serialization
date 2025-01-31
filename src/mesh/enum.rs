@@ -19,13 +19,6 @@ use super::{
 
 pub struct Enum<T, V>(PhantomData<(T, V)>);
 
-//TODO impl Into<Id> for &T(MyEnum)
-pub trait VariantIndexById: Sized {
-    fn index_by_identifier(id: EnumIdentifier<Self>) -> usize;
-}
-
-pub trait Name {}
-
 pub struct Variant<T, const I: usize>(PhantomData<T>);
 
 impl<C, T, const I: usize> Edge<C> for Variant<T, I>
@@ -35,6 +28,19 @@ where
     type First = <T as Edge<C>>::First;
 
     type Second = <T as Edge<C>>::Second;
+}
+
+impl<C, S, T, const I: usize> CompoundWrapper<C, S> for Variant<T, I> {
+    type Compound = Variant<T, I>;
+}
+
+//TODO try change T to S and PhantomEdge's S to S from S2
+impl<C, S2, T, const I: usize> Add<End<C, S2>> for Variant<T, I> {
+    type Output = PhantomEdge<C, S2, (Variant<T, I>, End<C, S2>)>;
+
+    fn add(self, _rhs: End<C, S2>) -> Self::Output {
+        unreachable!()
+    }
 }
 
 impl<T, V> Encode for Enum<T, V> {

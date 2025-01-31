@@ -3,7 +3,13 @@ use std::{marker::PhantomData, ops::Add};
 use typenum::{ToUInt, Unsigned};
 
 use super::{
-    edge::{Edge, PhantomEdge}, end::End, r#enum::Enum, field::{Field, FieldOffset}, flatten::CompoundWrapper, len::{Len, Size}, prelude::Vectored
+    edge::{Edge, PhantomEdge},
+    end::End,
+    field::{Field, FieldOffset},
+    flatten::CompoundWrapper,
+    len::{Len, Size},
+    prelude::Vectored,
+    r#enum::{Enum, Variant},
 };
 
 pub struct Padding<C, S, FrontOffset>(PhantomData<(C, S, FrontOffset)>);
@@ -75,7 +81,14 @@ pub trait ConstifyPadding {
 
 //TODO try remove S3 (becareful)
 impl<Codec, S, S2, S3, FrontOffset, B, C> ConstifyPadding
-    for PhantomEdge<Codec, S, (Padding<Codec, S2, FrontOffset>, PhantomEdge<Codec, S3, (Field<B>, C)>)>
+    for PhantomEdge<
+        Codec,
+        S,
+        (
+            Padding<Codec, S2, FrontOffset>,
+            PhantomEdge<Codec, S3, (Field<B>, C)>,
+        ),
+    >
 where
     Self: Len,
     FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>> + Size,
@@ -94,6 +107,7 @@ where
     >;
 }
 
+//TODO make macro for Field, Vectored, Enum, Variant
 impl<C, S, A, B> ConstifyPadding for PhantomEdge<C, S, (Field<A>, B)>
 where
     B: ConstifyPadding,
@@ -115,13 +129,19 @@ where
     type Output = PhantomEdge<C, S, (Enum<A, V>, <B as ConstifyPadding>::Output)>;
 }
 
-
+impl<C, S, A, B, const I: usize> ConstifyPadding for PhantomEdge<C, S, (Variant<A, I>, B)>
+where
+    B: ConstifyPadding,
+{
+    type Output = PhantomEdge<C, S, (Variant<A, I>, <B as ConstifyPadding>::Output)>;
+}
 
 impl<C, S> ConstifyPadding for End<C, S> {
     type Output = End<C, S>;
 }
 
-impl<C, S, S2, S3, FrontOffset> ConstifyPadding for PhantomEdge<C, S, (Padding<C, S2, FrontOffset>, End<C, S3>)>
+impl<C, S, S2, S3, FrontOffset> ConstifyPadding
+    for PhantomEdge<C, S, (Padding<C, S2, FrontOffset>, End<C, S3>)>
 where
     S3: Size,
     FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>> + Size,
@@ -131,10 +151,12 @@ where
                 + <FrontOffset as Size>::SIZE)
     }]:,
 {
-    type Output = PhantomEdge<C,
+    type Output = PhantomEdge<
+        C,
         S,
         (
-            ConstPadding<C,
+            ConstPadding<
+                C,
                 S,
                 {
                     <S3 as Size>::SIZE - (
