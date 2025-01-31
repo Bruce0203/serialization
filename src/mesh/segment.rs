@@ -1,6 +1,9 @@
-use std::mem::{discriminant, transmute, MaybeUninit};
+use std::{
+    marker::PhantomData,
+    mem::{discriminant, transmute, transmute_copy, Discriminant, MaybeUninit},
+};
 
-use crate::{Codec, CompositeDecoder, CompositeEncoder, Decode, Encode};
+use crate::{Codec, CompositeDecoder, CompositeEncoder, Decode, Encode, EnumIdentifier};
 
 use super::{
     edge::{Edge, PhantomEdge},
@@ -9,8 +12,8 @@ use super::{
     flatten::Flatten,
     len::{Len, Size},
     padding::{ConstPadding, ConstifyPadding},
-    prelude::{Vector, Vectored},
-    r#enum::Enum,
+    prelude::{Instantiate, Vector, Vectored},
+    r#enum::{Enum, Variant, VariantIndexById},
     sort::Sorted,
 };
 
@@ -18,14 +21,14 @@ pub trait Mesh<C, H>: Sized
 where
     H: SegmentCodec<C>,
 {
-    type Output: SegmentWalker<Self, C, H>;
+    type Output: SegmentWalker<C, H>;
 }
 
 impl<T, C, H> Mesh<C, H> for T
 where
     T: Edge<
         C,
-        Second: Sorted<Output: ConstifyPadding<Output: Flatten<T, Output: SegmentWalker<T, C, H>>>>,
+        Second: Sorted<Output: ConstifyPadding<Output: Flatten<T, Output: SegmentWalker<C, H>>>>,
     >,
     H: SegmentCodec<C>,
 {
@@ -50,6 +53,11 @@ pub trait SegmentCodec<C> {
     ) -> Result<(), Self::Error>;
     fn handle_cluster<const N: usize>(cluster: &mut [u8; N], codec: &mut C);
     fn handle_clusters<const N: usize>(clusters: &mut [[u8; N]], codec: &mut C);
+    fn get_enum_identifier<T>(src: &T, codec: &mut C) -> EnumIdentifier<T>
+    where
+        T: VariantIndexById,
+        for<'a> &'a T: Into<EnumIdentifier<T>>,
+        [(); size_of::<Discriminant<T>>()]:;
 }
 
 pub struct SegmentEncoder;
@@ -70,6 +78,15 @@ where
 
     fn handle_cluster<const N: usize>(cluster: &mut [u8; N], codec: &mut C) {
         codec.write_array::<u8, N>(cluster);
+    }
+
+    fn get_enum_identifier<T>(src: &T, codec: &mut C) -> EnumIdentifier<T>
+    where
+        T: VariantIndexById,
+        for<'a> &'a T: Into<EnumIdentifier<T>>,
+        [(); size_of::<Discriminant<T>>()]:,
+    {
+        src.into()
     }
 }
 
@@ -97,21 +114,35 @@ where
     fn handle_clusters<const N: usize>(clusters: &mut [[u8; N]], codec: &mut C) {
         codec.read_slice(unsafe { transmute::<_, &mut [MaybeUninit<[u8; N]>]>(clusters) });
     }
+
+    fn get_enum_identifier<T>(src: &T, codec: &mut C) -> EnumIdentifier<T>
+    where
+        T: VariantIndexById,
+        for<'a> &'a T: Into<EnumIdentifier<T>>,
+        [(); size_of::<Discriminant<T>>()]:,
+    {
+        let mut out = MaybeUninit::uninit();
+        codec.read_array::<u8, { size_of::<Discriminant<T>>() }>(&mut out);
+        //TODO try use const_transmute for performance
+        codec.decode_enum_variant(enum_name)
+        T::index_by_identifier(unsafe { transmute_copy(&out.assume_init()) })
+    }
 }
 
-pub trait SegmentWalker<S, C, H>
+pub trait SegmentWalker<C, H>
 where
+    Self: Instantiate,
     H: SegmentCodec<C>,
 {
     fn walk(src: *mut u8, codec: &mut C, skip_len: Option<usize>) -> Result<(), H::Error>;
 }
 
-impl<S, A, B, C, H> SegmentWalker<S, C, H> for PhantomEdge<C, S, (Field<A>, B)>
+impl<S, A, B, C, H> SegmentWalker<C, H> for PhantomEdge<C, S, (Field<A>, B)>
 where
     Self: Len,
     H: SegmentCodec<C>,
     A: Encode + Decode + Size,
-    B: SegmentWalker<S, C, H>,
+    B: SegmentWalker<C, H>,
     [(); <Self as Len>::SIZE]:,
 {
     fn walk(mut src: *mut u8, codec: &mut C, mut skip_len: Option<usize>) -> Result<(), H::Error> {
@@ -133,12 +164,11 @@ where
     }
 }
 
-impl<S, S2, C, H, B, T> SegmentWalker<S, C, H> for PhantomEdge<C, S2, (Vectored<T>, B)>
+impl<S2, C, H, B, T> SegmentWalker<C, H> for PhantomEdge<C, S2, (Vectored<T>, B)>
 where
     H: SegmentCodec<C>,
-    B: SegmentWalker<S, C, H>,
-    T: Vector<Item: Size + Mesh<C, H, Output: SegmentWalker<<T as Vector>::Item, C, H> + Len>>
-        + Size,
+    B: SegmentWalker<C, H>,
+    T: Vector<Item: Size + Mesh<C, H, Output: SegmentWalker<C, H> + Len>> + Size,
     [(); <<T as Vector>::Item as Size>::SIZE]:,
     Vectored<T>: Decode,
 {
@@ -158,11 +188,11 @@ where
         } else {
             let iter = vector.as_iter();
             for elem in iter {
-                <<<T as Vector>::Item as Mesh<C, H>>::Output as SegmentWalker<
-                    <T as Vector>::Item,
-                    C,
-                    H,
-                >>::walk(elem as *const _ as *mut u8, codec, None)?;
+                <<<T as Vector>::Item as Mesh<C, H>>::Output as SegmentWalker<C, H>>::walk(
+                    elem as *const _ as *mut u8,
+                    codec,
+                    None,
+                )?;
             }
         }
         src = src.wrapping_byte_add(<T as Size>::SIZE);
@@ -170,36 +200,32 @@ where
     }
 }
 
-impl<S, S2, C, H, B, T> SegmentWalker<S, C, H> for PhantomEdge<C, S2, (Enum<T>, B)>
+impl<S2, C, H, B, T, V> SegmentWalker<C, H> for PhantomEdge<C, S2, (Enum<T, V>, B)>
 where
     H: SegmentCodec<C>,
-    B: SegmentWalker<S, C, H>,
-    T: Size,
+    B: SegmentWalker<C, H>,
+    T: Size + VariantIndexById,
     C: Codec,
+    V: Mesh<C, H, Output: SegmentWalker<C, H>>,
+    [(); size_of::<Discriminant<T>>()]:,
 {
-    fn walk(mut src: *mut u8, codec: &mut C, _skip_len: Option<usize>) -> Result<(), H::Error> {
-        H::handle_element(unsafe { transmute::<_, &mut Enum<T>>(src) }, codec)?;
-        let enum_value: MaybeUninit<T> = MaybeUninit::uninit();
-        //let v = <T as EnumMatcher>::edge_of::<C, H>(unsafe { enum_value.assume_init_ref() });
-        //stopship: enum discriminant를 decoding하는 함수를 만들어라
-        //discriminant size를 그대로 decode/encode하라
-        //decode [u8; size_of::<Discriminant<T>>()]을 디코딩하고
-        //discriminant를 입력값으로 받고 VariantToken을 반환하라
-        //discriminant matching한 함수의 반환값을 함수 포인터로 하는 것을 고려하라
-        //또는 type Output을 associated type으로 가지고 있는 trait을 impl Type형태로 반환하고
-        // <>::walk(elem as *const _ as *mut u8, codec, None)?;
+    fn walk(mut src: *mut u8, codec: &mut C, skip_len: Option<usize>) -> Result<(), H::Error> {
+        H::handle_element(unsafe { transmute::<_, &mut Enum<T, V>>(src) }, codec)?;
+        let variant_index = H::get_enum_identifier::<T>(unsafe { transmute(src) }, codec);
+        <<V as Mesh<C, H>>::Output as SegmentWalker<C, H>>::walk(src, codec, Some(variant_index))?;
         src = src.wrapping_byte_add(<T as Size>::SIZE);
-        B::walk(src, codec, None)
+        B::walk(src, codec, skip_len)
     }
 }
 
-impl<S, S2, H, C, B, const I: usize> SegmentWalker<S, C, H>
+impl<S, S2, H, C, B, const I: usize> SegmentWalker<C, H>
     for PhantomEdge<C, S, (ConstPadding<C, S2, I>, B)>
 where
     H: SegmentCodec<C>,
-    B: SegmentWalker<S, C, H>,
+    B: SegmentWalker<C, H>,
 {
     fn walk(mut src: *mut u8, codec: &mut C, mut skip_len: Option<usize>) -> Result<(), H::Error> {
+        //TODO try remove ..
         if I != 0 {
             skip_len = None;
         }
@@ -208,7 +234,27 @@ where
     }
 }
 
-impl<S, S2, C, H> SegmentWalker<S, C, H> for End<C, S2>
+impl<H, C, S, T, B, const I: usize> SegmentWalker<C, H> for PhantomEdge<C, S, (Variant<T, I>, B)>
+where
+    C: Codec,
+    H: SegmentCodec<C>,
+    T: Mesh<C, H, Output: SegmentWalker<C, H>>,
+    B: SegmentWalker<C, H>,
+{
+    fn walk(src: *mut u8, codec: &mut C, mut skip_len: Option<usize>) -> Result<(), H::Error> {
+        if let Some(0) = skip_len {
+            <<T as Mesh<C, H>>::Output as SegmentWalker<C, H>>::walk(src, codec, skip_len);
+            Ok(())
+        } else if let Some(skip_len_value) = skip_len {
+            skip_len = Some(skip_len_value - 1);
+            B::walk(src, codec, skip_len)
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl<S2, C, H> SegmentWalker<C, H> for End<C, S2>
 where
     H: SegmentCodec<C>,
 {

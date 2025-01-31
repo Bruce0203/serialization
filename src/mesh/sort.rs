@@ -111,20 +111,20 @@ where
     }
 }
 
-impl<C, S, A, B> Add<B> for PhantomOrder<C, S, Enum<A>>
+impl<C, S, A, B, V> Add<B> for PhantomOrder<C, S, Enum<A, V>>
 where
     B: FieldOffset<Offset: ToUInt>,
-    Enum<A>: FieldOffset<Offset: ToUInt>,
-    <<Enum<A> as FieldOffset>::Offset as ToUInt>::Output:
+    Enum<A, V>: FieldOffset<Offset: ToUInt>,
+    <<Enum<A, V> as FieldOffset>::Offset as ToUInt>::Output:
         IsLess<<<B as FieldOffset>::Offset as ToUInt>::Output>,
-    PhantomEdge<C, S, (Enum<A>, B)>: Order<
-        <<<Enum<A> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
+    PhantomEdge<C, S, (Enum<A, V>, B)>: Order<
+        <<<Enum<A, V> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
             <<B as FieldOffset>::Offset as ToUInt>::Output,
         >>::Output,
     >,
 {
-    type Output = <PhantomEdge<C, S, (Enum<A>, B)> as Order<
-        <<<Enum<A> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
+    type Output = <PhantomEdge<C, S, (Enum<A, V>, B)> as Order<
+        <<<Enum<A, V> as FieldOffset>::Offset as ToUInt>::Output as IsLess<
             <B::Offset as ToUInt>::Output,
         >>::Output,
     >>::Output;

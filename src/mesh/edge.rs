@@ -9,7 +9,7 @@ pub trait Edge<C> {
 }
 
 /// Generic type `S` represents a struct containing a edges.
-pub struct PhantomEdge<C, S, T>(PhantomData<(C, S, T)>);
+pub struct PhantomEdge<C, S, T>(pub(crate) PhantomData<(C, S, T)>);
 
 impl<C, S, First, Second> Edge<C> for PhantomEdge<C, S, (First, Second)>
 where

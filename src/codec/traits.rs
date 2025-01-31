@@ -1,4 +1,4 @@
-use std::mem::MaybeUninit;
+use std::mem::{Discriminant, MaybeUninit};
 
 use crate::{BufRead, BufWrite, Endian};
 
@@ -37,11 +37,11 @@ pub trait Encoder: Codec + Sized + BufWrite {
     fn encode_struct<'a>(&mut self) -> Result<&mut Self::StructEncoder, Self::Error>;
     fn encode_seq(&mut self, len: usize) -> Result<&mut Self::SequenceEncoder, Self::Error>;
 
-    fn encode_enum_variant_discriminant(
+    fn encode_enum_variant<T>(
         &mut self,
         enum_name: &'static str,
         variant_name: &'static str,
-        variant_index: usize,
+        variant_discriminant: Discriminant<T>,
     ) -> Result<(), Self::Error>;
 
     fn encode_some(&mut self) -> Result<(), Self::Error>;
@@ -101,14 +101,17 @@ pub trait Decoder: Codec + Sized + BufRead {
     fn decode_seq(&mut self) -> Result<&mut Self::SequenceDecoder, Self::Error>;
 
     fn decode_seq_len(&mut self) -> Result<usize, Self::Error>;
-    fn decode_enum(&mut self, enum_name: &'static str) -> Result<EnumIdentifier, Self::Error>;
+    fn decode_enum_variant<T>(
+        &mut self,
+        enum_name: &'static str,
+    ) -> Result<EnumIdentifier<T>, Self::Error>;
 
     fn decode_is_some(&mut self) -> Result<bool, Self::Error>;
 }
 
-pub enum EnumIdentifier {
-    Name(&'static str),
-    Index(usize),
+pub enum EnumIdentifier<T> {
+    VariantName(&'static str),
+    Discriminant(Discriminant<T>),
 }
 
 pub trait EncodeError {
@@ -128,14 +131,12 @@ pub trait DecodeError {
     fn nonzero_but_zero() -> Self;
 }
 
-pub trait CompositeEncoder: Codec + BufWrite {
-    type Error;
+pub trait CompositeEncoder: Encoder {
     fn encode_element<E: Encode>(&mut self, v: &E) -> Result<(), Self::Error>;
     fn end(&mut self) -> Result<(), Self::Error>;
 }
 
-pub trait CompositeDecoder: Codec + Sized + BufRead {
-    type Error;
+pub trait CompositeDecoder: Decoder {
     fn decode_element<D: Decode>(&mut self, place: &mut MaybeUninit<D>) -> Result<(), Self::Error>;
     fn end(&mut self) -> Result<(), Self::Error>;
 }

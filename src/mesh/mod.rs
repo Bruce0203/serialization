@@ -1,4 +1,5 @@
 mod edge;
+mod instance;
 mod end;
 mod r#enum;
 mod field;
@@ -17,6 +18,7 @@ pub(crate) mod prelude {
         pub use typenum::*;
     }
     pub use super::edge::*;
+    pub use super::instance::*;
     pub use super::end::*;
     pub use super::field::*;
     pub use super::flatten::*;

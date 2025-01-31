@@ -78,11 +78,11 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 let where_clause = where_clause.iter();
                 let type_generics = type_generics.iter();
                 let type_generics_without_lt = type_generics_without_lt.iter();
-                let variants = data_enum.variants.iter();
+                let variants = data_enum.variants.iter().map(|variant| &variant.ident);
                 quote! {
                     #crate_path::impl_enum_mesh!(
                         {#(#type_generics_without_lt),*},
-                        (#ident), {#(#type_generics),*}//, (#(#variants),*),
+                        (#ident), {#(#type_generics),*}, (#(#variants),*),
                         impl {#(#impl_generics,)*} (#(#where_clause,)*);
                     );
                 }

@@ -6,7 +6,7 @@ use super::{
 };
 
 ///Token for end
-pub struct End<C, S>(PhantomData<(C, S)>);
+pub struct End<C, S>(pub(crate) PhantomData<(C, S)>);
 
 impl<C, S> Edge<C> for End<C, S> {
     type First = End<C, S>;

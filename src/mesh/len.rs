@@ -89,7 +89,7 @@ where
     const SIZE: usize = field_size_of(UNSIZED, <<Self as Edge<C>>::Second as Len>::SIZE);
 }
 
-impl<C, S, T, B> Len for PhantomEdge<C, S, (Enum<T>, B)>
+impl<C, S, T, B, V> Len for PhantomEdge<C, S, (Enum<T, V>, B)>
 where
     Self: Edge<C, Second: Len>,
 {

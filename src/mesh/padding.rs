@@ -108,11 +108,11 @@ where
     type Output = PhantomEdge<C, S, (Vectored<A>, <B as ConstifyPadding>::Output)>;
 }
 
-impl<C, S, A, B> ConstifyPadding for PhantomEdge<C, S, (Enum<A>, B)>
+impl<C, S, A, B, V> ConstifyPadding for PhantomEdge<C, S, (Enum<A, V>, B)>
 where
     B: ConstifyPadding,
 {
-    type Output = PhantomEdge<C, S, (Enum<A>, <B as ConstifyPadding>::Output)>;
+    type Output = PhantomEdge<C, S, (Enum<A, V>, <B as ConstifyPadding>::Output)>;
 }
 
 

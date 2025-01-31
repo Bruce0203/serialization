@@ -134,15 +134,6 @@ where
         Ok(self)
     }
 
-    fn encode_enum_variant_discriminant(
-        &mut self,
-        enum_name: &'static str,
-        variant_name: &'static str,
-        variant_index: usize,
-    ) -> Result<(), Self::Error> {
-        todo!()
-    }
-
     fn encode_some(&mut self) -> Result<(), Self::Error> {
         todo!()
     }
@@ -170,14 +161,21 @@ where
         }
         Ok(())
     }
+
+    fn encode_enum_variant<T>(
+        &mut self,
+        enum_name: &'static str,
+        variant_name: &'static str,
+        variant_discriminant: std::mem::Discriminant<T>,
+    ) -> Result<(), Self::Error> {
+        todo!()
+    }
 }
 
 impl CompositeEncoder for BinaryCodecMock
 where
     Self: BufWrite,
 {
-    type Error = EncodeError;
-
     fn encode_element<E: crate::Encode>(&mut self, v: &E) -> Result<(), Self::Error> {
         v.encode(self)
     }
@@ -310,21 +308,19 @@ impl Decoder for BinaryCodecMock {
         Ok(if read < 255 { read as usize } else { todo!() })
     }
 
-    fn decode_enum(
-        &mut self,
-        enum_name: &'static str,
-    ) -> Result<crate::EnumIdentifier, Self::Error> {
+    fn decode_is_some(&mut self) -> Result<bool, Self::Error> {
         todo!()
     }
 
-    fn decode_is_some(&mut self) -> Result<bool, Self::Error> {
+    fn decode_enum_variant<T>(
+        &mut self,
+        enum_name: &'static str,
+    ) -> Result<crate::EnumIdentifier<T>, Self::Error> {
         todo!()
     }
 }
 
 impl CompositeDecoder for BinaryCodecMock {
-    type Error = DecodeError;
-
     fn decode_element<D: Decode>(&mut self, place: &mut MaybeUninit<D>) -> Result<(), Self::Error> {
         D::decode_in_place(self, place)
     }

@@ -159,15 +159,6 @@ where
         todo!()
     }
 
-    fn encode_enum_variant_discriminant(
-        &mut self,
-        enum_name: &'static str,
-        variant_name: &'static str,
-        variant_index: usize,
-    ) -> Result<(), Self::Error> {
-        todo!()
-    }
-
     fn encode_some(&mut self) -> Result<(), Self::Error> {
         todo!()
     }
@@ -188,14 +179,21 @@ where
         debug_assert!(v < u32::MAX as usize);
         self.encode_u64(&(v as u64))
     }
+
+    fn encode_enum_variant<T>(
+        &mut self,
+        enum_name: &'static str,
+        variant_name: &'static str,
+        variant_discriminant: std::mem::Discriminant<T>,
+    ) -> Result<(), Self::Error> {
+        todo!()
+    }
 }
 
 impl CompositeEncoder for BinaryCodec
 where
     Self: BufWrite,
 {
-    type Error = EncodeError;
-
     fn encode_element<E: Encode>(&mut self, v: &E) -> Result<(), Self::Error> {
         v.encode(self)
     }
@@ -395,11 +393,14 @@ where
         Ok(unsafe { out.assume_init() } as usize)
     }
 
-    fn decode_enum(&mut self, enum_name: &'static str) -> Result<EnumIdentifier, Self::Error> {
+    fn decode_is_some(&mut self) -> Result<bool, Self::Error> {
         todo!()
     }
 
-    fn decode_is_some(&mut self) -> Result<bool, Self::Error> {
+    fn decode_enum_variant<T>(
+        &mut self,
+        enum_name: &'static str,
+    ) -> Result<EnumIdentifier<T>, Self::Error> {
         todo!()
     }
 }
@@ -408,8 +409,6 @@ impl CompositeDecoder for BinaryCodec
 where
     Self: BufRead,
 {
-    type Error = DecodeError;
-
     fn decode_element<D: Decode>(&mut self, place: &mut MaybeUninit<D>) -> Result<(), Self::Error> {
         D::decode_in_place(self, place)
     }

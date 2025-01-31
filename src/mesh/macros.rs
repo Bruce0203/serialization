@@ -36,9 +36,24 @@ macro_rules! impl_mesh {
 
 #[macro_export]
 macro_rules! impl_enum_mesh {
-    ({$($type_generics_without_lt:tt),*}, ($($type:tt)+), {$($type_generics:tt),*} /*, ($($variants:ident),*),*/ impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $($field_ident:tt => {$($field:tt)*}),*) => {
+    ({$($type_generics_without_lt:tt),*}, ($($type:tt)+), {$($type_generics:tt),*}, ($($variants:ident),*), impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $($field_ident:tt => {$($field:tt)*}),*) => {
 
- struct __VariantToken<$($impl_generics,)* const I: usize>(core::marker::PhantomData<($($type_generics),*)>);
+ pub struct __VariantToken<$($impl_generics,)* const I: usize>(core::marker::PhantomData<($($type_generics),*)>) where $($where_clause:tt)*;
+pub struct __Variants<$($impl_generics,)*>(core::marker::PhantomData<($($type_generics,)*)>) where $($where_clause:tt)*;
+
+        impl<$($impl_generics,)* __C> $crate::__private::Edge<__C> for __Variants<$($type_generics),*> {
+            type First = $crate::__private::End<__C, Self>;
+            type Second = $crate::variant_meshup!(0, (__VariantToken), {$($type_generics,)*}; $({$variants})*);
+        }
+
+        impl<$($impl_generics,)* const I: usize> $crate::__private::Len for __VariantToken<$($type_generics,)* I>
+        {
+            const SIZE: usize = <$($type)+ <$($type_generics),*> as $crate::__private::Len>::SIZE;
+        }
+        impl<$($impl_generics,)* const I: usize> $crate::__private::Size for __VariantToken<$($type_generics,)* I>
+        {
+            const SIZE: usize = <$($type)+ <$($type_generics),*> as $crate::__private::Size>::SIZE;
+        }
         $crate::impl_field_token!();
 
         impl<$($impl_generics,)* __C> $crate::__private::Edge<__C> for $($type)+ <$($type_generics),*>
@@ -47,7 +62,7 @@ macro_rules! impl_enum_mesh {
                 $($type_generics_without_lt: $crate::__private::Edge<__C>),*
         {
             type First = $crate::__private::End<__C, $($type)+ <$($type_generics),*>>;
-            type Second = $crate::__private::PhantomEdge<__C, Self, ($crate::__private::Enum<Self>, $crate::__private::End<__C, Self>)>;
+            type Second = $crate::__private::PhantomEdge<__C, Self, ($crate::__private::Enum<$($type)+ <$($type_generics),*>, __Variants<$($type_generics),*>>, $crate::__private::End<__C, Self>)>;
         }
         impl<$($impl_generics,)*> $crate::__private::Size for $($type)+ <$($type_generics),*> where $($where_clause)* {
             const SIZE: usize = core::mem::size_of::<$($type)+ <$($type_generics),*>>();
@@ -68,7 +83,6 @@ macro_rules! impl_enum_mesh {
                 Ok(())
             }
         }
-
     };
 }
 
@@ -80,7 +94,7 @@ macro_rules! impl_enum_variant_mesh {
                     $($where_clause)*
                     $($type_generics_without_lt: $crate::__private::Edge<__C>),*
             {
-                type First = $crate::__private::End<__C, $($type)+ <$($type_generics),*>>;
+                type First = $crate::__private::End<__C, ()>;
                 type Second = $crate::meshup!(0, (__VariantToken), {$($type_generics,)* $variant_index}; $({$($field)*})*);
             }
 
@@ -94,6 +108,7 @@ macro_rules! impl_enum_field_offset {
     ($brace:ident, $index:expr, ($($type:tt)+), {$($type_generics:tt),*}, $variant:ident, $variant_index:expr, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); ($($fields_idents:tt),*), $first_field_ident:tt => {$($first_field:tt)*}) => {
         const _: () = {
 impl<$($impl_generics,)*> $crate::__private::FieldOffset for __FieldToken<__VariantToken<$($impl_generics,)* $variant_index>, $($first_field)*, $index>
+
 where
                     $($where_clause)*
                     [(); __field_offset::<$($impl_generics,)*>()]:
@@ -212,6 +227,16 @@ macro_rules! meshup {
         <<$crate::meshup!({ ($index) + 1 }, ($($type)+), {$($type_generics),*}; $({$($field)*})*)
             as core::ops::Add<$crate::__private::Padding<__C, $($type)+ <$($type_generics),*>, $crate::__private::Field<__FieldToken<$($type)+ <$($type_generics),*>, $($first)*, $index>>>>>::Output
             as core::ops::Add<$crate::__private::Field<__FieldToken<$($type)+ <$($type_generics),*>, $($first)*, $index>>>>::Output
+    };
+}
+
+#[macro_export]
+macro_rules! variant_meshup {
+    ($index:expr, ($($type:tt)+), {$($type_generics:tt,)*};) => { $crate::__private::End<__C, $($type)+ <$($type_generics, )* $index>> };
+    //TODO rename field to variant
+    ($index:expr, ($($type:tt)+), {$($type_generics:tt,)*}; {$($first:tt)*} $({$($field:tt)*})*) => {
+        <$crate::variant_meshup!({ ($index) + 1 }, ($($type)+), {$($type_generics,)*}; $({$($field)*})*)
+            as core::ops::Add<$crate::__private::Variant<__VariantToken<$($type_generics,)* $index>, $index>>>::Output
     };
 }
 

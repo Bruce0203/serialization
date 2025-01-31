@@ -1,15 +1,18 @@
+#![feature(generic_const_exprs)]
 #![allow(warnings)]
-use std::mem::{discriminant, MaybeUninit};
+use std::{
+    marker::PhantomData,
+    mem::{discriminant, MaybeUninit},
+};
 
 use serialization::{
     __private::{
-        sub_ptr, CompoundWrapper, Edge, End, Enum, FieldOffset, Len, PhantomEdge,
-        SegmentWalker, Size, UNSIZED,
-    },
-    impl_field_token, meshup, offset_of_enum, wrap_brace,
+        sub_ptr, CompoundWrapper, Edge, End, Enum, FieldOffset, Instantiate, Len, Mesh,
+        PhantomEdge, SegmentCodec, SegmentWalker, Size, Variant, UNSIZED,
+    }, impl_field_token, meshup, offset_of_enum, variant_meshup, wrap_brace, Codec
 };
 
-enum A {
+enum A<T> {
     V1(u32),
     V2(u8),
     V3(u8, i16),
@@ -17,68 +20,100 @@ enum A {
     V5 {},
     V6 { value: u32 },
     V7 { value: u32, value2: i32 },
+    V8(T),
 }
 
 const _: () = {
-    impl<C> Edge<C> for A {
+    pub struct __Variants;
+
+    impl<C, T> Edge<C> for A<T> {
         type First = End<C, Self>;
 
-        type Second = PhantomEdge<C, Self, (Enum<Self>, End<C, Self>)>;
+        //TODO impl macro for meshup enum variant
+        type Second = PhantomEdge<C, Self, (Enum<Self, __Variants>, End<C, Self>)>;
     }
 
-    impl Size for A {
-        const SIZE: usize = core::mem::size_of::<A>();
+    impl<__C> Edge<__C> for __Variants {
+        type First = End<__C, Self>;
+
+        type Second = ();
     }
 
-    impl Len for A {
+    impl<T> Size for A<T> {
+        const SIZE: usize = core::mem::size_of::<A<T>>();
+    }
+
+    impl<T> Len for A<T> {
         const SIZE: usize = UNSIZED;
     }
 
-    struct __VariantToken<const I: usize>;
-    impl<const I: usize> __VariantToken<I> {
-        fn get_value() -> A {
+    struct __VariantToken<T, const I: usize>(PhantomData<T>);
+    impl<T, const I: usize> __VariantToken<T, I> {
+        fn get_value() -> A<T> {
             #[allow(invalid_value)]
-            A::V1(unsafe { MaybeUninit::uninit().assume_init() })
+            A::<T>::V1(unsafe { MaybeUninit::uninit().assume_init() })
         }
     }
 
     impl_field_token!();
 
-    impl FieldOffset for __FieldToken<__VariantToken<0>, u32, 0> {
-        type Offset = typenum::Const<{ offset_of_enum!(parentheses, A, {}, V1, (v0), v0) }>;
+    const fn __offset_of_0<T>() -> usize {
+        offset_of_enum!(parentheses, A, { T }, V1, (v0), v0)
+    }
+    impl<T> FieldOffset for __FieldToken<__VariantToken<T, 0>, u32, 0>
+    where
+        [(); __offset_of_0::<T>()]:,
+    {
+        type Offset = typenum::Const<{ __offset_of_0::<T>() }>;
     }
 
-    impl<__C> Edge<__C> for __VariantToken<0> {
+    impl<T, __C> Edge<__C> for __VariantToken<T, 0> {
         type First = End<__C, Self>;
 
-        type Second = meshup!(0, (__VariantToken), {0}; {u32});
+        type Second = meshup!(0, (__VariantToken), {T, 0}; {u32});
     }
-    impl Size for __VariantToken<0> {
-        const SIZE: usize = <A as Size>::SIZE;
-    }
-
-    impl FieldOffset for __VariantToken<1> {
-        type Offset = typenum::Const<{ offset_of_enum!(parentheses, A, {}, V2, (v0), v0) }>;
+    impl<T> Size for __VariantToken<T, 0> {
+        const SIZE: usize = <A<T> as Size>::SIZE;
     }
 
-    impl FieldOffset for __VariantToken<5> {
-        type Offset = typenum::Const<{ offset_of_enum!(brace, A, {}, V6, (value), value) }>;
-    }
-
-    fn asdf() {
-        use core::mem::MaybeUninit;
-        unsafe {
-            let origin = {
-                let value = MaybeUninit::zeroed().assume_init();
-                let origin = wrap_brace!(brace, (A::V6), value);
-                MaybeUninit::new(origin)
-            };
+    const _: () = {
+        const fn __offset_of<T>() -> usize {
+            offset_of_enum!(parentheses, A, { T }, V2, (v0), v0)
         }
-    }
+        impl<T> FieldOffset for __VariantToken<T, 1>
+        where
+            [(); __offset_of::<T>()]:,
+        {
+            type Offset = typenum::Const<{ __offset_of::<T>() }>;
+        }
+    };
 
-    impl<__C> Edge<__C> for __VariantToken<1> {
+    const _: () = {
+        const fn __offset_of<T>() -> usize {
+            offset_of_enum!(brace, A, { T }, V6, (value), value)
+        }
+        impl<T> FieldOffset for __VariantToken<T, 5>
+        where
+            [(); __offset_of::<T>()]:,
+        {
+            type Offset = typenum::Const<{ __offset_of::<T>() }>;
+        }
+    };
+
+    // fn asdf() {
+    //     use core::mem::MaybeUninit;
+    //     unsafe {
+    //         let origin = {
+    //             let value = MaybeUninit::zeroed().assume_init();
+    //             let origin = wrap_brace!(brace, (A::<T>::V6), value);
+    //             MaybeUninit::new(origin)
+    //         };
+    //     }
+    // }
+
+    impl<T, __C> Edge<__C> for __VariantToken<T, 1> {
         type First = End<__C, Self>;
 
-        type Second = meshup!(0, (__VariantToken), {0}; {u32});
+        type Second = meshup!(0, (__VariantToken), {T, 0}; {u32});
     }
 };
