@@ -86,23 +86,23 @@ impl<Codec, S, S2, S3, FrontOffset, B, C> ConstifyPadding
         S,
         (
             Padding<Codec, S2, FrontOffset>,
-            PhantomEdge<Codec, S3, (Field<B>, C)>,
+            PhantomEdge<Codec, S3, (B, C)>,
         ),
     >
 where
     Self: Len,
     FrontOffset: FieldOffset<Offset: ToUInt<Output: Unsigned>> + Size,
-    Field<B>: FieldOffset<Offset: ToUInt<Output: Unsigned>>,
-    [(); padding_of::<FrontOffset, Field<B>>()]:,
-    PhantomEdge<Codec, S, (Field<B>, C)>: ConstifyPadding,
+    B: FieldOffset<Offset: ToUInt<Output: Unsigned>>,
+    [(); padding_of::<FrontOffset, B>()]:,
+    PhantomEdge<Codec, S, (B, C)>: ConstifyPadding,
 {
     type Output = PhantomEdge<
         Codec,
         S,
         (
-            ConstPadding<Codec, S, { padding_of::<FrontOffset, Field<B>>() }>,
+            ConstPadding<Codec, S, { padding_of::<FrontOffset, B>() }>,
             //TODO watch out! there is S3
-            <PhantomEdge<Codec, S, (Field<B>, C)> as ConstifyPadding>::Output,
+            <PhantomEdge<Codec, S, (B, C)> as ConstifyPadding>::Output,
         ),
     >;
 }

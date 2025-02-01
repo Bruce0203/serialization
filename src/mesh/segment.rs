@@ -1,11 +1,12 @@
 use std::{
+    any::type_name,
     marker::PhantomData,
     mem::{discriminant, transmute, transmute_copy, Discriminant, MaybeUninit},
 };
 
 use crate::{
     Codec, CompositeDecoder, CompositeEncoder, Decode, DecodeError, Encode, EncodeError,
-    EnumVariantIndex,
+    EnumIdentifierToVariantIndex, EnumVariantDiscriminantId, EnumVariantIndex, EnumVariantStringId,
 };
 
 use super::{
@@ -16,7 +17,7 @@ use super::{
     len::{Len, Size},
     padding::{ConstPadding, ConstifyPadding},
     prelude::{Instantiate, Vector, Vectored},
-    r#enum::{Enum, Variant},
+    r#enum::{Enum, EnumDiscriminantDecoder, Variant},
     sort::Sorted,
 };
 
@@ -56,10 +57,12 @@ pub trait SegmentCodec<C> {
     ) -> Result<(), Self::Error>;
     fn handle_cluster<const N: usize>(cluster: &mut [u8; N], codec: &mut C);
     fn handle_clusters<const N: usize>(clusters: &mut [[u8; N]], codec: &mut C);
-    fn get_variant_index<T>(src: &T, codec: &mut C) -> Result<EnumVariantIndex, Self::Error>
+    fn get_variant_index<T>(src: &mut T, codec: &mut C) -> Result<EnumVariantIndex, Self::Error>
     where
-        //TODO consider removing this
-        for<'a> &'a T: Into<EnumVariantIndex>,
+        T: EnumDiscriminantDecoder<T>
+            + EnumIdentifierToVariantIndex<EnumVariantStringId>
+            + EnumIdentifierToVariantIndex<EnumVariantDiscriminantId<T>>,
+        for<'a> &'a T: Into<EnumVariantStringId> + Into<EnumVariantDiscriminantId<T>>,
         [(); size_of::<Discriminant<T>>()]:;
 }
 
@@ -83,14 +86,15 @@ where
         codec.write_array::<u8, N>(cluster);
     }
 
-    fn get_variant_index<T>(src: &T, codec: &mut C) -> Result<EnumVariantIndex, Self::Error>
+    fn get_variant_index<T>(src: &mut T, codec: &mut C) -> Result<EnumVariantIndex, Self::Error>
     where
-        for<'a> &'a T: Into<EnumVariantIndex>,
+        T: EnumDiscriminantDecoder<T>
+            + EnumIdentifierToVariantIndex<EnumVariantStringId>
+            + EnumIdentifierToVariantIndex<EnumVariantDiscriminantId<T>>,
+        for<'a> &'a T: Into<EnumVariantStringId> + Into<EnumVariantDiscriminantId<T>>,
         [(); size_of::<Discriminant<T>>()]:,
     {
-        let id = src.into();
-        codec.encode_enum_identifier::<T>(&id)?;
-        Ok(id)
+        codec.encode_enum_identifier::<T>(src)
     }
 }
 
@@ -119,12 +123,18 @@ where
         codec.read_slice(unsafe { transmute::<_, &mut [MaybeUninit<[u8; N]>]>(clusters) });
     }
 
-    fn get_variant_index<T>(src: &T, codec: &mut C) -> Result<EnumVariantIndex, Self::Error>
+    fn get_variant_index<T>(src: &mut T, codec: &mut C) -> Result<EnumVariantIndex, Self::Error>
     where
-        for<'a> &'a T: Into<EnumVariantIndex>,
+        T: EnumDiscriminantDecoder<T>
+            + EnumIdentifierToVariantIndex<EnumVariantStringId>
+            + EnumIdentifierToVariantIndex<EnumVariantDiscriminantId<T>>,
+        for<'a> &'a T: Into<EnumVariantStringId> + Into<EnumVariantDiscriminantId<T>>,
         [(); size_of::<Discriminant<T>>()]:,
     {
-        codec.decode_enum_variant::<T>()
+        let src: &mut MaybeUninit<T> = unsafe { transmute(src) };
+        let variant_index = codec.decode_enum_identifier::<T>(src)?;
+        T::decode_enum_discriminant(&variant_index, src);
+        Ok(variant_index)
     }
 }
 
@@ -159,6 +169,22 @@ where
                 src = src.wrapping_byte_add(<Self as Len>::SIZE);
             }
         }
+        B::walk(src, codec, skip_len)
+    }
+}
+
+impl<S, S2, H, C, B, const I: usize> SegmentWalker<C, H>
+    for PhantomEdge<C, S, (ConstPadding<C, S2, I>, B)>
+where
+    H: SegmentCodec<C>,
+    B: SegmentWalker<C, H>,
+{
+    fn walk(mut src: *mut u8, codec: &mut C, mut skip_len: Option<usize>) -> Result<(), H::Error> {
+        //TODO try remove ..
+        if I != 0 {
+            skip_len = None;
+        }
+        src = src.wrapping_byte_add(I);
         B::walk(src, codec, skip_len)
     }
 }
@@ -204,33 +230,23 @@ where
     H: SegmentCodec<C>,
     B: SegmentWalker<C, H>,
     T: Size,
-    for<'a> &'a T: Into<EnumVariantIndex>,
+    T: EnumDiscriminantDecoder<T>
+        + EnumIdentifierToVariantIndex<EnumVariantStringId>
+        + EnumIdentifierToVariantIndex<EnumVariantDiscriminantId<T>>,
+    for<'a> &'a T: Into<EnumVariantStringId> + Into<EnumVariantDiscriminantId<T>>,
     C: Codec,
-    V: Edge<C, Second: SegmentWalker<C, H>>,
+    V: Edge<C, Second: ConstifyPadding<Output: SegmentWalker<C, H>>>,
     [(); size_of::<Discriminant<T>>()]:,
 {
     fn walk(mut src: *mut u8, codec: &mut C, skip_len: Option<usize>) -> Result<(), H::Error> {
-        H::handle_element(unsafe { transmute::<_, &mut Enum<T, V>>(src) }, codec)?;
+        // H::handle_element(unsafe { transmute::<_, &mut Enum<T, V>>(src) }, codec)?;
         let variant_index = H::get_variant_index::<T>(unsafe { transmute(src) }, codec)?;
-        // let variant_index = T::index_by_identifier(id).map_err(|EnumIdentifierToVariantIndexError::InvalidIdentifier|  );
-        <<V as Edge<C>>::Second as SegmentWalker<C, H>>::walk(src, codec, Some(variant_index.0))?;
+        <<<V as Edge<C>>::Second as ConstifyPadding>::Output as SegmentWalker<C, H>>::walk(
+            src,
+            codec,
+            Some(variant_index.0),
+        )?;
         src = src.wrapping_byte_add(<T as Size>::SIZE);
-        B::walk(src, codec, skip_len)
-    }
-}
-
-impl<S, S2, H, C, B, const I: usize> SegmentWalker<C, H>
-    for PhantomEdge<C, S, (ConstPadding<C, S2, I>, B)>
-where
-    H: SegmentCodec<C>,
-    B: SegmentWalker<C, H>,
-{
-    fn walk(mut src: *mut u8, codec: &mut C, mut skip_len: Option<usize>) -> Result<(), H::Error> {
-        //TODO try remove ..
-        if I != 0 {
-            skip_len = None;
-        }
-        src = src.wrapping_byte_add(I);
         B::walk(src, codec, skip_len)
     }
 }
@@ -244,13 +260,13 @@ where
 {
     fn walk(src: *mut u8, codec: &mut C, mut skip_len: Option<usize>) -> Result<(), H::Error> {
         if let Some(0) = skip_len {
-            <<T as Mesh<C, H>>::Output as SegmentWalker<C, H>>::walk(src, codec, skip_len);
-            Ok(())
+            <<T as Mesh<C, H>>::Output as SegmentWalker<C, H>>::walk(src, codec, None)
         } else if let Some(skip_len_value) = skip_len {
             skip_len = Some(skip_len_value - 1);
             B::walk(src, codec, skip_len)
         } else {
-            Ok(())
+            /// skip_len is never None when walking enum variant
+            unreachable!()
         }
     }
 }

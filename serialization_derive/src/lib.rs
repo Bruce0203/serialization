@@ -59,7 +59,7 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 types,
                 idents,
                 brace,
-            } = data_struct.fields.into();
+            } = (&data_struct.fields).into();
             quote! {
                 const _: () = {
                     #crate_path::impl_mesh!(
@@ -73,6 +73,7 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             }
         }
         Data::Enum(data_enum) => {
+            let fields = data_enum.variants.iter().map(|variant| (&variant.fields).into()).collect::<Vec<Fields>>();
             let mut quotes = {
                 let impl_generics = impl_generics.iter();
                 let where_clause = where_clause.iter();
@@ -98,16 +99,16 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                     *last_discriminant= Some(result.clone());
                     result
                 });
+                let braces = fields.iter().map(|field| &field.brace);
                 quote! {
                     #crate_path::impl_enum_mesh!(
                         {#(#type_generics_without_lt),*},
-                        (#ident), {#(#type_generics),*}, (#(#variants),*), (#(#variant_indices),*), (#(#discriminants),*),
+                        (#ident), {#(#type_generics),*}, (#(#variants),*), (#(#variant_indices),*), (#(#discriminants),*), (#(#braces),*),
                         impl {#(#impl_generics,)*} (#(#where_clause,)*);
                     );
                 }
             };
-            let mut variant_index = 0_usize;
-            for variant in data_enum.variants.into_iter() {
+            for (variant_index, variant) in data_enum.variants.into_iter().enumerate() {
                 let impl_generics = impl_generics.iter();
                 let where_clause = where_clause.iter();
                 let type_generics = type_generics.iter();
@@ -116,7 +117,7 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                     types,
                     idents,
                     brace,
-                } = variant.fields.into();
+                } = &fields[variant_index];
                 let variant_ident = variant.ident;
 
                 let quote = quote! {
@@ -129,7 +130,6 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                     );
                 };
                 quotes.extend(quote);
-                variant_index += 1;
             }
             quote! {
                 const _: () = {
@@ -150,8 +150,8 @@ struct Fields {
     brace: Ident,
 }
 
-impl From<syn::Fields> for Fields {
-    fn from(fields: syn::Fields) -> Self {
+impl From<&syn::Fields> for Fields {
+    fn from(fields: &syn::Fields) -> Self {
         let mut i = 0;
         let brace = match fields.iter().next() {
             Some(field) => match field.ident {
@@ -164,7 +164,7 @@ impl From<syn::Fields> for Fields {
         let idents: Vec<_> = fields
             .into_iter()
             .map(|field| {
-                field.ident.map(|field| field.clone()).unwrap_or_else(|| {
+                field.ident.clone().unwrap_or_else(|| {
                     let result = format_ident!("v{}", i.to_string());
                     i += 1;
                     result

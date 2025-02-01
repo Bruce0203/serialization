@@ -2,6 +2,7 @@ use std::marker::PhantomData;
 
 use super::{edge::PhantomEdge, end::End};
 
+//TODO try remove and try compile
 pub trait Instantiate {
     fn instance() -> Self;
 }

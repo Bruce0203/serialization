@@ -209,6 +209,8 @@ mod tests {
         let mut dst = [0u8; 100000];
         crate::mock::encode(&value, &mut dst).unwrap();
         let decoded = crate::mock::decode::<T>(&mut dst).unwrap();
+        // println!("{}", type_name::<T>());
+        // println!("{:?}", &dst[..66]);
         assert_eq!(value, decoded);
     }
 }

@@ -1,4 +1,4 @@
-//! TODO remove this temp file 
+//! TODO remove this temp file
 
 #![feature(generic_const_exprs)]
 #![allow(warnings)]
@@ -6,15 +6,16 @@ use std::{
     hint::unreachable_unchecked,
     marker::PhantomData,
     mem::{discriminant, transmute, Discriminant, MaybeUninit},
+    ops::Index,
 };
 
 use serialization::{
     __private::{
-        sub_ptr, CompoundWrapper, Edge, End, Enum, EnumIdentifierToVariantIndexError, FieldOffset,
-        Instantiate, Len, Mesh, PhantomEdge, SegmentCodec, SegmentWalker, Size, Variant,
-        VariantIndexById, UNSIZED,
+        sub_ptr, CompoundWrapper, Edge, End, Enum, FieldOffset, Instantiate, Len, Mesh,
+        PhantomEdge, SegmentCodec, SegmentWalker, Size, Variant, UNSIZED,
     },
     impl_field_token, meshup, offset_of_enum, variant_meshup, wrap_brace, Codec,
+    EnumVariantStringId,
 };
 
 enum A<T> {
@@ -31,31 +32,6 @@ enum A<T> {
 const _: () = {
     pub struct __Variants;
 
-    impl<T> VariantIndexById for A<T>
-    where
-        [(); core::mem::size_of::<core::mem::Discriminant<Self>>()]:,
-    {
-        fn index_by_identifier(
-            id: serialization::EnumIdentifier<Self>,
-        ) -> Result<usize, EnumIdentifierToVariantIndexError> {
-            match id {
-                serialization::EnumIdentifier::VariantName(name) => match name {
-                    "V1" => Ok(0),
-                    _ => unsafe { unreachable_unchecked() },
-                },
-                serialization::EnumIdentifier::Discriminant(discriminant_value) => {
-                    let v =
-                        discriminant(&A::<T>::V1(unsafe { MaybeUninit::uninit().assume_init() }));
-                    match unsafe {
-                        transmute::<_, [u8; size_of::<Discriminant<Self>>()]>(discriminant_value)
-                    } {
-                        v => Ok(1),
-                        _ => todo!(),
-                    }
-                }
-            }
-        }
-    }
     impl<C, T> Edge<C> for A<T> {
         type First = End<C, Self>;
 
@@ -147,3 +123,12 @@ const _: () = {
         type Second = meshup!(0, (__VariantToken), {T, 0}; {u32});
     }
 };
+
+fn asdf() {
+    mod a {
+        pub mod c {}
+    }
+    mod b {
+        pub mod c {}
+    }
+}

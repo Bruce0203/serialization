@@ -1,9 +1,10 @@
-use std::mem::{transmute, MaybeUninit};
+use std::mem::{discriminant, transmute, Discriminant, MaybeUninit};
 
 use crate::{
     prelude::{walk_segment, Mesh, SegmentDecoder, SegmentEncoder},
     BufRead, BufWrite, Buffer, Codec, CompositeDecoder, CompositeEncoder, Decode, Decoder, Encoder,
-    Endian, EnumVariantIndex,
+    Endian, EnumIdentifierToVariantIndex, EnumIdentifierToVariantIndexError,
+    EnumVariantDiscriminantId, EnumVariantIndex, EnumVariantStringId,
 };
 
 pub struct BinaryCodecMock {
@@ -162,8 +163,17 @@ where
         Ok(())
     }
 
-    fn encode_enum_identifier<T>(&mut self, id: &EnumVariantIndex) -> Result<(), Self::Error> {
-        todo!()
+    fn encode_enum_identifier<T>(&mut self, value: &T) -> Result<EnumVariantIndex, Self::Error>
+    where
+        [(); size_of::<Discriminant<T>>()]:,
+        for<'a> &'a T: Into<EnumVariantStringId> + Into<EnumVariantDiscriminantId<T>>,
+        T: EnumIdentifierToVariantIndex<EnumVariantStringId>
+            + EnumIdentifierToVariantIndex<EnumVariantDiscriminantId<T>>,
+    {
+        let id: EnumVariantDiscriminantId<T> = value.into();
+        self.write_array(&id);
+        let result = T::enum_variant_index_by_identifier(id);
+        Ok(unsafe { result.unwrap_unchecked() })
     }
 }
 
@@ -307,8 +317,24 @@ impl Decoder for BinaryCodecMock {
         todo!()
     }
 
-    fn decode_enum_variant<T>(&mut self) -> Result<EnumVariantIndex, Self::Error> {
-        todo!()
+    fn decode_enum_identifier<T>(
+        &mut self,
+        out: &mut MaybeUninit<T>,
+    ) -> Result<EnumVariantIndex, Self::Error>
+    where
+        T: EnumIdentifierToVariantIndex<EnumVariantStringId>
+            + EnumIdentifierToVariantIndex<EnumVariantDiscriminantId<T>>,
+        [(); size_of::<Discriminant<T>>()]:,
+    {
+        let mut discriminant: MaybeUninit<[u8; size_of::<Discriminant<T>>()]> =
+            MaybeUninit::uninit();
+        self.read_array(&mut discriminant);
+        let id = EnumVariantDiscriminantId::from(unsafe { discriminant.assume_init() });
+        T::enum_variant_index_by_identifier(id).map_err(
+            |EnumIdentifierToVariantIndexError::InvalidIdentifier| {
+                crate::DecodeError::invalid_enum_identifier()
+            },
+        )
     }
 }
 
@@ -410,7 +436,6 @@ pub mod model {
             pub size: u64,
         }
 
-        #[repr(C)]
         #[derive(
             serialization::Serializable,
             Debug,
@@ -426,7 +451,6 @@ pub mod model {
             pub logs: Vec<Log>,
         }
 
-        #[repr(C)]
         #[derive(
             serialization::Serializable,
             Debug,

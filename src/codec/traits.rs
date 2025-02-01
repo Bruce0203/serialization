@@ -1,13 +1,9 @@
 use std::{
-    mem::{Discriminant, MaybeUninit},
-    ops::Index,
+    mem::{discriminant, transmute, transmute_copy, Discriminant, MaybeUninit},
+    ops::{Deref, Index},
 };
 
 use crate::{BufRead, BufWrite, Endian};
-
-pub trait Encode {
-    fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error>;
-}
 
 pub trait Codec {
     fn endian(&self) -> Endian;
@@ -19,14 +15,79 @@ macro_rules! encode_value {
     )*};
 }
 
+///It's not enum variant discriminant, but in ordered index number of variant
 #[repr(transparent)]
 pub struct EnumVariantIndex(pub usize);
 
+///Use for String codec like json
 #[repr(transparent)]
-pub struct EnumVariantName(pub &'static str);
+pub struct EnumVariantStringId(pub &'static str);
 
+///It may contain invalid data
 #[repr(transparent)]
-pub struct EnumVariantDiscriminant<T>(pub Discriminant<T>);
+pub struct EnumVariantDiscriminantId<T>([u8; size_of::<Discriminant<T>>()])
+where
+    [(); size_of::<Discriminant<T>>()]:;
+
+impl<T> EnumVariantDiscriminantId<T>
+where
+    [(); size_of::<Discriminant<T>>()]:,
+{
+    pub fn new(t: &T) -> Self {
+        //TODO try use const_transmute or not
+        Self(unsafe { const_transmute(discriminant(t)) })
+    }
+}
+
+pub(crate) const unsafe fn const_transmute<A, B>(a: A) -> B {
+    if std::mem::size_of::<A>() != std::mem::size_of::<B>() {
+        panic!("Size mismatch for generic_array::const_transmute");
+    }
+
+    #[repr(C)]
+    union Union<A, B> {
+        a: std::mem::ManuallyDrop<A>,
+        b: std::mem::ManuallyDrop<B>,
+    }
+
+    let a = std::mem::ManuallyDrop::new(a);
+    std::mem::ManuallyDrop::into_inner(Union { a }.b)
+}
+
+impl<T> Deref for EnumVariantDiscriminantId<T>
+where
+    [(); size_of::<Discriminant<T>>()]:,
+{
+    type Target = [u8; size_of::<Discriminant<T>>()];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> From<[u8; size_of::<Discriminant<T>>()]> for EnumVariantDiscriminantId<T>
+where
+    [(); size_of::<Discriminant<T>>()]:,
+{
+    fn from(value: [u8; size_of::<Discriminant<T>>()]) -> Self {
+        Self(value)
+    }
+}
+
+pub trait EnumIdentifierToVariantIndex<ID> {
+    fn enum_variant_index_by_identifier(
+        id: ID,
+    ) -> Result<EnumVariantIndex, EnumIdentifierToVariantIndexError>;
+}
+
+#[derive(Debug)]
+pub enum EnumIdentifierToVariantIndexError {
+    InvalidIdentifier,
+}
+
+pub trait Encode {
+    fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error>;
+}
 
 pub trait Encoder: Codec + Sized + BufWrite {
     type Error: EncodeError;
@@ -49,9 +110,12 @@ pub trait Encoder: Codec + Sized + BufWrite {
     fn encode_struct<'a>(&mut self) -> Result<&mut Self::StructEncoder, Self::Error>;
     fn encode_seq(&mut self, len: usize) -> Result<&mut Self::SequenceEncoder, Self::Error>;
 
-    fn encode_enum_identifier<T>(&mut self, value: &T) -> Result<(), Self::Error>
+    fn encode_enum_identifier<T>(&mut self, value: &T) -> Result<EnumVariantIndex, Self::Error>
     where
-        for<'a> &'a T: Into<EnumVariantName> + Into<EnumVariantDiscriminant<T>>;
+        [(); size_of::<Discriminant<T>>()]:,
+        for<'a> &'a T: Into<EnumVariantStringId> + Into<EnumVariantDiscriminantId<T>>,
+        T: EnumIdentifierToVariantIndex<EnumVariantStringId>
+            + EnumIdentifierToVariantIndex<EnumVariantDiscriminantId<T>>;
 
     fn encode_some(&mut self) -> Result<(), Self::Error>;
     fn encode_none(&mut self) -> Result<(), Self::Error>;
@@ -110,10 +174,14 @@ pub trait Decoder: Codec + Sized + BufRead {
     fn decode_seq(&mut self) -> Result<&mut Self::SequenceDecoder, Self::Error>;
 
     fn decode_seq_len(&mut self) -> Result<usize, Self::Error>;
-    fn decode_enum_variant<T>(&mut self) -> Result<EnumVariantIndex, Self::Error>
+    fn decode_enum_identifier<T>(
+        &mut self,
+        out: &mut MaybeUninit<T>,
+    ) -> Result<EnumVariantIndex, Self::Error>
     where
-        for<'a> &'a T: Index<EnumVariantName, Output = EnumVariantIndex>
-            + Index<EnumVariantDiscriminant<T>, Output = EnumVariantIndex>;
+        [(); size_of::<Discriminant<T>>()]:,
+        T: EnumIdentifierToVariantIndex<EnumVariantStringId>
+            + EnumIdentifierToVariantIndex<EnumVariantDiscriminantId<T>>;
 
     fn decode_is_some(&mut self) -> Result<bool, Self::Error>;
 }

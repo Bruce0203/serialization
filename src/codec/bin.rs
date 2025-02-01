@@ -1,5 +1,5 @@
 use std::{
-    mem::{transmute, transmute_copy, MaybeUninit},
+    mem::{transmute, transmute_copy, Discriminant, MaybeUninit},
     rc::Weak,
 };
 
@@ -9,7 +9,10 @@ use crate::{
     Encoder, Endian,
 };
 
-use super::{Codec, EnumVariantIndex};
+use super::{
+    Codec, EnumIdentifierToVariantIndex, EnumIdentifierToVariantIndexError,
+    EnumVariantDiscriminantId, EnumVariantIndex, EnumVariantStringId,
+};
 
 pub struct BinaryCodec {
     buffer: Buffer,
@@ -180,8 +183,17 @@ where
         self.encode_u64(&(v as u64))
     }
 
-    fn encode_enum_identifier<T>(&mut self, value: &EnumVariantIndex) -> Result<(), Self::Error> {
-        todo!()
+    fn encode_enum_identifier<T>(&mut self, value: &T) -> Result<EnumVariantIndex, Self::Error>
+    where
+        [(); size_of::<Discriminant<T>>()]:,
+        for<'a> &'a T: Into<EnumVariantStringId> + Into<EnumVariantDiscriminantId<T>>,
+        T: EnumIdentifierToVariantIndex<EnumVariantStringId>
+            + EnumIdentifierToVariantIndex<EnumVariantDiscriminantId<T>>,
+    {
+        let id: EnumVariantDiscriminantId<T> = value.into();
+        self.write_array(&id);
+        let result = T::enum_variant_index_by_identifier(id);
+        Ok(unsafe { result.unwrap_unchecked() })
     }
 }
 
@@ -392,8 +404,24 @@ where
         todo!()
     }
 
-    fn decode_enum_variant<T>(&mut self) -> Result<EnumVariantIndex, Self::Error> {
-        todo!()
+    fn decode_enum_identifier<T>(
+        &mut self,
+        out: &mut MaybeUninit<T>,
+    ) -> Result<EnumVariantIndex, Self::Error>
+    where
+        T: EnumIdentifierToVariantIndex<EnumVariantStringId>
+            + EnumIdentifierToVariantIndex<EnumVariantDiscriminantId<T>>,
+        [(); size_of::<Discriminant<T>>()]:,
+    {
+        let mut discriminant: MaybeUninit<[u8; size_of::<Discriminant<T>>()]> =
+            MaybeUninit::uninit();
+        self.read_array(&mut discriminant);
+        let id = EnumVariantDiscriminantId::from(unsafe { discriminant.assume_init() });
+        T::enum_variant_index_by_identifier(id).map_err(
+            |EnumIdentifierToVariantIndexError::InvalidIdentifier| {
+                crate::DecodeError::invalid_enum_identifier()
+            },
+        )
     }
 }
 
@@ -470,7 +498,10 @@ mod tests {
 
 #[cfg(test)]
 mod benches {
-    use std::{hint::black_box, mem::MaybeUninit};
+    use std::{
+        hint::black_box,
+        mem::{discriminant, MaybeUninit},
+    };
 
     use test::Bencher;
 
@@ -493,6 +524,7 @@ mod benches {
         black_box(&dst);
     }
 
+    #[ignore]
     #[bench]
     fn bench_log_model_decode(b: &mut Bencher) {
         let model = Logs::default();

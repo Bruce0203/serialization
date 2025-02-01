@@ -28,3 +28,5 @@ min size 또는 max size가 정해진 경우 고려하기
 mock 구현과 실제 구현 합일화하기 ->  어떻게든 delegate를 하든지 해서 encoder의 구현 중복 없애자.  ㅠㅠ
 src/codec/traits.rs 를 src/로 옮기기
 Serializable이 아니라 Serialize가 더 낫다 왜냐하면 형용사는 수식하는 대상이 객체일 텐데 러스트에는 마땅한 객체라고 할게 자바보다 없기 때문이다
+avro-rs 밴치마크에 추가하기 
+__VariantToken2 를 __TypeErasedVariantToken 으로 개명하기

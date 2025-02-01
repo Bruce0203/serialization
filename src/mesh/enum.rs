@@ -5,7 +5,9 @@ use std::{
     ops::Add,
 };
 
-use crate::{Codec, Decode, Decoder, Encode, Encoder, EnumIdentifier};
+use typenum::Const;
+
+use crate::{Codec, Decode, Decoder, Encode, Encoder, EnumVariantIndex};
 
 use super::{
     edge::{Edge, PhantomEdge},
@@ -19,7 +21,25 @@ use super::{
 
 pub struct Enum<T, V>(PhantomData<(T, V)>);
 
+pub struct FrontOffsetToken;
+
+impl FieldOffset for FrontOffsetToken {
+    type Offset = Const<0>;
+}
+
+impl Size for FrontOffsetToken {
+    const SIZE: usize = 0;
+}
+
+impl Len for FrontOffsetToken {
+    const SIZE: usize = 0;
+}
+
 pub struct Variant<T, const I: usize>(PhantomData<T>);
+
+pub trait EnumDiscriminantDecoder<T>: Sized {
+    fn decode_enum_discriminant(variant_index: &EnumVariantIndex, out: &mut MaybeUninit<T>);
+}
 
 impl<C, T, const I: usize> Edge<C> for Variant<T, I>
 where
@@ -45,7 +65,6 @@ impl<C, S2, T, const I: usize> Add<End<C, S2>> for Variant<T, I> {
 
 impl<T, V> Encode for Enum<T, V> {
     fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
-        let discriminant = discriminant(self);
         Ok(())
     }
 }
@@ -58,8 +77,7 @@ where
         decoder: &mut D,
         out: &mut MaybeUninit<Self>,
     ) -> Result<(), D::Error> {
-        decoder.read_array::<u8, { size_of::<Discriminant<T>>() }>(unsafe { transmute(out) });
-        todo!()
+        Ok(())
     }
 }
 
