@@ -16,14 +16,17 @@ macro_rules! encode_value {
 }
 
 ///It's not enum variant discriminant, but in ordered index number of variant
+#[derive(Debug)]
 #[repr(transparent)]
 pub struct EnumVariantIndex(pub usize);
 
 ///Use for String codec like json
+#[derive(Debug)]
 #[repr(transparent)]
 pub struct EnumVariantStringId(pub &'static str);
 
 ///It may contain invalid data
+#[derive(Debug)]
 #[repr(transparent)]
 pub struct EnumVariantDiscriminantId<T>([u8; size_of::<Discriminant<T>>()])
 where
@@ -39,7 +42,7 @@ where
     }
 }
 
-pub(crate) const unsafe fn const_transmute<A, B>(a: A) -> B {
+const unsafe fn const_transmute<A, B>(a: A) -> B {
     if std::mem::size_of::<A>() != std::mem::size_of::<B>() {
         panic!("Size mismatch for generic_array::const_transmute");
     }

@@ -83,7 +83,7 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 let variant_indices = 0..data_enum.variants.len();
                 let ref mut last_discriminant: Option<Expr> = None;
                 let discriminants = data_enum.variants.iter().map(|variant| {
-                        let result = variant
+                        let result: Expr = variant
                            .discriminant
                            .as_ref()
                            .map(|(_eq, expr)| parse_quote!((#expr) as isize))
@@ -91,9 +91,7 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                                if let Some(last_discriminant) = last_discriminant {
                                    parse_quote!((#last_discriminant) as isize + 1_isize)
                                } else {
-                                   let result: Expr = parse_quote!(0_isize);
-                                   *last_discriminant = Some(result.clone());
-                                   result
+                                   parse_quote!(0_isize)
                                }
                            });
                     *last_discriminant= Some(result.clone());
