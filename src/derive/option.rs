@@ -3,7 +3,7 @@ use std::mem::MaybeUninit;
 use typenum::Const;
 
 use crate::{
-    impl_field_token,
+    __impl_field_token,
     prelude::{
         CompoundUnwrapper, CompoundWrapper, Edge, End, Field, FieldOffset, Len, PhantomEdge, Size,
         UNSIZED,
@@ -31,7 +31,7 @@ impl<T> Decode for Option<T> {
 }
 
 const _: () = {
-    impl_field_token!();
+    __impl_field_token!();
 
     impl<T> FieldOffset for __FieldToken<Option<T>, Option<T>, 0> {
         type Offset = Const<0>;

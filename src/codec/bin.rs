@@ -5,8 +5,8 @@ use std::{
 
 use crate::{
     prelude::{walk_segment, Mesh, SegmentDecoder, SegmentEncoder},
-    BufRead, BufWrite, Buffer, CompositeDecoder, CompositeEncoder, Decode, Decoder, Encode,
-    Encoder, Endian,
+    BufRead, BufReadError, BufWrite, BufWriteError, Buffer, CompositeDecoder, CompositeEncoder,
+    Decode, Decoder, Encode, Encoder, Endian,
 };
 
 use super::{
@@ -40,21 +40,24 @@ where
 }
 
 impl BufWrite for BinaryCodec {
-    fn write_array<T: Copy, const N: usize>(&mut self, src: &[T; N]) {
-        self.buffer.write_array::<T, N>(src);
+    fn write_array<T: Copy, const N: usize>(&mut self, src: &[T; N]) -> Result<(), BufWriteError> {
+        self.buffer.write_array::<T, N>(src)
     }
 
-    fn write_slice<T: Copy>(&mut self, src: &[T]) {
-        self.buffer.write_slice::<T>(src);
+    fn write_slice<T: Copy>(&mut self, src: &[T]) -> Result<(), BufWriteError> {
+        self.buffer.write_slice::<T>(src)
     }
 }
 
 impl BufRead for BinaryCodec {
-    fn read_array<T: Copy, const N: usize>(&mut self, out: &mut MaybeUninit<[T; N]>) {
-        self.buffer.read_array::<T, N>(out);
+    fn read_array<T: Copy, const N: usize>(
+        &mut self,
+        out: &mut MaybeUninit<[T; N]>,
+    ) -> Result<(), BufReadError> {
+        self.buffer.read_array::<T, N>(out)
     }
 
-    fn read_slice<T: Copy>(&mut self, out: &mut [MaybeUninit<T>]) {
+    fn read_slice<T: Copy>(&mut self, out: &mut [MaybeUninit<T>]) -> Result<(), BufReadError> {
         self.buffer.read_slice::<T>(out)
     }
 }
@@ -256,7 +259,9 @@ where
         //TODO fix endian
         match self.endian() {
             Endian::Big => match Endian::NATIVE {
-                Endian::Big => self.buffer.read_array::<u8, 2>(unsafe { transmute(place) }),
+                Endian::Big => {
+                    self.buffer.read_array::<u8, 2>(unsafe { transmute(place) });
+                }
                 Endian::Little => {
                     let out: &mut [MaybeUninit<[u8; 1]>; 2] = unsafe { transmute(place) };
                     self.buffer.read_array::<u8, 1>(&mut out[1]);
@@ -285,7 +290,9 @@ where
         //TODO fix endian
         match self.endian() {
             Endian::Big => match Endian::NATIVE {
-                Endian::Big => self.buffer.read_array::<u8, 2>(unsafe { transmute(place) }),
+                Endian::Big => {
+                    self.buffer.read_array::<u8, 2>(unsafe { transmute(place) });
+                }
                 Endian::Little => {
                     let out: &mut [MaybeUninit<[u8; 1]>; 2] = unsafe { transmute(place) };
                     self.buffer.read_array::<u8, 1>(&mut out[1]);
@@ -314,7 +321,9 @@ where
         //TODO fix endian
         match self.endian() {
             Endian::Big => match Endian::NATIVE {
-                Endian::Big => self.buffer.read_array::<u8, 2>(unsafe { transmute(place) }),
+                Endian::Big => {
+                    self.buffer.read_array::<u8, 2>(unsafe { transmute(place) });
+                }
                 Endian::Little => {
                     let out: &mut [MaybeUninit<[u8; 1]>; 2] = unsafe { transmute(place) };
                     self.buffer.read_array::<u8, 1>(&mut out[1]);
@@ -524,7 +533,6 @@ mod benches {
         black_box(&dst);
     }
 
-    #[ignore]
     #[bench]
     fn bench_log_model_decode(b: &mut Bencher) {
         let model = Logs::default();

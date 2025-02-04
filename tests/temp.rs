@@ -14,7 +14,7 @@ use serialization::{
         sub_ptr, CompoundWrapper, Edge, End, Enum, FieldOffset, Instantiate, Len, Mesh,
         PhantomEdge, SegmentCodec, SegmentWalker, Size, Variant, UNSIZED,
     },
-    impl_field_token, meshup, offset_of_enum, variant_meshup, wrap_brace, Codec,
+    __impl_field_token, __meshup, __offset_of_enum, __variant_meshup, __wrap_brace, Codec,
     EnumVariantStringId,
 };
 
@@ -61,10 +61,10 @@ const _: () = {
         }
     }
 
-    impl_field_token!();
+    __impl_field_token!();
 
     const fn __offset_of_0<T>() -> usize {
-        offset_of_enum!(parentheses, A, { T }, V1, (v0), v0)
+        __offset_of_enum!(parentheses, A, { T }, V1, (v0), v0)
     }
     impl<T> FieldOffset for __FieldToken<__VariantToken<T, 0>, u32, 0>
     where
@@ -76,7 +76,7 @@ const _: () = {
     impl<T, __C> Edge<__C> for __VariantToken<T, 0> {
         type First = End<__C, Self>;
 
-        type Second = meshup!(0, (__VariantToken), {T, 0}; {u32});
+        type Second = __meshup!(0, (__VariantToken), {T, 0}; {u32});
     }
     impl<T> Size for __VariantToken<T, 0> {
         const SIZE: usize = <A<T> as Size>::SIZE;
@@ -84,7 +84,7 @@ const _: () = {
 
     const _: () = {
         const fn __offset_of<T>() -> usize {
-            offset_of_enum!(parentheses, A, { T }, V2, (v0), v0)
+            __offset_of_enum!(parentheses, A, { T }, V2, (v0), v0)
         }
         impl<T> FieldOffset for __VariantToken<T, 1>
         where
@@ -96,7 +96,7 @@ const _: () = {
 
     const _: () = {
         const fn __offset_of<T>() -> usize {
-            offset_of_enum!(brace, A, { T }, V6, (value), value)
+            __offset_of_enum!(brace, A, { T }, V6, (value), value)
         }
         impl<T> FieldOffset for __VariantToken<T, 5>
         where
@@ -120,7 +120,7 @@ const _: () = {
     impl<T, __C> Edge<__C> for __VariantToken<T, 1> {
         type First = End<__C, Self>;
 
-        type Second = meshup!(0, (__VariantToken), {T, 0}; {u32});
+        type Second = __meshup!(0, (__VariantToken), {T, 0}; {u32});
     }
 };
 

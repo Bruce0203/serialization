@@ -1,5 +1,5 @@
 #[macro_export]
-macro_rules! impl_mesh {
+macro_rules! __impl_mesh {
     ({$($type_generics_without_lt:tt),*}, $brace:ident, ($($type:tt)+), {$($type_generics:tt),*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $($field_ident:tt => {$($field:tt)*}),*) => {
         impl<$($impl_generics,)* __C> $crate::__private::Edge<__C> for $($type)+ <$($type_generics),*>
             where
@@ -7,7 +7,7 @@ macro_rules! impl_mesh {
                 $($type_generics_without_lt: $crate::__private::Edge<__C>),*
         {
             type First = $crate::__private::End<__C, $($type)+ <$($type_generics),*>>;
-            type Second = $crate::meshup!(0, ($($type)+), {$($type_generics),*}; $({$($field)*})*);
+            type Second = $crate::__meshup!(0, ($($type)+), {$($type_generics),*}; $({$($field)*})*);
         }
         impl<$($impl_generics,)*> $crate::__private::Size for $($type)+ <$($type_generics),*> where $($where_clause)* {
             const SIZE: usize = core::mem::size_of::<$($type)+ <$($type_generics),*>>();
@@ -29,13 +29,13 @@ macro_rules! impl_mesh {
             }
         }
 
-        $crate::impl_field_token!();
-        $crate::impl_field_offset!($brace, 0, ($($type)+), {$($type_generics),*}, impl {$($impl_generics,)*} ($($where_clause)*); ($($field_ident),*), $($field_ident => {$($field)*}),*);
+        $crate::__impl_field_token!();
+        $crate::__impl_field_offset!($brace, 0, ($($type)+), {$($type_generics),*}, impl {$($impl_generics,)*} ($($where_clause)*); ($($field_ident),*), $($field_ident => {$($field)*}),*);
     };
 }
 
 #[macro_export]
-macro_rules! impl_enum_mesh {
+macro_rules! __impl_enum_mesh {
     ({$($type_generics_without_lt:tt),*}, ($($type:tt)+), {$($type_generics:tt),*}, ($($variants:ident),*), ($($variant_indices:expr),*), ($($discriminants:expr),*), ($($braces:ident),*), impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $($field_ident:tt => {$($field:tt)*}),*) => {
         impl<$($impl_generics,)*> $crate::__private::EnumDiscriminantDecoder<$($type)+ <$($type_generics),*>> for $($type)+ <$($type_generics),*> where $($where_clause)* {
             fn decode_enum_discriminant(variant_index: &$crate::EnumVariantIndex, out: &mut core::mem::MaybeUninit<$($type)+ <$($type_generics),*>>) {
@@ -51,7 +51,7 @@ macro_rules! impl_enum_mesh {
             fn into(self) -> $crate::EnumVariantStringId {
                 use $($type)+::*;
                 match self {
-                    $($crate::wrap_brace!($braces, ($variants), ..) => $crate::EnumVariantStringId(stringify!($variants)),)*
+                    $($crate::__wrap_brace!($braces, ($variants), ..) => $crate::EnumVariantStringId(stringify!($variants)),)*
                     _ => unsafe { core::hint::unreachable_unchecked() }
                 }
             }
@@ -109,7 +109,7 @@ pub struct __Variants<$($impl_generics,)*>(core::marker::PhantomData<($($type_ge
                 $($type_generics_without_lt: $crate::__private::Edge<__C>),*
         {
             type First = $crate::__private::End<__C, Self>;
-            type Second = $crate::variant_meshup!(0, (__VariantToken), {$($type_generics,)*}; $({$variants})*);
+            type Second = $crate::__variant_meshup!(0, (__VariantToken), {$($type_generics,)*}; $({$variants})*);
         }
 
         impl<$($impl_generics,)* const I: usize> $crate::__private::Len for __VariantToken<$($type_generics,)* I>
@@ -120,7 +120,7 @@ pub struct __Variants<$($impl_generics,)*>(core::marker::PhantomData<($($type_ge
         {
             const SIZE: usize = <$($type)+ <$($type_generics),*> as $crate::__private::Size>::SIZE;
         }
-        $crate::impl_field_token!();
+        $crate::__impl_field_token!();
 
         impl<$($impl_generics,)* __C> $crate::__private::Edge<__C> for $($type)+ <$($type_generics),*>
             where
@@ -153,7 +153,7 @@ pub struct __Variants<$($impl_generics,)*>(core::marker::PhantomData<($($type_ge
 }
 
 #[macro_export]
-macro_rules! impl_enum_variant_mesh {
+macro_rules! __impl_enum_variant_mesh {
     ({$($type_generics_without_lt:tt),*}, $brace:ident, ($($type:tt)+), {$($type_generics:tt),*}, $variant:ident, $variant_index:expr, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); $($field_ident:tt => {$($field:tt)*}),*) => {
         impl<$($impl_generics),*> $crate::__private::EnumDiscriminantDecoder<$($type)+ <$($type_generics),*>> for  __VariantToken2<$variant_index>
                 where
@@ -162,7 +162,7 @@ macro_rules! impl_enum_variant_mesh {
             fn decode_enum_discriminant(variant_index: &$crate::EnumVariantIndex, out: &mut core::mem::MaybeUninit<$($type)+ <$($type_generics),*>>) {
         unsafe {
                 $(let $field_ident = core::mem::MaybeUninit::uninit().assume_init();)*
-                *out.assume_init_mut() = $crate::wrap_brace!($brace, ($($type)+::$variant), $($field_ident),*);
+                *out.assume_init_mut() = $crate::__wrap_brace!($brace, ($($type)+::$variant), $($field_ident),*);
             }
         }
         }
@@ -172,15 +172,15 @@ macro_rules! impl_enum_variant_mesh {
                     $($type_generics_without_lt: $crate::__private::Edge<__C>),*
             {
                 type First = $crate::__private::End<__C, ()>;
-                type Second = $crate::__private::PhantomEdge<__C, Self, ($crate::__private::Padding<__C, Self, $crate::__private::FrontOffsetToken>, $crate::meshup!(0, (__VariantToken), {$($type_generics,)* $variant_index}; $({$($field)*})*))>;
+                type Second = $crate::__private::PhantomEdge<__C, Self, ($crate::__private::Padding<__C, Self, $crate::__private::FrontOffsetToken>, $crate::__meshup!(0, (__VariantToken), {$($type_generics,)* $variant_index}; $({$($field)*})*))>;
             }
 
-        $crate::impl_enum_field_offset!($brace, 0, ($($type)+), {$($type_generics),*}, $variant, $variant_index, impl {$($impl_generics,)*} ($($where_clause)*); ($($field_ident),*), $($field_ident => {$($field)*}),*);
+        $crate::__impl_enum_field_offset!($brace, 0, ($($type)+), {$($type_generics),*}, $variant, $variant_index, impl {$($impl_generics,)*} ($($where_clause)*); ($($field_ident),*), $($field_ident => {$($field)*}),*);
                 };
 }
 
 #[macro_export]
-macro_rules! impl_enum_field_offset {
+macro_rules! __impl_enum_field_offset {
     ($brace:ident, $index:expr, ($($type:tt)+), {$($type_generics:tt),*}, $variant:ident, $variant_index:expr, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); ($($fields_idents:tt),*), ) => {};
     ($brace:ident, $index:expr, ($($type:tt)+), {$($type_generics:tt),*}, $variant:ident, $variant_index:expr, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); ($($fields_idents:tt),*), $first_field_ident:tt => {$($first_field:tt)*}) => {
         const _: () = {
@@ -194,19 +194,19 @@ where
         type Offset = $crate::__private::typenum::Const<{ __field_offset::<$($impl_generics,)*>() }>;
     }
 pub const fn __field_offset<$($impl_generics,)*>() -> usize where $($where_clause)* {
-                 $crate::offset_of_enum!($brace, $($type)+, {$($type_generics),*}, $variant, ($($fields_idents),*), $first_field_ident)
+                 $crate::__offset_of_enum!($brace, $($type)+, {$($type_generics),*}, $variant, ($($fields_idents),*), $first_field_ident)
             }
 
                                 };
     };
     ($brace:ident, $index:expr, ($($type:tt)+), {$($type_generics:tt),*}, $variant:ident, $variant_index:expr, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); ($($fields_idents:tt),*), $first_field_ident:tt => {$($first_field:tt)*}, $($field_ident:tt => {$($field:tt)*}),*) => {
-        $crate::impl_enum_field_offset!($brace, $index, ($($type)+), {$($type_generics),*}, $variant, $variant_index, impl {$($impl_generics,)*} ($($where_clause)*); ($($fields_idents),*), $first_field_ident => {$($first_field)*});
-        $crate::impl_enum_field_offset!($brace, { ($index) + 1 }, ($($type)+), {$($type_generics),*}, $variant, $variant_index, impl {$($impl_generics,)*} ($($where_clause)*); ($($fields_idents),*), $($field_ident => {$($field)*}),*);
+        $crate::__impl_enum_field_offset!($brace, $index, ($($type)+), {$($type_generics),*}, $variant, $variant_index, impl {$($impl_generics,)*} ($($where_clause)*); ($($fields_idents),*), $first_field_ident => {$($first_field)*});
+        $crate::__impl_enum_field_offset!($brace, { ($index) + 1 }, ($($type)+), {$($type_generics),*}, $variant, $variant_index, impl {$($impl_generics,)*} ($($where_clause)*); ($($fields_idents),*), $($field_ident => {$($field)*}),*);
     };
 }
 
 #[macro_export]
-macro_rules! wrap_brace {
+macro_rules! __wrap_brace {
     (brace, ($($type:tt)+), $($fields_idents:tt),*) => {
         $($type)+ { $($fields_idents),* }
     };
@@ -219,7 +219,7 @@ macro_rules! wrap_brace {
 }
 
 #[macro_export]
-macro_rules! impl_field_token {
+macro_rules! __impl_field_token {
     () => {
         #[repr(transparent)]
         pub struct __FieldToken<S, T, const I: usize>(
@@ -298,27 +298,27 @@ macro_rules! impl_field_token {
 }
 
 #[macro_export]
-macro_rules! meshup {
+macro_rules! __meshup {
     ($index:expr, ($($type:tt)+), {$($type_generics:tt),*};) => { $crate::__private::End<__C, $($type)+ <$($type_generics),*>> };
     ($index:expr, ($($type:tt)+), {$($type_generics:tt),*}; {$($first:tt)*} $({$($field:tt)*})*) => {
-        <<$crate::meshup!({ ($index) + 1 }, ($($type)+), {$($type_generics),*}; $({$($field)*})*)
+        <<$crate::__meshup!({ ($index) + 1 }, ($($type)+), {$($type_generics),*}; $({$($field)*})*)
             as core::ops::Add<$crate::__private::Padding<__C, $($type)+ <$($type_generics),*>, $crate::__private::Field<__FieldToken<$($type)+ <$($type_generics),*>, $($first)*, $index>>>>>::Output
             as core::ops::Add<$crate::__private::Field<__FieldToken<$($type)+ <$($type_generics),*>, $($first)*, $index>>>>::Output
     };
 }
 
 #[macro_export]
-macro_rules! variant_meshup {
+macro_rules! __variant_meshup {
     ($index:expr, ($($type:tt)+), {$($type_generics:tt,)*};) => { $crate::__private::End<__C, $($type)+ <$($type_generics, )* $index>> };
     //TODO rename field to variant
     ($index:expr, ($($type:tt)+), {$($type_generics:tt,)*}; {$($first:tt)*} $({$($field:tt)*})*) => {
-        <$crate::variant_meshup!({ ($index) + 1 }, ($($type)+), {$($type_generics,)*}; $({$($field)*})*)
+        <$crate::__variant_meshup!({ ($index) + 1 }, ($($type)+), {$($type_generics,)*}; $({$($field)*})*)
             as core::ops::Add<$crate::__private::Variant<__VariantToken<$($type_generics,)* $index>, $index>>>::Output
     };
 }
 
 #[macro_export]
-macro_rules! impl_field_offset {
+macro_rules! __impl_field_offset {
     ($brace:ident, $index:expr, ($($type:tt)+), {$($type_generics:tt),*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); ($($fields_idents:tt),*), ) => {};
     ($brace:ident, $index:expr, ($($type:tt)+), {$($type_generics:tt),*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); ($($fields_idents:tt),*), $first_field_ident:tt => {$($first_field:tt)*}) => {
         const _: () = {
@@ -330,32 +330,32 @@ macro_rules! impl_field_offset {
                 type Offset = $crate::__private::typenum::Const<{ __field_offset::<$($impl_generics,)*>() }>;
             }
             pub const fn __field_offset<$($impl_generics,)*>() -> usize where $($where_clause)* {
-                $crate::offset_of!($brace, $($type)+, {$($type_generics),*}, ($($fields_idents),*), $first_field_ident)
+                $crate::__offset_of!($brace, $($type)+, {$($type_generics),*}, ($($fields_idents),*), $first_field_ident)
             }
 
         };
     };
     ($brace:ident, $index:expr, ($($type:tt)+), {$($type_generics:tt),*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*); ($($fields_idents:tt),*), $first_field_ident:tt => {$($first_field:tt)*}, $($field_ident:tt => {$($field:tt)*}),*) => {
-        $crate::impl_field_offset!($brace, $index, ($($type)+), {$($type_generics),*}, impl {$($impl_generics,)*} ($($where_clause)*); ($($fields_idents),*), $first_field_ident => {$($first_field)*});
-        $crate::impl_field_offset!($brace, { ($index) + 1 }, ($($type)+), {$($type_generics),*}, impl {$($impl_generics,)*} ($($where_clause)*); ($($fields_idents),*), $($field_ident => {$($field)*}),*);
+        $crate::__impl_field_offset!($brace, $index, ($($type)+), {$($type_generics),*}, impl {$($impl_generics,)*} ($($where_clause)*); ($($fields_idents),*), $first_field_ident => {$($first_field)*});
+        $crate::__impl_field_offset!($brace, { ($index) + 1 }, ($($type)+), {$($type_generics),*}, impl {$($impl_generics,)*} ($($where_clause)*); ($($fields_idents),*), $($field_ident => {$($field)*}),*);
     };
 }
 
 #[macro_export]
-macro_rules! count_items {
+macro_rules! __count_items {
     () => { 0 };
     ($head:expr, $($tail:expr,)*) => {
-        1 + count_items!($($tail,)*)
+        1 + __count_items!($($tail,)*)
     };
 }
 
 #[macro_export]
-macro_rules! offset_of {
+macro_rules! __offset_of {
     ($brace:ident, $type:ident, {$($type_generics:tt),*}, ($($fields_idents:tt),*), $field:tt) => {{
         use core::mem::MaybeUninit;
         let origin: MaybeUninit<$type <$($type_generics),*>> = MaybeUninit::uninit();
         #[allow(unused_variables)]
-        let $crate::wrap_brace!($brace, ($type), $($fields_idents),*) = unsafe { origin.assume_init_ref() };
+        let $crate::__wrap_brace!($brace, ($type), $($fields_idents),*) = unsafe { origin.assume_init_ref() };
         unsafe {
             $crate::__private::sub_ptr(
                 $field as *const _ as *const u8,
@@ -366,17 +366,17 @@ macro_rules! offset_of {
 }
 
 #[macro_export]
-macro_rules! offset_of_enum {
+macro_rules! __offset_of_enum {
     ($brace:ident, $type:ident, {$($type_generics:tt),*}, $variant:ident, ($($fields_idents:tt),*), $field:tt) => {{
         use core::mem::MaybeUninit;
         unsafe {
             let origin = {
                 $(let $fields_idents = MaybeUninit::zeroed().assume_init();)*
-               let origin: $type <$($type_generics),*> = $crate::wrap_brace!($brace, ($type::$variant), $($fields_idents),*);
+               let origin: $type <$($type_generics),*> = $crate::__wrap_brace!($brace, ($type::$variant), $($fields_idents),*);
                 MaybeUninit::new(origin)
             };
             match origin.assume_init_ref() {
-                $crate::wrap_brace!($brace, ($type::$variant), $($fields_idents),*) => {
+                $crate::__wrap_brace!($brace, ($type::$variant), $($fields_idents),*) => {
                     $crate::__private::sub_ptr(
                         $field as *const _ as *const u8,
                         origin.assume_init_ref() as *const _ as *const u8,

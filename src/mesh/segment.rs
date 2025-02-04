@@ -5,8 +5,9 @@ use std::{
 };
 
 use crate::{
-    Codec, CompositeDecoder, CompositeEncoder, Decode, DecodeError, Encode, EncodeError,
-    EnumIdentifierToVariantIndex, EnumVariantDiscriminantId, EnumVariantIndex, EnumVariantStringId,
+    BufReadError, BufWriteError, Codec, CompositeDecoder, CompositeEncoder, Decode, DecodeError,
+    Encode, EncodeError, EnumIdentifierToVariantIndex, EnumVariantDiscriminantId, EnumVariantIndex,
+    EnumVariantStringId,
 };
 
 use super::{
@@ -55,7 +56,10 @@ pub trait SegmentCodec<C> {
         element: &mut T,
         codec: &mut C,
     ) -> Result<(), Self::Error>;
-    fn handle_cluster<const N: usize>(cluster: &mut [u8; N], codec: &mut C);
+    fn handle_cluster<const N: usize>(
+        cluster: &mut [u8; N],
+        codec: &mut C,
+    ) -> Result<(), Self::Error>;
     fn handle_clusters<const N: usize>(clusters: &mut [[u8; N]], codec: &mut C);
     fn get_variant_index<T>(src: &mut T, codec: &mut C) -> Result<EnumVariantIndex, Self::Error>
     where
@@ -82,8 +86,13 @@ where
         codec.write_slice(clusters);
     }
 
-    fn handle_cluster<const N: usize>(cluster: &mut [u8; N], codec: &mut C) {
-        codec.write_array::<u8, N>(cluster);
+    fn handle_cluster<const N: usize>(
+        cluster: &mut [u8; N],
+        codec: &mut C,
+    ) -> Result<(), Self::Error> {
+        codec
+            .write_array::<u8, N>(cluster)
+            .map_err(|BufWriteError::EOF| EncodeError::not_enough_space_in_the_buffer())
     }
 
     fn get_variant_index<T>(src: &mut T, codec: &mut C) -> Result<EnumVariantIndex, Self::Error>
@@ -115,8 +124,13 @@ where
         })
     }
 
-    fn handle_cluster<const N: usize>(cluster: &mut [u8; N], codec: &mut C) {
-        codec.read_array(unsafe { transmute::<_, &mut MaybeUninit<[u8; N]>>(cluster) })
+    fn handle_cluster<const N: usize>(
+        cluster: &mut [u8; N],
+        codec: &mut C,
+    ) -> Result<(), Self::Error> {
+        codec
+            .read_array(unsafe { transmute::<_, &mut MaybeUninit<[u8; N]>>(cluster) })
+            .map_err(|BufReadError::EOF| DecodeError::not_enough_bytes_in_the_buffer())
     }
 
     fn handle_clusters<const N: usize>(clusters: &mut [[u8; N]], codec: &mut C) {
@@ -146,13 +160,28 @@ where
     fn walk(src: *mut u8, codec: &mut C, skip_len: Option<usize>) -> Result<(), H::Error>;
 }
 
+const fn adjust_to_word(value: usize) -> usize {
+    //TODO support 32bit system
+    if value <= 2 {
+        value
+    } else if value <= 4 {
+        4
+    } else if value <= 8 {
+        8
+    } else if value <= 16 {
+        16
+    } else {
+        value
+    }
+}
+
 impl<S, A, B, C, H> SegmentWalker<C, H> for PhantomEdge<C, S, (Field<A>, B)>
 where
     Self: Len,
     H: SegmentCodec<C>,
     A: Encode + Decode + Size,
     B: SegmentWalker<C, H>,
-    [(); <Self as Len>::SIZE]:,
+    [(); adjust_to_word(<Self as Len>::SIZE)]:,
 {
     fn walk(mut src: *mut u8, codec: &mut C, mut skip_len: Option<usize>) -> Result<(), H::Error> {
         if let Some(len) = skip_len {
@@ -164,8 +193,9 @@ where
                 H::handle_element::<A>(segment, codec)?;
                 src = src.wrapping_byte_add(<A as Size>::SIZE);
             } else {
-                let segment = unsafe { transmute::<_, &mut [u8; <Self as Len>::SIZE]>(src) };
-                H::handle_cluster::<{ <Self as Len>::SIZE }>(segment, codec);
+                let segment =
+                    unsafe { transmute::<_, &mut [u8; adjust_to_word(<Self as Len>::SIZE)]>(src) };
+                H::handle_cluster::<{ adjust_to_word(<Self as Len>::SIZE) }>(segment, codec);
                 src = src.wrapping_byte_add(<Self as Len>::SIZE);
             }
         }

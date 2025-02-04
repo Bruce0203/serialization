@@ -3,7 +3,7 @@ use std::mem::{transmute, MaybeUninit};
 use typenum::Const;
 
 use crate::{
-    impl_field_token,
+    __impl_field_token,
     prelude::{
         CompoundUnwrapper, CompoundWrapper, Edge, End, Field, FieldOffset, Len, PhantomEdge, Size,
         Vector, Vectored, UNSIZED,
@@ -67,7 +67,7 @@ impl Vector for String {
 }
 
 const _: () = {
-    impl_field_token!();
+    __impl_field_token!();
 
     impl FieldOffset for __FieldToken<String, String, 0> {
         // type Offset = Const<{ <u8 as Size>::SIZE }>;

@@ -6,7 +6,7 @@ use crate::prelude::{
     CompoundUnwrapper, CompoundWrapper, Edge, End, Field, FieldOffset, Len, PhantomEdge, Size,
     Vector, Vectored, UNSIZED,
 };
-use crate::{impl_field_token, Decode, Encode, Encoder};
+use crate::{__impl_field_token, Decode, Encode, Encoder};
 
 impl<T> Encode for Vec<T>
 where
@@ -51,7 +51,7 @@ impl<T> Vector for Vec<T> {
 }
 
 const _: () = {
-    impl_field_token!();
+    __impl_field_token!();
 
     impl<T> FieldOffset for __FieldToken<Vec<T>, Vec<T>, 0> {
         type Offset = Const<0>;

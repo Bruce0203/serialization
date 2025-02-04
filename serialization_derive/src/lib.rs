@@ -62,7 +62,7 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             } = (&data_struct.fields).into();
             quote! {
                 const _: () = {
-                    #crate_path::impl_mesh!(
+                    #crate_path::__impl_mesh!(
                         {#(#type_generics_without_lt),*},
                         #brace,
                         (#ident), {#(#type_generics),*},
@@ -99,7 +99,7 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 });
                 let braces = fields.iter().map(|field| &field.brace);
                 quote! {
-                    #crate_path::impl_enum_mesh!(
+                    #crate_path::__impl_enum_mesh!(
                         {#(#type_generics_without_lt),*},
                         (#ident), {#(#type_generics),*}, (#(#variants),*), (#(#variant_indices),*), (#(#discriminants),*), (#(#braces),*),
                         impl {#(#impl_generics,)*} (#(#where_clause,)*);
@@ -119,7 +119,7 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 let variant_ident = variant.ident;
 
                 let quote = quote! {
-                    #crate_path::impl_enum_variant_mesh!(
+                    #crate_path::__impl_enum_variant_mesh!(
                         {#(#type_generics_without_lt),*},
                         #brace,
                         (#ident), {#(#type_generics),*}, #variant_ident, #variant_index,

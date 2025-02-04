@@ -2,9 +2,10 @@ use std::mem::{discriminant, transmute, Discriminant, MaybeUninit};
 
 use crate::{
     prelude::{walk_segment, Mesh, SegmentDecoder, SegmentEncoder},
-    BufRead, BufWrite, Buffer, Codec, CompositeDecoder, CompositeEncoder, Decode, Decoder, Encoder,
-    Endian, EnumIdentifierToVariantIndex, EnumIdentifierToVariantIndexError,
-    EnumVariantDiscriminantId, EnumVariantIndex, EnumVariantStringId,
+    BufRead, BufReadError, BufWrite, BufWriteError, Buffer, Codec, CompositeDecoder,
+    CompositeEncoder, Decode, Decoder, Encoder, Endian, EnumIdentifierToVariantIndex,
+    EnumIdentifierToVariantIndexError, EnumVariantDiscriminantId, EnumVariantIndex,
+    EnumVariantStringId,
 };
 
 pub struct BinaryCodecMock {
@@ -18,11 +19,11 @@ impl Codec for BinaryCodecMock {
 }
 
 impl BufWrite for BinaryCodecMock {
-    fn write_array<T: Copy, const N: usize>(&mut self, src: &[T; N]) {
+    fn write_array<T: Copy, const N: usize>(&mut self, src: &[T; N]) -> Result<(), BufWriteError> {
         self.buffer.write_array::<T, N>(src)
     }
 
-    fn write_slice<T: Copy>(&mut self, src: &[T]) {
+    fn write_slice<T: Copy>(&mut self, src: &[T]) -> Result<(), BufWriteError> {
         self.buffer.write_slice::<T>(src)
     }
 }
@@ -349,11 +350,14 @@ impl CompositeDecoder for BinaryCodecMock {
 }
 
 impl BufRead for BinaryCodecMock {
-    fn read_array<T: Copy, const N: usize>(&mut self, out: &mut MaybeUninit<[T; N]>) {
-        self.buffer.read_array::<T, N>(out);
+    fn read_array<T: Copy, const N: usize>(
+        &mut self,
+        out: &mut MaybeUninit<[T; N]>,
+    ) -> Result<(), BufReadError> {
+        self.buffer.read_array::<T, N>(out)
     }
 
-    fn read_slice<T: Copy>(&mut self, out: &mut [MaybeUninit<T>]) {
+    fn read_slice<T: Copy>(&mut self, out: &mut [MaybeUninit<T>]) -> Result<(), BufReadError> {
         self.buffer.read_slice::<T>(out)
     }
 }

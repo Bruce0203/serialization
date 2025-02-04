@@ -3,7 +3,7 @@ use std::mem::MaybeUninit;
 use typenum::Const;
 
 use crate::{
-    impl_field_token, meshup,
+    __impl_field_token, __meshup,
     prelude::{
         sub_ptr, CompoundUnwrapper, CompoundWrapper, ConstifyPadding, Edge, End, FieldOffset, Len,
         Size, Sorted,
@@ -41,7 +41,7 @@ impl<A, B> Len for (A, B) {
 }
 
 const _: () = {
-    impl_field_token!();
+    __impl_field_token!();
 
     const _: () = {
         impl<A, B> FieldOffset for __FieldToken<(A, B), A, 0>
@@ -99,7 +99,7 @@ const _: () = {
     {
         type First = End<__C, Self>;
 
-        type Second = meshup!(0, (Tup), {A, B}; {A} {B});
+        type Second = __meshup!(0, (Tup), {A, B}; {A} {B});
     }
 };
 
@@ -135,7 +135,7 @@ impl<A, B, C> Len for (A, B, C) {
 }
 
 const _: () = {
-    impl_field_token!();
+    __impl_field_token!();
 
     const _: () = {
         impl<A, B, C> FieldOffset for __FieldToken<(A, B, C), A, 0>
@@ -214,6 +214,6 @@ const _: () = {
     {
         type First = End<__C, Self>;
 
-        type Second = meshup!(0, (Tup), {A, B, C}; {A} {B} {C});
+        type Second = __meshup!(0, (Tup), {A, B, C}; {A} {B} {C});
     }
 };

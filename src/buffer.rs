@@ -1,25 +1,39 @@
 use std::mem::{transmute, MaybeUninit};
 
 pub struct Buffer {
-    pub(crate) ptr: *mut u8,
-    pub(crate) len: usize,
+    pub ptr: *mut u8,
+    pub pos: LenUint,
+    pub len: LenUint,
+}
+
+pub type LenUint = usize;
+
+pub type BufWriteError = BufError;
+pub type BufReadError = BufError;
+
+pub enum BufError {
+    EOF,
 }
 
 pub trait BufWrite {
-    fn write_array<T: Copy, const N: usize>(&mut self, src: &[T; N]);
-    fn write_slice<T: Copy>(&mut self, src: &[T]);
+    fn write_array<T: Copy, const N: usize>(&mut self, src: &[T; N]) -> Result<(), BufWriteError>;
+    fn write_slice<T: Copy>(&mut self, src: &[T]) -> Result<(), BufWriteError>;
 }
 
 pub trait BufRead {
-    fn read_array<T: Copy, const N: usize>(&mut self, out: &mut MaybeUninit<[T; N]>);
-    fn read_slice<T: Copy>(&mut self, out: &mut [MaybeUninit<T>]);
+    fn read_array<T: Copy, const N: usize>(
+        &mut self,
+        out: &mut MaybeUninit<[T; N]>,
+    ) -> Result<(), BufReadError>;
+    fn read_slice<T: Copy>(&mut self, out: &mut [MaybeUninit<T>]) -> Result<(), BufReadError>;
 }
 
 impl From<&[u8]> for Buffer {
     fn from(value: &[u8]) -> Self {
         Self {
             ptr: value.as_ptr() as *const _ as *mut u8,
-            len: value.len(),
+            pos: 0,
+            len: value.len() as LenUint,
         }
     }
 }
@@ -28,7 +42,8 @@ impl From<&mut [u8]> for Buffer {
     fn from(value: &mut [u8]) -> Self {
         Self {
             ptr: value.as_mut_ptr(),
-            len: value.len(),
+            pos: 0,
+            len: value.len() as LenUint,
         }
     }
 }
@@ -39,7 +54,6 @@ impl From<&mut [u8]> for Buffer {
 /// Same as [`std::ptr::copy_nonoverlapping`] but with the additional requirements that
 /// `n != 0 && n <= N` and `dst` has room for a `[T; N]`.
 /// Is a macro instead of an `#[inline(always)] fn` because it optimizes better.
-#[macro_export]
 macro_rules! unsafe_wild_copy {
     // pub unsafe fn wild_copy<T, const N: usize>(src: *const T, dst: *mut T, n: usize) {
     ([$T:ident; $N:expr], $src:ident, $dst:ident, $n:expr) => {
@@ -77,17 +91,25 @@ pub const CHUNK_SIZE: usize = if cfg!(any(
     4
 };
 
+impl Buffer {
+    pub fn try_advance(&mut self, value: usize) -> Result<(), BufError> {
+        self.ptr = self.ptr.wrapping_add(value);
+        Ok(())
+    }
+}
+
 impl BufWrite for Buffer {
-    fn write_array<T: Copy, const N: usize>(&mut self, src: &[T; N]) {
+    fn write_array<T: Copy, const N: usize>(&mut self, src: &[T; N]) -> Result<(), BufError> {
         let dst = self.ptr as *mut T;
-        self.ptr = dst.wrapping_add(N) as *mut u8;
+        self.try_advance(size_of::<[T; N]>())?;
         let src = src.as_ptr();
         unsafe {
             unsafe_wild_copy!([T; N], src, dst, N);
         }
+        Ok(())
     }
 
-    fn write_slice<T: Copy>(&mut self, src: &[T]) {
+    fn write_slice<T: Copy>(&mut self, src: &[T]) -> Result<(), BufError> {
         let mut iter = src.chunks_exact(CHUNK_SIZE);
         loop {
             let chunk = match iter.next() {
@@ -100,7 +122,7 @@ impl BufWrite for Buffer {
                         //TODO DANGER!! must check buffer remaining size is more than CHUNK_SIZE
                         unsafe_wild_copy!([T; CHUNK_SIZE], src, dst, CHUNK_SIZE);
                     }
-                    self.ptr = dst.wrapping_add(remainder.len()) as *mut u8;
+                    self.try_advance(remainder.len() * size_of::<T>())?;
                     break;
                 }
             };
@@ -109,13 +131,14 @@ impl BufWrite for Buffer {
                 let src = chunk.as_ptr();
                 unsafe_wild_copy!([T; CHUNK_SIZE], src, dst, CHUNK_SIZE);
             }
-            self.ptr = dst.wrapping_add(CHUNK_SIZE) as *mut u8;
+            self.try_advance(CHUNK_SIZE * size_of::<T>())?;
         }
+        Ok(())
     }
 }
 
 impl BufRead for Buffer {
-    fn read_slice<T: Copy>(&mut self, out: &mut [MaybeUninit<T>]) {
+    fn read_slice<T: Copy>(&mut self, out: &mut [MaybeUninit<T>]) -> Result<(), BufError> {
         let mut iter = out.chunks_exact_mut(CHUNK_SIZE);
         loop {
             let chunk = match iter.next() {
@@ -125,7 +148,7 @@ impl BufRead for Buffer {
                     unsafe {
                         for v in remainder.into_iter() {
                             let src = self.ptr as *const T;
-                            self.ptr = src.wrapping_add(1) as *mut u8;
+                            self.try_advance(size_of::<T>())?;
                             let dst = v.as_ptr() as *mut T;
                             unsafe_wild_copy!([T; 1], src, dst, 1);
                         }
@@ -144,16 +167,21 @@ impl BufRead for Buffer {
             unsafe {
                 unsafe_wild_copy!([T; CHUNK_SIZE], src, dst, CHUNK_SIZE);
             }
-            self.ptr = src.wrapping_add(CHUNK_SIZE) as *mut u8;
+            self.try_advance(CHUNK_SIZE * size_of::<T>())?;
         }
+        Ok(())
     }
 
-    fn read_array<T: Copy, const N: usize>(&mut self, out: &mut MaybeUninit<[T; N]>) {
+    fn read_array<T: Copy, const N: usize>(
+        &mut self,
+        out: &mut MaybeUninit<[T; N]>,
+    ) -> Result<(), BufError> {
         let src = self.ptr as *const T;
         let dst = out.as_mut_ptr() as *mut T;
-        self.ptr = src.wrapping_add(N) as *mut u8;
+        self.try_advance(size_of::<[T; N]>())?;
         unsafe {
             unsafe_wild_copy!([T; N], src, dst, N);
         }
+        Ok(())
     }
 }
