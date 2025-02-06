@@ -3,7 +3,7 @@ use std::mem::{discriminant, transmute, Discriminant, MaybeUninit};
 use crate::{
     prelude::{walk_segment, Mesh, SegmentDecoder, SegmentEncoder},
     BufRead, BufReadError, BufWrite, BufWriteError, Buffer, Codec, CompositeDecoder,
-    CompositeEncoder, Decode, Decoder, Encoder, Endian, EnumIdentifierToVariantIndex,
+    CompositeEncoder, Decode, Decoder, Encode, Encoder, Endian, EnumIdentifierToVariantIndex,
     EnumIdentifierToVariantIndexError, EnumVariantDiscriminantId, EnumVariantIndex,
     EnumVariantStringId,
 };
@@ -30,7 +30,7 @@ impl BufWrite for BinaryCodecMock {
 
 pub fn encode<'a, T>(src: &T, dst: &mut [u8]) -> Result<(), <BinaryCodecMock as Encoder>::Error>
 where
-    T: Mesh<BinaryCodecMock, SegmentEncoder>,
+    T: Encode + Mesh<BinaryCodecMock, SegmentEncoder>,
 {
     let buffer = Buffer::from(dst);
     let mut codec = BinaryCodecMock { buffer };
@@ -40,7 +40,7 @@ where
 
 pub fn decode<'a, T>(src: &[u8]) -> Result<T, <BinaryCodecMock as Decoder>::Error>
 where
-    T: Mesh<BinaryCodecMock, SegmentDecoder>,
+    T: Decode + Mesh<BinaryCodecMock, SegmentDecoder>,
 {
     let mut out = MaybeUninit::uninit();
     let buffer = Buffer::from(src);

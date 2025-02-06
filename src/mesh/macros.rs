@@ -28,6 +28,14 @@ macro_rules! __impl_mesh {
                 Ok(())
             }
         }
+        impl<$($impl_generics,)*> $crate::Decode for $($type)+ <$($type_generics),*> where $($where_clause)* {
+            fn decode_in_place<D: $crate::Decoder>(
+                decoder: &mut D,
+                out: &mut core::mem::MaybeUninit<Self>,
+            ) -> Result<(), D::Error> {
+                Ok(())
+            }
+        }
 
         $crate::__impl_field_token!();
         $crate::__impl_field_offset!($brace, 0, ($($type)+), {$($type_generics),*}, impl {$($impl_generics,)*} ($($where_clause)*); ($($field_ident),*), $($field_ident => {$($field)*}),*);
@@ -70,6 +78,23 @@ macro_rules! __impl_enum_mesh {
  pub struct __VariantToken<$($impl_generics,)* const I: usize>(core::marker::PhantomData<($($type_generics),*)>) where $($where_clause)*;
  pub struct __VariantToken2<const I: usize>;
 pub struct __Variants<$($impl_generics,)*>(core::marker::PhantomData<($($type_generics,)*)>) where $($where_clause)*;
+
+impl<$($impl_generics,)* const I: usize> $crate::Encode for __VariantToken<$($type_generics,)* I>
+        {
+            fn encode<E: $crate::Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
+                Ok(())
+            }
+        }
+impl<$($impl_generics,)* const I: usize> $crate::Decode for __VariantToken<$($type_generics,)* I>
+        {
+            fn decode_in_place<D: $crate::Decoder>(
+                decoder: &mut D,
+                out: &mut core::mem::MaybeUninit<Self>,
+            ) -> Result<(), D::Error> {
+                Ok(())
+            }
+        }
+
 
         impl<$($impl_generics),*> $crate::EnumIdentifierToVariantIndex<$crate::EnumVariantStringId> for $($type)+ <$($type_generics),*>
         where
@@ -146,6 +171,15 @@ pub struct __Variants<$($impl_generics,)*>(core::marker::PhantomData<($($type_ge
 
         impl<$($impl_generics,)*> $crate::Encode for $($type)+ <$($type_generics),*> where $($where_clause)* {
             fn encode<E: $crate::Encoder>(&self, _encoder: &mut E) -> Result<(), E::Error> {
+                Ok(())
+            }
+        }
+
+        impl<$($impl_generics,)*> $crate::Decode for $($type)+ <$($type_generics),*> where $($where_clause)* {
+            fn decode_in_place<D: $crate::Decoder>(
+                decoder: &mut D,
+                out: &mut core::mem::MaybeUninit<Self>,
+            ) -> Result<(), D::Error> {
                 Ok(())
             }
         }
@@ -253,13 +287,6 @@ macro_rules! __impl_field_token {
                 unsafe { self.0.assume_init_ref() }.encode(encoder)
             }
         }
-        impl<C, S, S2, T, const I: usize> $crate::__private::CompoundWrapper<C, S>
-            for __FieldToken<S2, T, I>
-        where
-            T: $crate::__private::CompoundWrapper<C, S>,
-        {
-            type Compound = <T as $crate::__private::CompoundWrapper<C, S>>::Compound;
-        }
         impl<S, T, const I: usize> $crate::Decode for __FieldToken<S, T, I>
         where
             T: $crate::Decode,
@@ -271,7 +298,13 @@ macro_rules! __impl_field_token {
                 T::decode_in_place(decoder, unsafe { core::mem::transmute(out) })
             }
         }
-
+        impl<C, S, S2, T, const I: usize> $crate::__private::CompoundWrapper<C, S>
+            for __FieldToken<S2, T, I>
+        where
+            T: $crate::__private::CompoundWrapper<C, S>,
+        {
+            type Compound = <T as $crate::__private::CompoundWrapper<C, S>>::Compound;
+        }
         impl<S, T, const I: usize> $crate::__private::Vector for __FieldToken<S, T, I>
         where
             T: $crate::__private::Vector,

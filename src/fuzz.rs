@@ -137,9 +137,7 @@ mod tests {
     use std::{any::type_name, convert::Infallible, fmt::Debug, marker::PhantomData, str::FromStr};
 
     use crate::{
-        mock::BinaryCodecMock,
-        prelude::{Mesh, SegmentCodec, SegmentDecoder, SegmentEncoder, SegmentWalker},
-        Buffer,
+        mock::BinaryCodecMock, prelude::{Mesh, SegmentCodec, SegmentDecoder, SegmentEncoder, SegmentWalker}, Buffer, Decode, Encode
     };
 
     use super::*;
@@ -202,8 +200,8 @@ mod tests {
 
     fn test<T: Eq + Debug>(value: T)
     where
-        T: Mesh<BinaryCodecMock, SegmentEncoder>,
-        T: Mesh<BinaryCodecMock, SegmentDecoder>,
+        T: Encode + Mesh<BinaryCodecMock, SegmentEncoder>,
+        T: Decode + Mesh<BinaryCodecMock, SegmentDecoder>,
         [(); size_of::<T>()]:,
     {
         let mut dst = [0u8; 100000];

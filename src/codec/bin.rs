@@ -20,7 +20,7 @@ pub struct BinaryCodec {
 
 pub fn encode<'a, T>(src: &T, dst: &mut [u8]) -> Result<(), <BinaryCodec as Encoder>::Error>
 where
-    T: Mesh<BinaryCodec, SegmentEncoder>,
+    T: Encode + Mesh<BinaryCodec, SegmentEncoder>,
 {
     let buffer = Buffer::from(dst);
     let ref mut codec = BinaryCodec { buffer };
@@ -30,7 +30,7 @@ where
 
 pub fn decode<'a, T>(src: &[u8]) -> Result<T, <BinaryCodec as Decoder>::Error>
 where
-    T: Mesh<BinaryCodec, SegmentDecoder>,
+    T: Decode + Mesh<BinaryCodec, SegmentDecoder>,
 {
     let out = MaybeUninit::uninit();
     let buffer = Buffer::from(src);

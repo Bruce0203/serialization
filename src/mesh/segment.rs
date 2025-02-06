@@ -25,7 +25,7 @@ use super::{
 
 pub trait Mesh<C, H>: Sized
 where
-    H: SegmentCodec<C>,
+    H: SegmentCodec<C, Self>,
 {
     type Output: SegmentWalker<C, H>;
 }
@@ -36,7 +36,7 @@ where
         C,
         Second: Sorted<Output: ConstifyPadding<Output: Flatten<T, Output: SegmentWalker<C, H>>>>,
     >,
-    H: SegmentCodec<C>,
+    H: SegmentCodec<C, Self>,
 {
     type Output = <<<<T as Edge<C>>::Second as Sorted>::Output as ConstifyPadding>::Output as Flatten<T>>::Output;
 }
@@ -44,25 +44,24 @@ where
 #[inline(never)]
 pub fn walk_segment<T, C, H>(src: *const T, codec: &mut C) -> Result<(), H::Error>
 where
-    H: SegmentCodec<C>,
+    H: SegmentCodec<C, T>,
     T: Mesh<C, H>,
 {
     <T as Mesh<C, H>>::Output::walk(src as *const _ as *mut u8, codec, None)
 }
 
-pub trait SegmentCodec<C> {
+pub trait SegemntErrorKind<C> {
     type Error;
+}
 
-    fn handle_element<T: Encode + Decode>(
-        element: &mut T,
-        codec: &mut C,
-    ) -> Result<(), Self::Error>;
+pub trait SegmentCodec<C, T>: SegemntErrorKind<C> {
+    fn handle_element(element: &mut T, codec: &mut C) -> Result<(), Self::Error>;
     fn handle_cluster<const N: usize>(
         cluster: &mut [u8; N],
         codec: &mut C,
     ) -> Result<(), Self::Error>;
     fn handle_clusters<const N: usize>(clusters: &mut [[u8; N]], codec: &mut C);
-    fn get_variant_index<T>(src: &mut T, codec: &mut C) -> Result<EnumVariantIndex, Self::Error>
+    fn get_variant_index(src: &mut T, codec: &mut C) -> Result<EnumVariantIndex, Self::Error>
     where
         T: EnumDiscriminantDecoder<T>
             + EnumIdentifierToVariantIndex<EnumVariantStringId>
@@ -71,15 +70,31 @@ pub trait SegmentCodec<C> {
         [(); size_of::<Discriminant<T>>()]:;
 }
 
-pub struct SegmentEncoder;
-
-impl<C> SegmentCodec<C> for SegmentEncoder
+impl<C> SegemntErrorKind<C> for SegmentEncoder
 where
     C: CompositeEncoder,
 {
     type Error = C::Error;
+}
 
-    fn handle_element<T: Encode>(element: &mut T, codec: &mut C) -> Result<(), Self::Error> {
+impl<C> SegemntErrorKind<C> for SegmentDecoder
+where
+    C: CompositeDecoder,
+{
+    type Error = C::Error;
+}
+
+pub struct SegmentEncoder;
+
+impl<C, T> SegmentCodec<C, T> for SegmentEncoder
+where
+    C: CompositeEncoder,
+    T: Encode,
+{
+    fn handle_element(
+        element: &mut T,
+        codec: &mut C,
+    ) -> Result<(), <Self as SegemntErrorKind<C>>::Error> {
         codec.encode_element(element)
     }
 
@@ -96,7 +111,7 @@ where
             .map_err(|BufWriteError::EOF| EncodeError::not_enough_space_in_the_buffer())
     }
 
-    fn get_variant_index<T>(src: &mut T, codec: &mut C) -> Result<EnumVariantIndex, Self::Error>
+    fn get_variant_index(src: &mut T, codec: &mut C) -> Result<EnumVariantIndex, Self::Error>
     where
         T: EnumDiscriminantDecoder<T>
             + EnumIdentifierToVariantIndex<EnumVariantStringId>
@@ -110,16 +125,12 @@ where
 
 pub struct SegmentDecoder;
 
-impl<C> SegmentCodec<C> for SegmentDecoder
+impl<C, T> SegmentCodec<C, T> for SegmentDecoder
 where
     C: CompositeDecoder,
+    T: Decode,
 {
-    type Error = C::Error;
-
-    fn handle_element<T: Encode + Decode>(
-        element: &mut T,
-        codec: &mut C,
-    ) -> Result<(), Self::Error> {
+    fn handle_element(element: &mut T, codec: &mut C) -> Result<(), Self::Error> {
         C::decode_element(codec, unsafe {
             transmute::<_, &mut MaybeUninit<T>>(element)
         })
@@ -138,7 +149,7 @@ where
         codec.read_slice(unsafe { transmute::<_, &mut [MaybeUninit<[u8; N]>]>(clusters) });
     }
 
-    fn get_variant_index<T>(src: &mut T, codec: &mut C) -> Result<EnumVariantIndex, Self::Error>
+    fn get_variant_index(src: &mut T, codec: &mut C) -> Result<EnumVariantIndex, Self::Error>
     where
         T: EnumDiscriminantDecoder<T>
             + EnumIdentifierToVariantIndex<EnumVariantStringId>
@@ -156,7 +167,7 @@ where
 pub trait SegmentWalker<C, H>
 where
     Self: Instantiate,
-    H: SegmentCodec<C>,
+    H: SegemntErrorKind<C>,
 {
     fn walk(src: *mut u8, codec: &mut C, skip_len: Option<usize>) -> Result<(), H::Error>;
 }
@@ -179,7 +190,7 @@ const fn adjust_to_word(value: usize) -> usize {
 impl<S, A, B, C, H> SegmentWalker<C, H> for PhantomEdge<C, S, (Field<A>, B)>
 where
     Self: Len,
-    H: SegmentCodec<C>,
+    H: SegmentCodec<C, A>,
     A: Encode + Decode + Size,
     B: SegmentWalker<C, H>,
     [(); adjust_to_word(<Self as Len>::SIZE)]:,
@@ -192,7 +203,7 @@ where
             skip_len = Some(<Self as Len>::SIZE);
             if <Self as Len>::SIZE == 0 {
                 let segment = unsafe { transmute(origin_src) };
-                H::handle_element::<A>(segment, codec)?;
+                H::handle_element(segment, codec)?;
                 src = origin_src.wrapping_byte_add(<A as Size>::SIZE);
             } else {
                 let segment = unsafe {
@@ -215,7 +226,7 @@ where
 impl<S, S2, H, C, B, const I: usize> SegmentWalker<C, H>
     for PhantomEdge<C, S, (ConstPadding<C, S2, I>, B)>
 where
-    H: SegmentCodec<C>,
+    H: SegmentCodec<C, ()>,
     B: SegmentWalker<C, H>,
 {
     fn walk(mut src: *mut u8, codec: &mut C, mut skip_len: Option<usize>) -> Result<(), H::Error> {
@@ -230,7 +241,7 @@ where
 
 impl<S2, C, H, B, T> SegmentWalker<C, H> for PhantomEdge<C, S2, (Vectored<T>, B)>
 where
-    H: SegmentCodec<C>,
+    H: SegmentCodec<C, Vectored<T>> + SegmentCodec<C, <T as Vector>::Item>,
     B: SegmentWalker<C, H>,
     T: Vector<Item: Size + Mesh<C, H, Output: SegmentWalker<C, H> + Len>> + Size,
     [(); <<T as Vector>::Item as Size>::SIZE]:,
@@ -251,8 +262,8 @@ where
                     vector.as_ptr() as *mut [u8; <<T as Vector>::Item as Size>::SIZE],
                     vector.len(),
                 )
-            };
-            H::handle_clusters(segment, codec);
+            }; 
+            <H as SegmentCodec<C, Vectored<T>>>::handle_clusters(segment, codec);
         } else {
             let mut vec_ptr = vector.as_mut_ptr();
             let end = vec_ptr.wrapping_add(vector.len());
@@ -298,7 +309,7 @@ where
 
 impl<S2, C, H, B, T, V> SegmentWalker<C, H> for PhantomEdge<C, S2, (Enum<T, V>, B)>
 where
-    H: SegmentCodec<C>,
+    H: SegmentCodec<C, T>,
     B: SegmentWalker<C, H>,
     T: Size,
     T: EnumDiscriminantDecoder<T>
@@ -312,7 +323,7 @@ where
     fn walk(mut src: *mut u8, codec: &mut C, skip_len: Option<usize>) -> Result<(), H::Error> {
         let origin_src = src;
         // H::handle_element(unsafe { transmute::<_, &mut Enum<T, V>>(src) }, codec)?;
-        let variant_index = H::get_variant_index::<T>(unsafe { transmute(origin_src) }, codec)?;
+        let variant_index = H::get_variant_index(unsafe { transmute(origin_src) }, codec)?;
         <<<V as Edge<C>>::Second as ConstifyPadding>::Output as SegmentWalker<C, H>>::walk(
             origin_src,
             codec,
@@ -332,7 +343,7 @@ where
 impl<H, C, S, T, B, const I: usize> SegmentWalker<C, H> for PhantomEdge<C, S, (Variant<T, I>, B)>
 where
     C: Codec,
-    H: SegmentCodec<C>,
+    H: SegmentCodec<C, T>,
     T: Mesh<C, H, Output: SegmentWalker<C, H>>,
     B: SegmentWalker<C, H>,
 {
@@ -351,7 +362,7 @@ where
 
 impl<S2, C, H> SegmentWalker<C, H> for End<C, S2>
 where
-    H: SegmentCodec<C>,
+    H: SegmentCodec<C, S2>,
 {
     fn walk(_src: *mut u8, _codec: &mut C, _skip_len: Option<usize>) -> Result<(), H::Error> {
         Ok(())
