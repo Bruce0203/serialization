@@ -137,7 +137,9 @@ mod tests {
     use std::{any::type_name, convert::Infallible, fmt::Debug, marker::PhantomData, str::FromStr};
 
     use crate::{
-        mock::BinaryCodecMock, prelude::{Mesh, SegmentCodec, SegmentDecoder, SegmentEncoder, SegmentWalker}, Buffer, Decode, Encode
+        mock::BinaryCodecMock,
+        prelude::{Mesh, SegmentCodec, SegmentDecoder, SegmentEncoder, SegmentWalker},
+        Buffer, Decode, Encode,
     };
 
     use super::*;

@@ -1,15 +1,6 @@
 use proc_macro2::Span;
-use quote::{format_ident, quote, ToTokens};
+use quote::{format_ident, quote};
 use syn::{parse_macro_input, parse_quote, Data, DeriveInput, Expr, GenericParam, Ident, Type};
-
-#[proc_macro_derive(AAAA)]
-pub fn aaaa(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-    panic!("{:?}", input.attrs.iter().fold(String::new(), |mut acc, v| {
-        acc.extend(std::iter::once(v.to_token_stream().to_string()));
-        acc
-    }))
-}
 
 #[proc_macro_derive(Serializable)]
 pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
