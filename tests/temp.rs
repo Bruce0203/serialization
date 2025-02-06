@@ -10,12 +10,12 @@ use std::{
 };
 
 use serialization::{
+    Codec, EnumVariantStringId, __impl_field_token, __meshup, __offset_of_enum,
     __private::{
         sub_ptr, CompoundWrapper, Edge, End, Enum, FieldOffset, Instantiate, Len, Mesh,
         PhantomEdge, SegmentCodec, SegmentWalker, Size, Variant, UNSIZED,
     },
-    __impl_field_token, __meshup, __offset_of_enum, __variant_meshup, __wrap_brace, Codec,
-    EnumVariantStringId,
+    __variant_meshup, __wrap_brace,
 };
 
 enum A<T> {
