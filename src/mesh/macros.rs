@@ -286,6 +286,10 @@ macro_rules! __impl_field_token {
                 unsafe { self.0.assume_init_ref() }.as_ptr()
             }
 
+            fn as_mut_ptr(&mut self) -> *mut Self::Item {
+                unsafe { self.0.assume_init_mut() }.as_mut_ptr()
+            }
+
             fn len(&self) -> usize {
                 unsafe { self.0.assume_init_ref() }.len()
             }

@@ -17,6 +17,7 @@ pub trait Vector {
     type Item;
     fn as_iter(&self) -> impl Iterator<Item = &Self::Item>;
     fn as_ptr(&self) -> *const Self::Item;
+    fn as_mut_ptr(&mut self) -> *mut Self::Item;
     fn len(&self) -> usize;
     fn set_len(&mut self, len: usize);
 }

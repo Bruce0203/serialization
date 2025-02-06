@@ -1,11 +1,11 @@
 # 높은 우선순위 
 
-decode할 때 drop처리해야 함 
-decode에 populate 도 추가해야 함 
-&'static str 은 인코딩만 되서 Serializable을 Serialize, Deserialize로 분리해서 &'static str을 지원해야 함
-remove generic_const_exprs from lib.rs of serialization crate => pad.rs 수정하기 
-Model만 repr(Rust)의 영향을 받는다 Bar, Foo도 repr(Rust)하면 repr(C)와 달라지게 테스트하라
+- decode할 때 drop처리해야 함 
+- &'static str 은 인코딩만 되서 Serializable을 Serialize, Deserialize로 분리해서 &'static str을 지원해야 함
+- remove generic_const_exprs from lib.rs of serialization crate => pad.rs 수정하기 
 
+~~decode에 populate 도 추가해야 함~~
+~~Model만 repr(Rust)의 영향을 받는다 Bar, Foo도 repr(Rust)하면 repr(C)와 달라지게 테스트하라~~
 ~~Clusted len을 WORD사이즈로 맞추기 ~~
 ~~export하는 impl macro_rules들 전부다 "\__"붙이기  ~~
 

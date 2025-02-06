@@ -41,6 +41,10 @@ impl<T, const N: usize> Vector for [T; N] {
     }
 
     fn set_len(&mut self, len: usize) {}
+
+    fn as_mut_ptr(&mut self) -> *mut Self::Item {
+        unsafe { transmute(self) }
+    }
 }
 
 const _: () = {

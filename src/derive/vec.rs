@@ -48,6 +48,10 @@ impl<T> Vector for Vec<T> {
         *vec = MaybeUninit::new(Vec::with_capacity(len));
         unsafe { vec.assume_init_mut().set_len(len) };
     }
+
+    fn as_mut_ptr(&mut self) -> *mut Self::Item {
+        self.as_mut_ptr()
+    }
 }
 
 const _: () = {

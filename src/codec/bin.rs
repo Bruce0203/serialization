@@ -489,7 +489,7 @@ impl crate::DecodeError for DecodeError {
 mod tests {
     use test::Bencher;
 
-    use crate::{codec::bin::encode, mock::model::foo::Foo};
+    use crate::{codec::bin::encode, mock::model::foo::Facade};
 
     extern crate test;
 
@@ -499,7 +499,7 @@ mod tests {
         #[allow(invalid_value)]
         println!("--------");
         let mut dst: Box<[u8]> = Box::new([0_u8; 1000000]);
-        encode(&Foo::default(), &mut dst).unwrap();
+        encode(&Facade::default(), &mut dst).unwrap();
         println!("{:?}", &dst[..66]);
         println!("--------");
     }

@@ -543,6 +543,14 @@ pub mod model {
 
         #[repr(C)]
         #[derive(serialization::Serializable)]
+        pub struct Facade {
+            value0: u8,
+            foo: Foo,
+            value1: u32,
+        }
+
+        #[repr(C)]
+        #[derive(serialization::Serializable)]
         pub struct Foo {
             field0: u8, // offset 0 size 1
             // padding 3
@@ -580,25 +588,29 @@ pub mod model {
                         // padding 0
         }
 
-        impl Default for Foo {
+        impl Default for Facade {
             fn default() -> Self {
-                Foo {
-                    field0: 11,
-                    field1: Bar {
-                        field0: 22,
-                        field1: 33,
-                        field2: Baz {
-                            field0: 44,
-                            field1: 55,
+                Facade {
+                    value0: 123,
+                    value1: 234,
+                    foo: Foo {
+                        field0: 11,
+                        field1: Bar {
+                            field0: 22,
+                            field1: 33,
+                            field2: Baz {
+                                field0: 44,
+                                field1: 55,
+                            },
                         },
+                        field2: vec![1, 2, 3, 4],
+                        field3: 66,
+                        field4: Baz {
+                            field0: 77,
+                            field1: 88,
+                        },
+                        field5: 99,
                     },
-                    field2: vec![1, 2, 3, 4],
-                    field3: 66,
-                    field4: Baz {
-                        field0: 77,
-                        field1: 88,
-                    },
-                    field5: 99,
                 }
             }
         }
@@ -608,7 +620,7 @@ pub mod model {
             #[allow(invalid_value)]
             let mut dst = [0_u8; 1000000];
             println!("--------");
-            encode(&Foo::default(), &mut dst).unwrap();
+            encode(&Facade::default(), &mut dst).unwrap();
             println!("{:?}", &dst[..66]);
             black_box(&dst);
             println!("--------");
@@ -617,7 +629,7 @@ pub mod model {
         #[ignore]
         #[bench]
         fn bench_mock_model(b: &mut Bencher) {
-            let model = &Foo::default();
+            let model = &Facade::default();
             let mut dst = [0_u8; 1000000];
             b.iter(|| encode(model, &mut dst));
             black_box(&dst);

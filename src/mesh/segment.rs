@@ -2,6 +2,7 @@ use std::{
     any::type_name,
     marker::PhantomData,
     mem::{discriminant, transmute, transmute_copy, Discriminant, MaybeUninit},
+    ptr::drop_in_place,
 };
 
 use crate::{
@@ -115,6 +116,9 @@ where
 {
     type Error = C::Error;
 
+    // 만약에 decode하다가 뭐하나가 에러나면 지금껏 박아놨던 타입들 전부 드롭시켜
+    // 디코딩이 edge의 순서대로 된다(vectored됬을 때 순서를 지켜야 함)
+    // 그러면 일단 현재까지 decode
     fn handle_element<T: Encode + Decode>(
         element: &mut T,
         codec: &mut C,
@@ -184,22 +188,30 @@ where
     [(); adjust_to_word(<Self as Len>::SIZE)]:,
 {
     fn walk(mut src: *mut u8, codec: &mut C, mut skip_len: Option<usize>) -> Result<(), H::Error> {
+        let origin_src = src;
         if let Some(len) = skip_len {
             skip_len = Some(len - <A as Size>::SIZE);
         } else {
             skip_len = Some(<Self as Len>::SIZE);
             if <Self as Len>::SIZE == 0 {
-                let segment = unsafe { transmute(src) };
+                let segment = unsafe { transmute(origin_src) };
                 H::handle_element::<A>(segment, codec)?;
-                src = src.wrapping_byte_add(<A as Size>::SIZE);
+                src = origin_src.wrapping_byte_add(<A as Size>::SIZE);
             } else {
-                let segment =
-                    unsafe { transmute::<_, &mut [u8; adjust_to_word(<Self as Len>::SIZE)]>(src) };
+                let segment = unsafe {
+                    transmute::<_, &mut [u8; adjust_to_word(<Self as Len>::SIZE)]>(origin_src)
+                };
                 H::handle_cluster::<{ adjust_to_word(<Self as Len>::SIZE) }>(segment, codec);
-                src = src.wrapping_byte_add(<Self as Len>::SIZE);
+                src = origin_src.wrapping_byte_add(<Self as Len>::SIZE);
             }
         }
-        B::walk(src, codec, skip_len)
+        match B::walk(src, codec, skip_len) {
+            Ok(()) => Ok(()),
+            Err(err) => {
+                unsafe { drop_in_place::<A>(transmute(origin_src)) };
+                return Err(err);
+            }
+        }
     }
 }
 
@@ -228,8 +240,12 @@ where
     Vectored<T>: Decode,
 {
     fn walk(mut src: *mut u8, codec: &mut C, _skip_len: Option<usize>) -> Result<(), H::Error> {
-        H::handle_element(unsafe { transmute::<_, &mut Vectored<T>>(src) }, codec)?;
-        let vector: &T = unsafe { transmute(src) };
+        let origin_src = src;
+        H::handle_element(
+            unsafe { transmute::<_, &mut Vectored<T>>(origin_src) },
+            codec,
+        )?;
+        let vector: &mut T = unsafe { transmute(origin_src) };
         let clustered_len = <<<T as Vector>::Item as Mesh<C, H>>::Output as Len>::SIZE;
         let element_len = <<T as Vector>::Item as Size>::SIZE;
         if clustered_len == element_len {
@@ -241,17 +257,45 @@ where
             };
             H::handle_clusters(segment, codec);
         } else {
-            let iter = vector.as_iter();
-            for elem in iter {
-                <<<T as Vector>::Item as Mesh<C, H>>::Output as SegmentWalker<C, H>>::walk(
+            let mut vec_ptr = vector.as_mut_ptr();
+            let end = vec_ptr.wrapping_add(vector.len());
+            loop {
+                if vec_ptr == end {
+                    break;
+                }
+
+                let elem = vec_ptr;
+                match <<<T as Vector>::Item as Mesh<C, H>>::Output as SegmentWalker<C, H>>::walk(
                     elem as *const _ as *mut u8,
                     codec,
                     None,
-                )?;
+                ) {
+                    Ok(()) => Ok(()),
+                    Err(err) => {
+                        let end = vector.as_mut_ptr();
+                        loop {
+                            if vec_ptr == end {
+                                break;
+                            }
+                            unsafe { drop_in_place((vec_ptr)) }
+                            vec_ptr.wrapping_sub(1);
+                        }
+                        Err(err)
+                    }
+                }?;
+                vec_ptr = vec_ptr.wrapping_add(1);
             }
         }
-        src = src.wrapping_byte_add(<T as Size>::SIZE);
-        B::walk(src, codec, None)
+        src = origin_src.wrapping_byte_add(<T as Size>::SIZE);
+        match B::walk(src, codec, None) {
+            Ok(()) => Ok(()),
+            Err(err) => {
+                unsafe {
+                    drop_in_place::<T>(transmute(origin_src));
+                };
+                return Err(err);
+            }
+        }
     }
 }
 
@@ -269,15 +313,22 @@ where
     [(); size_of::<Discriminant<T>>()]:,
 {
     fn walk(mut src: *mut u8, codec: &mut C, skip_len: Option<usize>) -> Result<(), H::Error> {
+        let origin_src = src;
         // H::handle_element(unsafe { transmute::<_, &mut Enum<T, V>>(src) }, codec)?;
-        let variant_index = H::get_variant_index::<T>(unsafe { transmute(src) }, codec)?;
+        let variant_index = H::get_variant_index::<T>(unsafe { transmute(origin_src) }, codec)?;
         <<<V as Edge<C>>::Second as ConstifyPadding>::Output as SegmentWalker<C, H>>::walk(
-            src,
+            origin_src,
             codec,
             Some(variant_index.0),
         )?;
-        src = src.wrapping_byte_add(<T as Size>::SIZE);
-        B::walk(src, codec, skip_len)
+        src = origin_src.wrapping_byte_add(<T as Size>::SIZE);
+        match B::walk(src, codec, skip_len) {
+            Ok(()) => Ok(()),
+            Err(err) => {
+                unsafe { drop_in_place::<T>(transmute(origin_src)) };
+                return Err(err);
+            }
+        }
     }
 }
 

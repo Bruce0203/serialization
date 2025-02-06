@@ -2,11 +2,8 @@ use std::mem::{transmute, MaybeUninit};
 
 pub struct Buffer {
     pub ptr: *mut u8,
-    pub pos: LenUint,
-    pub len: LenUint,
+    pub end: *mut u8,
 }
-
-pub type LenUint = usize;
 
 pub type BufWriteError = BufError;
 pub type BufReadError = BufError;
@@ -30,20 +27,20 @@ pub trait BufRead {
 
 impl From<&[u8]> for Buffer {
     fn from(value: &[u8]) -> Self {
+        let ptr = value.as_ptr() as *const _ as *mut u8;
         Self {
-            ptr: value.as_ptr() as *const _ as *mut u8,
-            pos: 0,
-            len: value.len() as LenUint,
+            ptr,
+            end: ptr.wrapping_add(value.len()),
         }
     }
 }
 
 impl From<&mut [u8]> for Buffer {
     fn from(value: &mut [u8]) -> Self {
+        let ptr = value.as_mut_ptr();
         Self {
-            ptr: value.as_mut_ptr(),
-            pos: 0,
-            len: value.len() as LenUint,
+            ptr,
+            end: ptr.wrapping_add(value.len()),
         }
     }
 }
@@ -93,8 +90,13 @@ pub const CHUNK_SIZE: usize = if cfg!(any(
 
 impl Buffer {
     pub fn try_advance(&mut self, value: usize) -> Result<(), BufError> {
-        self.ptr = self.ptr.wrapping_add(value);
-        Ok(())
+        let mut ptr = self.ptr.wrapping_add(value);
+        self.ptr = ptr;
+        if ptr <= self.end {
+            Ok(())
+        } else {
+            Err(BufError::EOF)
+        }
     }
 }
 

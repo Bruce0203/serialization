@@ -64,6 +64,10 @@ impl Vector for String {
         *s = MaybeUninit::new(String::with_capacity(len));
         unsafe { s.assume_init_mut().as_mut_vec().set_len(len) };
     }
+
+    fn as_mut_ptr(&mut self) -> *mut Self::Item {
+        unsafe { self.as_bytes_mut() }.as_mut_ptr()
+    }
 }
 
 const _: () = {
