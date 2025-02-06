@@ -6,18 +6,13 @@ use syn::{parse_macro_input, parse_quote, Data, DeriveInput, Expr, GenericParam,
 pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let crate_path = quote!(serialization);
-    // let private = quote!(#crate_path::__private);
     let ident = input.ident;
     let mut impl_generics = input.generics.params.clone();
     let mut type_generics = input.generics.params.clone();
     for param in type_generics.iter_mut() {
         match param {
-            GenericParam::Lifetime(lifetime_param) => {
-                lifetime_param.bounds.clear();
-            }
-            GenericParam::Type(type_param) => {
-                type_param.bounds.clear();
-            }
+            GenericParam::Lifetime(lifetime_param) => lifetime_param.bounds.clear(),
+            GenericParam::Type(type_param) => type_param.bounds.clear(),
             GenericParam::Const(_) => {}
         }
     }
@@ -42,10 +37,7 @@ pub fn serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 let lt = &lifetime_param.lifetime;
                 where_clause.push(parse_quote!(#lt: 'static));
             }
-            GenericParam::Type(type_param) => {
-                type_param.bounds.clear();
-                let ident = &type_param.ident;
-            }
+            GenericParam::Type(type_param) => type_param.bounds.clear(),
             GenericParam::Const(_) => {}
         }
     }

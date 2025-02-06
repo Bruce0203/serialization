@@ -116,9 +116,6 @@ where
 {
     type Error = C::Error;
 
-    // 만약에 decode하다가 뭐하나가 에러나면 지금껏 박아놨던 타입들 전부 드롭시켜
-    // 디코딩이 edge의 순서대로 된다(vectored됬을 때 순서를 지켜야 함)
-    // 그러면 일단 현재까지 decode
     fn handle_element<T: Encode + Decode>(
         element: &mut T,
         codec: &mut C,

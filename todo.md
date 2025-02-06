@@ -1,6 +1,6 @@
 # 높은 우선순위 
 
-- decode할 때 drop처리해야 함 
+~~- decode할 때 drop처리해야 함 ~~ -> 잘 될테지만 그래도 테스트 많이 필요함
 - &'static str 은 인코딩만 되서 Serializable을 Serialize, Deserialize로 분리해서 &'static str을 지원해야 함
 - remove generic_const_exprs from lib.rs of serialization crate => pad.rs 수정하기 
 
