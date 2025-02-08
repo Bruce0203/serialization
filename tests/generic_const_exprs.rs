@@ -3,16 +3,16 @@
 
 use std::marker::PhantomData;
 
-#[derive(serialization::Serializable, Debug, Eq, PartialEq)]
+#[derive(serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
 pub struct A14<T> {
     vaule: std::marker::PhantomData<T>,
 }
-#[derive(serialization::Serializable, Debug, Eq, PartialEq)]
+#[derive(serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
 pub struct A15<T> {
     value: T,
 }
 
-#[derive(serialization::Serializable, Debug, Eq, PartialEq)]
+#[derive(serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
 pub enum A16<T, T2> {
     A(T),
     B(std::marker::PhantomData<T2>),
@@ -24,12 +24,12 @@ pub enum A16<T, T2> {
 //     value: &'a str,
 // }
 
-#[derive(serialization::Serializable, Debug, Eq, PartialEq)]
+#[derive(serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
 struct A17<'a> {
     value: PhantomData<&'a ()>,
 }
 
-#[derive(serialization::Serializable, Debug, Eq, PartialEq)]
+#[derive(serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
 struct AAA<T1, T2> {
     a: T1,
     b: T2,

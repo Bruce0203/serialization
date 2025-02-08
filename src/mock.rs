@@ -420,6 +420,8 @@ pub mod model {
 
         #[derive(
             serialization::Serializable,
+            serialization::Serialize,
+            serialization::Deserialize,
             Debug,
             PartialEq,
             PartialOrd,
@@ -442,6 +444,8 @@ pub mod model {
 
         #[derive(
             serialization::Serializable,
+            serialization::Serialize,
+            serialization::Deserialize,
             Debug,
             PartialEq,
             PartialOrd,
@@ -457,6 +461,8 @@ pub mod model {
 
         #[derive(
             serialization::Serializable,
+            serialization::Serialize,
+            serialization::Deserialize,
             Debug,
             PartialEq,
             PartialOrd,
@@ -542,7 +548,9 @@ pub mod model {
         use crate::mock::encode;
 
         #[repr(C)]
-        #[derive(serialization::Serializable)]
+        #[derive(
+            serialization::Serializable, serialization::Serialize, serialization::Deserialize,
+        )]
         pub struct Facade {
             value0: u8,
             foo: Foo,
@@ -550,7 +558,9 @@ pub mod model {
         }
 
         #[repr(C)]
-        #[derive(serialization::Serializable)]
+        #[derive(
+            serialization::Serializable, serialization::Serialize, serialization::Deserialize,
+        )]
         pub struct Foo {
             field0: u8, // offset 0 size 1
             // padding 3
@@ -568,7 +578,9 @@ pub mod model {
         }
 
         #[repr(C)]
-        #[derive(serialization::Serializable)]
+        #[derive(
+            serialization::Serializable, serialization::Serialize, serialization::Deserialize,
+        )]
         pub struct Bar {
             field0: u32, // offset 0  size 4
             // padding 0
@@ -580,7 +592,9 @@ pub mod model {
         }
 
         #[repr(C)]
-        #[derive(serialization::Serializable)]
+        #[derive(
+            serialization::Serializable, serialization::Serialize, serialization::Deserialize,
+        )]
         pub struct Baz {
             field0: u8, // offset 0 size 1
             // padding 0
