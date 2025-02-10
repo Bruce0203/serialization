@@ -83,7 +83,7 @@ pub const CHUNK_SIZE: usize = if cfg!(any(
     target_arch = "x86_64",
     target_arch = "aarch64"
 )) {
-    16
+    4
 } else {
     4
 };
