@@ -42,5 +42,7 @@ where
 
 #[test]
 fn test2() {
-    test(Mesh2 { triangles: vec![] });
+    test(Mesh2 {
+        triangles: vec![],
+    });
 }

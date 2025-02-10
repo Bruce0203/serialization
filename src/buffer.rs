@@ -118,13 +118,14 @@ impl BufWrite for Buffer {
                 Some(v) => v,
                 None => {
                     let remainder = iter.remainder();
-                    let dst = self.ptr as *mut T;
-                    let src = remainder.as_ptr();
-                    unsafe {
-                        //TODO DANGER!! must check buffer remaining size is more than CHUNK_SIZE
-                        unsafe_wild_copy!([T; CHUNK_SIZE], src, dst, CHUNK_SIZE);
+                    for v in remainder.into_iter() {
+                        let src = v as *const _ as *const u8;
+                        let dst = self.ptr;
+                        self.try_advance(size_of::<T>())?;
+                        unsafe {
+                            unsafe_wild_copy!([T; 1], src, dst, 1);
+                        }
                     }
-                    self.try_advance(remainder.len() * size_of::<T>())?;
                     break;
                 }
             };
