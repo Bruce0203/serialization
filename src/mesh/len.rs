@@ -19,12 +19,13 @@ pub trait Len {
     const SIZE: usize;
 }
 
-impl<C, S, S2, const I: usize, B> Len for PhantomEdge<C, S, (ConstPadding<C, S2, I>, B)>
+impl<C, S, S2, N, B> Len for PhantomEdge<C, S, (ConstPadding<C, S2, N>, B)>
 where
     B: Len,
+    N: ToUInt<Output: Unsigned>
 {
     const SIZE: usize = {
-        if I == 0 {
+        if <<N as ToUInt>::Output>::USIZE == 0 {
             B::SIZE
         } else {
             0

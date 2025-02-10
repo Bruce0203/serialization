@@ -25,6 +25,6 @@ bitcode = "0.6.3"
 default = ["bin"]
 bin = []
 
-# [profile.release]
-# lto = true
-# codegen-units = 1
+[profile.release]
+lto = true
+codegen-units = 1

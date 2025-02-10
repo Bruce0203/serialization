@@ -1,86 +1,224 @@
 #![allow(warnings)]
 //TODO add where bound fuzzing
 
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 struct A1;
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 struct A2 {}
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 struct A3();
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 struct A4(i32);
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 struct A5 {
     v: i32,
 }
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 struct A6 {
     v1: i32,
     v2: u16,
 }
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 struct A7(u32, i16);
 
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 enum A8 {
     A,
 }
 
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 enum A9 {
     A,
     B,
     C,
 }
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 enum A10 {
     A(i32),
 }
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 enum A11 {
     A(i32, u16),
 }
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 enum A12 {
     A(i32, u16),
     B(u32, i16),
 }
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 enum A13 {
     A,
     B(u32),
     C,
 }
 
-// generic_const_exprs required
-//
-// #[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
-// struct A14<T> {
-//     vaule: std::marker::PhantomData<T>,
-// }
-// #[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
-// struct A15<T> {
-//     value: T,
-// }
-//
-// #[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
-// enum A16<T, T2> {
-//     A(T),
-//     B(std::marker::PhantomData<T2>),
-// }
-// #[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
-// struct A17<'a> {
-//     value: &'a str,
-// }
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
+struct A14<T> {
+    vaule: std::marker::PhantomData<T>,
+}
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
+struct A15<T> {
+    value: T,
+}
 
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
+enum A16<T, T2> {
+    A(T),
+    B(std::marker::PhantomData<T2>),
+}
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
+struct A17<'a> {
+    value: &'a str,
+}
+
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 struct A18 {
     value: (u32),
 }
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 enum A19 {}
 
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 enum A20 {
     A = 2,
     B = 4,
@@ -89,45 +227,94 @@ enum A20 {
     E = 10,
 }
 
-//TODO support only Encode, so Serializable -> Serialize, Deserialize
-// #[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
-// struct A21 {
-//     value: &'static str,
-// }
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(serialization::Serializable, serialization::Serialize, Debug, Eq, PartialEq)]
+struct A21 {
+    value: &'static str,
+}
+
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 enum A22 {
     A { value: i32 },
     B { value2: u16 },
 }
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 struct A23 {
     value: Vec<u8>,
 }
 
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 struct A24 {
     value: Vec<String>,
 }
 #[repr(C)]
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 struct A25 {
     value: Vec<A26>,
 }
 #[repr(C)]
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 struct A26 {
     value1: u32,
     value2: String,
     value3: u8,
 }
 
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 struct A27 {
     value: (u32, u8),
     value2: (u32, String, String),
 }
 
-#[derive(serialization::Serializable, serialization::Serialize, serialization::Deserialize, Debug, Eq, PartialEq)]
+#[derive(
+    serialization::Serializable,
+    serialization::Serialize,
+    serialization::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+)]
 struct A28 {
     vec: Vec<(u8, String, String)>,
 }
@@ -160,13 +347,15 @@ mod tests {
         test(A11::A(11, 22));
         test(A12::B(11, 22));
         test(A13::C);
-        // test(A14::<usize> { vaule: PhantomData });
-        // test(A15::<usize> { value: 123 });
-        // test(A16::<usize, usize>::A(123));
-        // test(A17 { value: "hi" });
+        test(A14::<usize> { vaule: PhantomData });
+        test(A15::<usize> { value: 123 });
+        test(A16::<usize, usize>::A(123));
+        // TODO support ref and change Decode -> Decode<'de>
+        test(A17 { value: "hi" });
         test(A18 { value: 123 });
         //A19 is infallible type
         test(A20::E);
+        //TODO test encoding only
         // test(A21 { value: "hi" });
         test(A22::A { value: 123 });
         test(A23 { value: vec![123] });

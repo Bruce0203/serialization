@@ -146,6 +146,8 @@ where
 
     fn encode_str(&mut self, v: &str) -> Result<(), Self::Error> {
         //TODO encode str impl
+        self.encode_seq_len(v.len())?;
+        self.encode_bytes(v.as_bytes())?;
         Ok(())
     }
 
@@ -283,7 +285,13 @@ impl Decoder for BinaryCodecMock {
     }
 
     fn decode_str(&mut self, place: &mut MaybeUninit<&str>) -> Result<(), Self::Error> {
-        //TODO decode str impl
+        let len = self.decode_seq_len()?;
+        let ptr = self.buffer.ptr;
+        //TODO try optimization
+        *place = MaybeUninit::new(unsafe {
+            core::str::from_utf8(core::slice::from_raw_parts(ptr, len))
+                .map_err(|_err| DecodeError::InvalidUtf8)?
+        });
         Ok(())
     }
 

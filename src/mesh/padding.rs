@@ -14,7 +14,7 @@ use super::{
 
 pub struct Padding<C, S, FrontOffset>(PhantomData<(C, S, FrontOffset)>);
 
-pub struct ConstPadding<C, S, const N: usize>(PhantomData<(C, S)>);
+pub struct ConstPadding<C, S, N>(PhantomData<(C, S, N)>);
 
 impl<C, S, FrontOffset> FieldOffset for Padding<C, S, FrontOffset>
 where
@@ -23,7 +23,7 @@ where
     type Offset = FrontOffset::Offset;
 }
 
-impl<C, S, const I: usize> FieldOffset for ConstPadding<C, S, I> {
+impl<C, S, N> FieldOffset for ConstPadding<C, S, N> {
     ///FieldOffset for Padding was just for ordering when meshup macro
     type Offset = typenum::Const<0>;
 }
@@ -34,7 +34,7 @@ impl<C, S, FrontOffset> Edge<C> for Padding<C, S, FrontOffset> {
     type Second = End<C, S>;
 }
 
-impl<C, S, const I: usize> Edge<C> for ConstPadding<C, S, I> {
+impl<C, S, N> Edge<C> for ConstPadding<C, S, N> {
     type First = End<C, S>;
 
     type Second = End<C, S>;
@@ -46,8 +46,8 @@ impl<C, S, S2, FrontOffset> CompoundWrapper<C, S> for Padding<C, S2, FrontOffset
 }
 
 //Do not remove separation of S, and S2
-impl<C, S, S2, const I: usize> CompoundWrapper<C, S> for ConstPadding<C, S2, I> {
-    type Compound = ConstPadding<C, S, I>;
+impl<C, S, S2, N> CompoundWrapper<C, S> for ConstPadding<C, S2, N> {
+    type Compound = ConstPadding<C, S, N>;
 }
 
 impl<C, S, FrontOffset, Rhs> Add<Rhs> for Padding<C, S, FrontOffset> {
@@ -58,8 +58,8 @@ impl<C, S, FrontOffset, Rhs> Add<Rhs> for Padding<C, S, FrontOffset> {
     }
 }
 
-impl<C, S, const I: usize, Rhs> Add<Rhs> for ConstPadding<C, S, I> {
-    type Output = PhantomEdge<C, S, (ConstPadding<C, S, I>, Rhs)>;
+impl<C, S, N, Rhs> Add<Rhs> for ConstPadding<C, S, N> {
+    type Output = PhantomEdge<C, S, (ConstPadding<C, S, N>, Rhs)>;
 
     fn add(self, _rhs: Rhs) -> Self::Output {
         unreachable!()
@@ -70,7 +70,7 @@ impl<C, S, FrontOffset> Len for Padding<C, S, FrontOffset> {
     const SIZE: usize = 0;
 }
 
-impl<C, S, const I: usize> Len for ConstPadding<C, S, I> {
+impl<C, S, N> Len for ConstPadding<C, S, N> {
     const SIZE: usize = 0;
 }
 
@@ -100,7 +100,7 @@ where
         Codec,
         S,
         (
-            ConstPadding<Codec, S, { padding_of::<FrontOffset, B>() }>,
+            ConstPadding<Codec, S, typenum::Const<{ padding_of::<FrontOffset, B>() }>>,
             //TODO watch out! there is S3
             <PhantomEdge<Codec, S, (B, C)> as ConstifyPadding>::Output,
         ),
@@ -158,12 +158,12 @@ where
             ConstPadding<
                 C,
                 S,
-                {
+                typenum::Const<{
                     <S3 as Size>::SIZE - (
                         <<<FrontOffset as FieldOffset>::Offset as ToUInt>::Output as Unsigned>::USIZE 
                         + <FrontOffset as Size>::SIZE
                     )
-                },
+                }>,
             >,
             End<C, S3>,
         ),

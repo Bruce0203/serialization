@@ -8,7 +8,7 @@ use crate::{
         CompoundUnwrapper, CompoundWrapper, Edge, End, Field, FieldOffset, Len, PhantomEdge, Size,
         Vector, Vectored, UNSIZED,
     },
-    Decode, Decoder, Encode, Encoder,
+    Decode, DecodeError, Decoder, Encode, Encoder,
 };
 
 impl<'a> Encode for &'a str {
@@ -28,18 +28,17 @@ impl<'a> Decode for &'a str {
 
 impl Encode for String {
     fn encode<E: Encoder>(&self, _encoder: &mut E) -> Result<(), E::Error> {
-        #[cfg(debug_assertions)]
-        println!("HI vec<T> encoding!");
         Ok(())
     }
 }
 
-//TODO try remove impl block
 impl Decode for String {
     fn decode_in_place<D: Decoder>(
         decoder: &mut D,
         out: &mut MaybeUninit<Self>,
     ) -> Result<(), D::Error> {
+        let s = unsafe { out.assume_init_mut() };
+        core::str::from_utf8(s.as_bytes()).map_err(|_err| DecodeError::invalid_utf8())?;
         Ok(())
     }
 }

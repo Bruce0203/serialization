@@ -34,7 +34,7 @@ where
 
 impl<T> Decode for Vectored<T>
 where
-    T: Vector,
+    T: Vector + Decode,
 {
     fn decode_in_place<D: crate::Decoder>(
         decoder: &mut D,

@@ -28,9 +28,9 @@ where
     Ok(())
 }
 
-pub fn decode<'a, T>(src: &[u8]) -> Result<T, <BinaryCodec as Decoder>::Error>
+pub fn decode<'de, T>(src: &'de [u8]) -> Result<T, <BinaryCodec as Decoder>::Error>
 where
-    T: Decode + Mesh<BinaryCodec, SegmentDecoder>,
+    T: 'de + Decode + Mesh<BinaryCodec, SegmentDecoder>,
 {
     let out = MaybeUninit::uninit();
     let buffer = Buffer::from(src);

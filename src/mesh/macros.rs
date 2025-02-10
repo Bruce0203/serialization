@@ -1,12 +1,11 @@
 #[macro_export]
 macro_rules! __impl_encode {
     (($($type:tt)+), {$($type_generics:tt),*}, impl {$($impl_generics:tt,)*} ($($where_clause:tt)*)) => {
-     impl<$($impl_generics,)*> $crate::Encode for $($type)+ <$($type_generics),*> where $($where_clause)* {
-            fn encode<E: $crate::Encoder>(&self, _encoder: &mut E) -> Result<(), E::Error> {
-                Ok(())
-            }
+    impl<$($impl_generics,)*> $crate::Encode for $($type)+ <$($type_generics),*> where $($where_clause)* {
+        fn encode<E: $crate::Encoder>(&self, _encoder: &mut E) -> Result<(), E::Error> {
+            Ok(())
         }
-
+    }
     };
 }
 
@@ -441,6 +440,7 @@ macro_rules! impl_serializable {
             const SIZE: usize = core::mem::size_of::<$($type)+ <$($type_generics),*>>();
         }
 
+
     };
 }
 
@@ -451,6 +451,7 @@ macro_rules! impl_primitives {
         impl<$($impl_generics,)*> $crate::__private::Len for $($type)+ <$($type_generics)*> where $($where_clause)* {
             const SIZE: usize = core::mem::size_of::<$($type)+ <$($type_generics),*>>();
         }
+
     };
     (($($type:tt)+)) => {
         $crate::__private::impl_primitives!(($($type)+), {}, impl {} ());

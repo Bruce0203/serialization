@@ -6,15 +6,13 @@ use crate::prelude::{
     CompoundUnwrapper, CompoundWrapper, Edge, End, Field, FieldOffset, Len, PhantomEdge, Size,
     Vector, Vectored, UNSIZED,
 };
-use crate::{__impl_field_token, Decode, Encode, Encoder};
+use crate::{Decode, Encode, Encoder, __impl_field_token};
 
 impl<T> Encode for Vec<T>
 where
     T: Encode,
 {
     fn encode<E: Encoder>(&self, _encoder: &mut E) -> Result<(), E::Error> {
-        #[cfg(debug_assertions)]
-        println!("HI vec<T> encoding!");
         Ok(())
     }
 }
@@ -24,7 +22,7 @@ impl<T> Decode for Vec<T> {
         decoder: &mut D,
         out: &mut MaybeUninit<Self>,
     ) -> Result<(), D::Error> {
-        todo!()
+        Ok(())
     }
 }
 

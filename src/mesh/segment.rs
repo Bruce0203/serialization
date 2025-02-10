@@ -5,6 +5,8 @@ use std::{
     ptr::drop_in_place,
 };
 
+use typenum::{ToUInt, Unsigned};
+
 use crate::{
     BufReadError, BufWriteError, Codec, CompositeDecoder, CompositeEncoder, Decode, DecodeError,
     Encode, EncodeError, EnumIdentifierToVariantIndex, EnumVariantDiscriminantId, EnumVariantIndex,
@@ -223,29 +225,28 @@ where
     }
 }
 
-impl<S, S2, H, C, B, const I: usize> SegmentWalker<C, H>
-    for PhantomEdge<C, S, (ConstPadding<C, S2, I>, B)>
+impl<S, S2, H, C, B, N> SegmentWalker<C, H> for PhantomEdge<C, S, (ConstPadding<C, S2, N>, B)>
 where
     H: SegmentCodec<C, ()>,
     B: SegmentWalker<C, H>,
+    N: ToUInt<Output: Unsigned>,
 {
     fn walk(mut src: *mut u8, codec: &mut C, mut skip_len: Option<usize>) -> Result<(), H::Error> {
         //TODO try remove ..
-        if I != 0 {
+        if <<N as ToUInt>::Output>::USIZE != 0 {
             skip_len = None;
         }
-        src = src.wrapping_byte_add(I);
+        src = src.wrapping_byte_add(<<N as ToUInt>::Output>::USIZE);
         B::walk(src, codec, skip_len)
     }
 }
 
 impl<S2, C, H, B, T> SegmentWalker<C, H> for PhantomEdge<C, S2, (Vectored<T>, B)>
 where
-    H: SegmentCodec<C, Vectored<T>> + SegmentCodec<C, <T as Vector>::Item>,
+    H: SegmentCodec<C, T> + SegmentCodec<C, Vectored<T>> + SegmentCodec<C, <T as Vector>::Item>,
     B: SegmentWalker<C, H>,
     T: Vector<Item: Size + Mesh<C, H, Output: SegmentWalker<C, H> + Len>> + Size,
     [(); <<T as Vector>::Item as Size>::SIZE]:,
-    Vectored<T>: Decode,
 {
     fn walk(mut src: *mut u8, codec: &mut C, _skip_len: Option<usize>) -> Result<(), H::Error> {
         let origin_src = src;
@@ -262,7 +263,7 @@ where
                     vector.as_ptr() as *mut [u8; <<T as Vector>::Item as Size>::SIZE],
                     vector.len(),
                 )
-            }; 
+            };
             <H as SegmentCodec<C, Vectored<T>>>::handle_clusters(segment, codec);
         } else {
             let mut vec_ptr = vector.as_mut_ptr();
@@ -294,6 +295,8 @@ where
                 vec_ptr = vec_ptr.wrapping_add(1);
             }
         }
+        //TODO documentize why
+        H::handle_element(unsafe { transmute::<_, &mut T>(origin_src) }, codec)?;
         src = origin_src.wrapping_byte_add(<T as Size>::SIZE);
         match B::walk(src, codec, None) {
             Ok(()) => Ok(()),

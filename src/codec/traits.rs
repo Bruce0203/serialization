@@ -53,24 +53,8 @@ where
     [(); size_of::<Discriminant<T>>()]:,
 {
     pub fn new(t: &T) -> Self {
-        //TODO try use const_transmute or not
-        Self(unsafe { const_transmute(discriminant(t)) })
+        Self(unsafe { transmute_copy(&discriminant(t)) })
     }
-}
-
-const unsafe fn const_transmute<A, B>(a: A) -> B {
-    if std::mem::size_of::<A>() != std::mem::size_of::<B>() {
-        panic!("Size mismatch for generic_array::const_transmute");
-    }
-
-    #[repr(C)]
-    union Union<A, B> {
-        a: std::mem::ManuallyDrop<A>,
-        b: std::mem::ManuallyDrop<B>,
-    }
-
-    let a = std::mem::ManuallyDrop::new(a);
-    std::mem::ManuallyDrop::into_inner(Union { a }.b)
 }
 
 impl<T> Deref for EnumVariantDiscriminantId<T>
