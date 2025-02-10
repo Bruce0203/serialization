@@ -174,11 +174,15 @@ where
     }
 
     fn encode_str(&mut self, v: &str) -> Result<(), Self::Error> {
-        todo!()
+        //TODO encode str impl
+        self.encode_seq_len(v.len())?;
+        self.encode_bytes(v.as_bytes())?;
+        Ok(())
     }
 
     fn encode_bytes(&mut self, v: &[u8]) -> Result<(), Self::Error> {
-        todo!()
+        self.write_slice(v);
+        Ok(())
     }
 
     fn encode_seq_len(&mut self, v: usize) -> Result<(), Self::Error> {
@@ -377,7 +381,14 @@ where
     }
 
     fn decode_str(&mut self, place: &mut std::mem::MaybeUninit<&str>) -> Result<(), Self::Error> {
-        todo!()
+        let len = self.decode_seq_len()?;
+        let ptr = self.buffer.ptr;
+        //TODO try optimization
+        *place = MaybeUninit::new(unsafe {
+            core::str::from_utf8(core::slice::from_raw_parts(ptr, len))
+                .map_err(|_err| crate::DecodeError::invalid_utf8())?
+        });
+        Ok(())
     }
 
     fn decode_bytes<'a>(&mut self) -> Result<&'a [u8], Self::Error> {

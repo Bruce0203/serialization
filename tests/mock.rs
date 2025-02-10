@@ -1,3 +1,5 @@
+#![feature(generic_const_exprs)]
+#![feature(test)]
 #![allow(warnings)]
 //TODO add where bound fuzzing
 
@@ -336,9 +338,9 @@ struct A29 {
 mod tests {
     use std::{any::type_name, convert::Infallible, fmt::Debug, marker::PhantomData, str::FromStr};
 
-    use crate::{
-        mock::BinaryCodecMock,
-        prelude::{Mesh, SegmentCodec, SegmentDecoder, SegmentEncoder, SegmentWalker},
+    use serialization::{
+        bin::BinaryCodec,
+        __private::{Mesh, SegmentCodec, SegmentDecoder, SegmentEncoder, SegmentWalker},
         Buffer, Decode, Encode,
     };
 
@@ -409,13 +411,13 @@ mod tests {
 
     fn test<T: Eq + Debug>(value: T)
     where
-        T: Encode + Mesh<BinaryCodecMock, SegmentEncoder>,
-        T: Decode + Mesh<BinaryCodecMock, SegmentDecoder>,
+        T: Encode + Mesh<BinaryCodec, SegmentEncoder>,
+        T: Decode + Mesh<BinaryCodec, SegmentDecoder>,
         [(); size_of::<T>()]:,
     {
         let mut dst = [0u8; 100000];
-        crate::mock::encode(&value, &mut dst).unwrap();
-        let decoded = crate::mock::decode::<T>(&mut dst).unwrap();
+        serialization::bin::encode(&value, &mut dst).unwrap();
+        let decoded = serialization::bin::decode::<T>(&mut dst).unwrap();
         // println!("{}", type_name::<T>());
         // println!("{:?}", &dst[..66]);
         assert_eq!(value, decoded);
