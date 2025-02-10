@@ -1,0 +1,942 @@
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: <rustc_trait_selection::traits::normalize::AssocTypeNormalizer as rustc_type_ir::fold::TypeFolder<rustc_middle::ty::context::TyCtxt>>::fold_const
+   7: <rustc_middle::ty::predicate::Clause as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   8: rustc_trait_selection::traits::normalize::normalize_with_depth_to::<rustc_middle::ty::InstantiatedPredicates>::{closure#0}
+   9: <rustc_infer::infer::at::At as rustc_trait_selection::traits::normalize::NormalizeExt>::normalize::<rustc_middle::ty::InstantiatedPredicates>
+  10: <core::iter::adapters::filter::Filter<core::iter::adapters::map::Map<core::iter::adapters::filter::Filter<core::slice::iter::Iter<rustc_hir_typeck::method::probe::Candidate>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#0}>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#1}>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#2}> as core::iter::traits::iterator::Iterator>::next
+  11: <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates
+  12: <rustc_hir_typeck::method::probe::ProbeContext>::pick_method
+  13: <rustc_hir_typeck::method::probe::ProbeContext>::pick_all_method
+  14: <rustc_hir_typeck::method::probe::ProbeContext>::pick_core
+  15: <rustc_hir_typeck::method::probe::ProbeContext>::pick
+  16: <rustc_hir_typeck::fn_ctxt::FnCtxt>::probe_for_name
+  17: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_ty_and_res_fully_qualified_call
+  18: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_path
+  19: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  20: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  21: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  22: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  23: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  24: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  25: rustc_hir_typeck::check::check_fn
+  26: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  27: rustc_hir_typeck::typeck
+  28: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  29: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  30: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  31: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  32: rustc_hir_analysis::check_crate
+  33: rustc_interface::passes::run_required_analyses
+  34: rustc_interface::passes::analysis
+  35: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  36: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  37: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  38: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  39: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  40: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  41: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  42: std::sys::pal::unix::thread::Thread::new::thread_start
+  43: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: <rustc_trait_selection::traits::normalize::AssocTypeNormalizer as rustc_type_ir::fold::TypeFolder<rustc_middle::ty::context::TyCtxt>>::fold_const
+   7: <rustc_type_ir::predicate_kind::PredicateKind<rustc_middle::ty::context::TyCtxt> as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   8: <rustc_middle::ty::predicate::Predicate as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   9: rustc_trait_selection::traits::normalize::normalize_with_depth_to::<rustc_middle::ty::predicate::Predicate>
+  10: <rustc_trait_selection::traits::wf::WfPredicates>::normalize
+  11: rustc_trait_selection::traits::wf::obligations
+  12: <rustc_trait_selection::traits::fulfill::FulfillProcessor as rustc_data_structures::obligation_forest::ObligationProcessor>::process_obligation
+  13: <rustc_data_structures::obligation_forest::ObligationForest<rustc_trait_selection::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection::traits::fulfill::FulfillProcessor>
+  14: <rustc_trait_selection::traits::fulfill::FulfillmentContext<rustc_trait_selection::traits::FulfillmentError> as rustc_infer::traits::engine::TraitEngine<rustc_trait_selection::traits::FulfillmentError>>::select_where_possible
+  15: <core::iter::adapters::filter::Filter<core::iter::adapters::map::Map<core::iter::adapters::filter::Filter<core::slice::iter::Iter<rustc_hir_typeck::method::probe::Candidate>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#0}>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#1}>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#2}> as core::iter::traits::iterator::Iterator>::next
+  16: <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates
+  17: <rustc_hir_typeck::method::probe::ProbeContext>::pick_method
+  18: <rustc_hir_typeck::method::probe::ProbeContext>::pick_all_method
+  19: <rustc_hir_typeck::method::probe::ProbeContext>::pick_core
+  20: <rustc_hir_typeck::method::probe::ProbeContext>::pick
+  21: <rustc_hir_typeck::fn_ctxt::FnCtxt>::probe_for_name
+  22: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_ty_and_res_fully_qualified_call
+  23: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_path
+  24: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  25: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  26: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  27: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  28: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  29: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  30: rustc_hir_typeck::check::check_fn
+  31: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  32: rustc_hir_typeck::typeck
+  33: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  34: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  35: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  36: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  37: rustc_hir_analysis::check_crate
+  38: rustc_interface::passes::run_required_analyses
+  39: rustc_interface::passes::analysis
+  40: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  41: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  42: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  43: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  44: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  45: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  46: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  47: std::sys::pal::unix::thread::Thread::new::thread_start
+  48: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: <rustc_trait_selection::traits::normalize::AssocTypeNormalizer as rustc_type_ir::fold::TypeFolder<rustc_middle::ty::context::TyCtxt>>::fold_const
+   7: <rustc_type_ir::predicate_kind::PredicateKind<rustc_middle::ty::context::TyCtxt> as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   8: <rustc_middle::ty::predicate::Predicate as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   9: rustc_trait_selection::traits::normalize::normalize_with_depth_to::<rustc_middle::ty::predicate::Predicate>
+  10: <rustc_trait_selection::traits::wf::WfPredicates>::normalize
+  11: rustc_trait_selection::traits::wf::obligations
+  12: <rustc_trait_selection::traits::fulfill::FulfillProcessor as rustc_data_structures::obligation_forest::ObligationProcessor>::process_obligation
+  13: <rustc_data_structures::obligation_forest::ObligationForest<rustc_trait_selection::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection::traits::fulfill::FulfillProcessor>
+  14: <rustc_trait_selection::traits::fulfill::FulfillmentContext<rustc_trait_selection::traits::FulfillmentError> as rustc_infer::traits::engine::TraitEngine<rustc_trait_selection::traits::FulfillmentError>>::select_where_possible
+  15: <core::iter::adapters::filter::Filter<core::iter::adapters::map::Map<core::iter::adapters::filter::Filter<core::slice::iter::Iter<rustc_hir_typeck::method::probe::Candidate>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#0}>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#1}>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#2}> as core::iter::traits::iterator::Iterator>::next
+  16: <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates
+  17: <rustc_hir_typeck::method::probe::ProbeContext>::pick_method
+  18: <rustc_hir_typeck::method::probe::ProbeContext>::pick_all_method
+  19: <rustc_hir_typeck::method::probe::ProbeContext>::pick_core
+  20: <rustc_hir_typeck::method::probe::ProbeContext>::pick
+  21: <rustc_hir_typeck::fn_ctxt::FnCtxt>::probe_for_name
+  22: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_ty_and_res_fully_qualified_call
+  23: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_path
+  24: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  25: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  26: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  27: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  28: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  29: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  30: rustc_hir_typeck::check::check_fn
+  31: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  32: rustc_hir_typeck::typeck
+  33: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  34: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  35: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  36: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  37: rustc_hir_analysis::check_crate
+  38: rustc_interface::passes::run_required_analyses
+  39: rustc_interface::passes::analysis
+  40: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  41: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  42: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  43: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  44: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  45: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  46: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  47: std::sys::pal::unix::thread::Thread::new::thread_start
+  48: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: <rustc_trait_selection::traits::normalize::AssocTypeNormalizer as rustc_type_ir::fold::TypeFolder<rustc_middle::ty::context::TyCtxt>>::fold_const
+   7: <rustc_type_ir::predicate_kind::PredicateKind<rustc_middle::ty::context::TyCtxt> as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   8: <rustc_middle::ty::predicate::Predicate as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   9: rustc_trait_selection::traits::normalize::normalize_with_depth_to::<rustc_middle::ty::predicate::Predicate>
+  10: <rustc_trait_selection::traits::wf::WfPredicates>::normalize
+  11: rustc_trait_selection::traits::wf::obligations
+  12: <rustc_trait_selection::traits::fulfill::FulfillProcessor as rustc_data_structures::obligation_forest::ObligationProcessor>::process_obligation
+  13: <rustc_data_structures::obligation_forest::ObligationForest<rustc_trait_selection::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection::traits::fulfill::FulfillProcessor>
+  14: <rustc_trait_selection::traits::fulfill::FulfillmentContext<rustc_trait_selection::traits::FulfillmentError> as rustc_infer::traits::engine::TraitEngine<rustc_trait_selection::traits::FulfillmentError>>::select_where_possible
+  15: <core::iter::adapters::filter::Filter<core::iter::adapters::map::Map<core::iter::adapters::filter::Filter<core::slice::iter::Iter<rustc_hir_typeck::method::probe::Candidate>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#0}>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#1}>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#2}> as core::iter::traits::iterator::Iterator>::next
+  16: <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates
+  17: <rustc_hir_typeck::method::probe::ProbeContext>::pick_method
+  18: <rustc_hir_typeck::method::probe::ProbeContext>::pick_all_method
+  19: <rustc_hir_typeck::method::probe::ProbeContext>::pick_core
+  20: <rustc_hir_typeck::method::probe::ProbeContext>::pick
+  21: <rustc_hir_typeck::fn_ctxt::FnCtxt>::probe_for_name
+  22: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_ty_and_res_fully_qualified_call
+  23: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_path
+  24: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  25: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  26: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  27: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  28: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  29: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  30: rustc_hir_typeck::check::check_fn
+  31: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  32: rustc_hir_typeck::typeck
+  33: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  34: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  35: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  36: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  37: rustc_hir_analysis::check_crate
+  38: rustc_interface::passes::run_required_analyses
+  39: rustc_interface::passes::analysis
+  40: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  41: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  42: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  43: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  44: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  45: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  46: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  47: std::sys::pal::unix::thread::Thread::new::thread_start
+  48: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: <rustc_trait_selection::traits::normalize::AssocTypeNormalizer as rustc_type_ir::fold::TypeFolder<rustc_middle::ty::context::TyCtxt>>::fold_const
+   7: <rustc_type_ir::predicate_kind::PredicateKind<rustc_middle::ty::context::TyCtxt> as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   8: <rustc_middle::ty::predicate::Predicate as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   9: rustc_trait_selection::traits::normalize::normalize_with_depth_to::<rustc_middle::ty::predicate::Predicate>
+  10: <rustc_trait_selection::traits::fulfill::FulfillProcessor as rustc_data_structures::obligation_forest::ObligationProcessor>::process_obligation
+  11: <rustc_data_structures::obligation_forest::ObligationForest<rustc_trait_selection::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection::traits::fulfill::FulfillProcessor>
+  12: <rustc_trait_selection::traits::fulfill::FulfillmentContext<rustc_trait_selection::traits::FulfillmentError> as rustc_infer::traits::engine::TraitEngine<rustc_trait_selection::traits::FulfillmentError>>::select_where_possible
+  13: <core::iter::adapters::filter::Filter<core::iter::adapters::map::Map<core::iter::adapters::filter::Filter<core::slice::iter::Iter<rustc_hir_typeck::method::probe::Candidate>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#0}>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#1}>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#2}> as core::iter::traits::iterator::Iterator>::next
+  14: <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates
+  15: <rustc_hir_typeck::method::probe::ProbeContext>::pick_method
+  16: <rustc_hir_typeck::method::probe::ProbeContext>::pick_all_method
+  17: <rustc_hir_typeck::method::probe::ProbeContext>::pick_core
+  18: <rustc_hir_typeck::method::probe::ProbeContext>::pick
+  19: <rustc_hir_typeck::fn_ctxt::FnCtxt>::probe_for_name
+  20: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_ty_and_res_fully_qualified_call
+  21: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_path
+  22: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  23: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  24: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  25: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  26: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  27: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  28: rustc_hir_typeck::check::check_fn
+  29: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  30: rustc_hir_typeck::typeck
+  31: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  32: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  33: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  34: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  35: rustc_hir_analysis::check_crate
+  36: rustc_interface::passes::run_required_analyses
+  37: rustc_interface::passes::analysis
+  38: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  39: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  40: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  41: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  42: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  43: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  44: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  45: std::sys::pal::unix::thread::Thread::new::thread_start
+  46: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: rustc_trait_selection::traits::const_evaluatable::is_const_evaluatable
+   7: <rustc_trait_selection::traits::fulfill::FulfillProcessor as rustc_data_structures::obligation_forest::ObligationProcessor>::process_obligation
+   8: <rustc_data_structures::obligation_forest::ObligationForest<rustc_trait_selection::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection::traits::fulfill::FulfillProcessor>
+   9: <rustc_trait_selection::traits::fulfill::FulfillmentContext<rustc_trait_selection::traits::FulfillmentError> as rustc_infer::traits::engine::TraitEngine<rustc_trait_selection::traits::FulfillmentError>>::select_where_possible
+  10: <core::iter::adapters::filter::Filter<core::iter::adapters::map::Map<core::iter::adapters::filter::Filter<core::slice::iter::Iter<rustc_hir_typeck::method::probe::Candidate>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#0}>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#1}>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#2}> as core::iter::traits::iterator::Iterator>::next
+  11: <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates
+  12: <rustc_hir_typeck::method::probe::ProbeContext>::pick_method
+  13: <rustc_hir_typeck::method::probe::ProbeContext>::pick_all_method
+  14: <rustc_hir_typeck::method::probe::ProbeContext>::pick_core
+  15: <rustc_hir_typeck::method::probe::ProbeContext>::pick
+  16: <rustc_hir_typeck::fn_ctxt::FnCtxt>::probe_for_name
+  17: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_ty_and_res_fully_qualified_call
+  18: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_path
+  19: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  20: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  21: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  22: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  23: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  24: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  25: rustc_hir_typeck::check::check_fn
+  26: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  27: rustc_hir_typeck::typeck
+  28: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  29: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  30: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  31: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  32: rustc_hir_analysis::check_crate
+  33: rustc_interface::passes::run_required_analyses
+  34: rustc_interface::passes::analysis
+  35: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  36: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  37: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  38: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  39: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  40: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  41: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  42: std::sys::pal::unix::thread::Thread::new::thread_start
+  43: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: <rustc_trait_selection::traits::normalize::AssocTypeNormalizer as rustc_type_ir::fold::TypeFolder<rustc_middle::ty::context::TyCtxt>>::fold_const
+   7: <rustc_type_ir::predicate_kind::PredicateKind<rustc_middle::ty::context::TyCtxt> as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   8: <rustc_middle::ty::predicate::Predicate as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   9: rustc_trait_selection::traits::normalize::normalize_with_depth_to::<rustc_middle::ty::predicate::Predicate>
+  10: <rustc_trait_selection::traits::fulfill::FulfillProcessor as rustc_data_structures::obligation_forest::ObligationProcessor>::process_obligation
+  11: <rustc_data_structures::obligation_forest::ObligationForest<rustc_trait_selection::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection::traits::fulfill::FulfillProcessor>
+  12: <rustc_trait_selection::traits::fulfill::FulfillmentContext<rustc_trait_selection::traits::FulfillmentError> as rustc_infer::traits::engine::TraitEngine<rustc_trait_selection::traits::FulfillmentError>>::select_where_possible
+  13: <core::iter::adapters::filter::Filter<core::iter::adapters::map::Map<core::iter::adapters::filter::Filter<core::slice::iter::Iter<rustc_hir_typeck::method::probe::Candidate>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#0}>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#1}>, <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates::{closure#2}> as core::iter::traits::iterator::Iterator>::next
+  14: <rustc_hir_typeck::method::probe::ProbeContext>::consider_candidates
+  15: <rustc_hir_typeck::method::probe::ProbeContext>::pick_method
+  16: <rustc_hir_typeck::method::probe::ProbeContext>::pick_all_method
+  17: <rustc_hir_typeck::method::probe::ProbeContext>::pick_core
+  18: <rustc_hir_typeck::method::probe::ProbeContext>::pick
+  19: <rustc_hir_typeck::fn_ctxt::FnCtxt>::probe_for_name
+  20: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_ty_and_res_fully_qualified_call
+  21: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_path
+  22: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  23: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  24: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  25: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  26: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  27: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  28: rustc_hir_typeck::check::check_fn
+  29: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  30: rustc_hir_typeck::typeck
+  31: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  32: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  33: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  34: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  35: rustc_hir_analysis::check_crate
+  36: rustc_interface::passes::run_required_analyses
+  37: rustc_interface::passes::analysis
+  38: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  39: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  40: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  41: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  42: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  43: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  44: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  45: std::sys::pal::unix::thread::Thread::new::thread_start
+  46: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: <rustc_trait_selection::traits::normalize::AssocTypeNormalizer as rustc_type_ir::fold::TypeFolder<rustc_middle::ty::context::TyCtxt>>::fold_const
+   7: <rustc_middle::ty::predicate::Clause as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   8: rustc_trait_selection::traits::normalize::normalize_with_depth_to::<rustc_middle::ty::InstantiatedPredicates>::{closure#0}
+   9: <rustc_infer::infer::at::At as rustc_trait_selection::traits::normalize::NormalizeExt>::normalize::<rustc_middle::ty::InstantiatedPredicates>
+  10: <rustc_hir_typeck::fn_ctxt::FnCtxt>::instantiate_bounds
+  11: <rustc_hir_typeck::fn_ctxt::FnCtxt>::add_required_obligations_for_hir
+  12: <rustc_hir_typeck::fn_ctxt::FnCtxt>::instantiate_value_path
+  13: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_path
+  14: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  15: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  16: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  17: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  18: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  19: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  20: rustc_hir_typeck::check::check_fn
+  21: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  22: rustc_hir_typeck::typeck
+  23: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  24: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  25: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  26: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  27: rustc_hir_analysis::check_crate
+  28: rustc_interface::passes::run_required_analyses
+  29: rustc_interface::passes::analysis
+  30: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  31: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  32: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  33: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  34: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  35: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  36: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  37: std::sys::pal::unix::thread::Thread::new::thread_start
+  38: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: <rustc_trait_selection::traits::normalize::AssocTypeNormalizer as rustc_type_ir::fold::TypeFolder<rustc_middle::ty::context::TyCtxt>>::fold_const
+   7: <rustc_type_ir::predicate_kind::PredicateKind<rustc_middle::ty::context::TyCtxt> as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   8: <rustc_middle::ty::predicate::Predicate as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   9: rustc_trait_selection::traits::normalize::normalize_with_depth_to::<rustc_middle::ty::predicate::Predicate>
+  10: <rustc_trait_selection::traits::wf::WfPredicates>::normalize
+  11: rustc_trait_selection::traits::wf::obligations
+  12: <rustc_trait_selection::traits::fulfill::FulfillProcessor as rustc_data_structures::obligation_forest::ObligationProcessor>::process_obligation
+  13: <rustc_data_structures::obligation_forest::ObligationForest<rustc_trait_selection::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection::traits::fulfill::FulfillProcessor>
+  14: <rustc_trait_selection::traits::fulfill::FulfillmentContext<rustc_trait_selection::traits::FulfillmentError> as rustc_infer::traits::engine::TraitEngine<rustc_trait_selection::traits::FulfillmentError>>::select_where_possible
+  15: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_vars_with_obligations
+  16: <rustc_hir_typeck::fn_ctxt::FnCtxt>::try_structurally_resolve_type
+  17: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  18: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  19: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  20: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  21: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  22: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  23: rustc_hir_typeck::check::check_fn
+  24: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  25: rustc_hir_typeck::typeck
+  26: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  27: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  28: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  29: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  30: rustc_hir_analysis::check_crate
+  31: rustc_interface::passes::run_required_analyses
+  32: rustc_interface::passes::analysis
+  33: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  34: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  35: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  36: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  37: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  38: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  39: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  40: std::sys::pal::unix::thread::Thread::new::thread_start
+  41: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: <rustc_trait_selection::traits::normalize::AssocTypeNormalizer as rustc_type_ir::fold::TypeFolder<rustc_middle::ty::context::TyCtxt>>::fold_const
+   7: <rustc_type_ir::predicate_kind::PredicateKind<rustc_middle::ty::context::TyCtxt> as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   8: <rustc_middle::ty::predicate::Predicate as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   9: rustc_trait_selection::traits::normalize::normalize_with_depth_to::<rustc_middle::ty::predicate::Predicate>
+  10: <rustc_trait_selection::traits::wf::WfPredicates>::normalize
+  11: rustc_trait_selection::traits::wf::obligations
+  12: <rustc_trait_selection::traits::fulfill::FulfillProcessor as rustc_data_structures::obligation_forest::ObligationProcessor>::process_obligation
+  13: <rustc_data_structures::obligation_forest::ObligationForest<rustc_trait_selection::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection::traits::fulfill::FulfillProcessor>
+  14: <rustc_trait_selection::traits::fulfill::FulfillmentContext<rustc_trait_selection::traits::FulfillmentError> as rustc_infer::traits::engine::TraitEngine<rustc_trait_selection::traits::FulfillmentError>>::select_where_possible
+  15: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_vars_with_obligations
+  16: <rustc_hir_typeck::fn_ctxt::FnCtxt>::try_structurally_resolve_type
+  17: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  18: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  19: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  20: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  21: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  22: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  23: rustc_hir_typeck::check::check_fn
+  24: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  25: rustc_hir_typeck::typeck
+  26: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  27: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  28: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  29: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  30: rustc_hir_analysis::check_crate
+  31: rustc_interface::passes::run_required_analyses
+  32: rustc_interface::passes::analysis
+  33: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  34: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  35: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  36: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  37: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  38: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  39: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  40: std::sys::pal::unix::thread::Thread::new::thread_start
+  41: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: <rustc_trait_selection::traits::normalize::AssocTypeNormalizer as rustc_type_ir::fold::TypeFolder<rustc_middle::ty::context::TyCtxt>>::fold_const
+   7: <rustc_type_ir::predicate_kind::PredicateKind<rustc_middle::ty::context::TyCtxt> as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   8: <rustc_middle::ty::predicate::Predicate as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   9: rustc_trait_selection::traits::normalize::normalize_with_depth_to::<rustc_middle::ty::predicate::Predicate>
+  10: <rustc_trait_selection::traits::wf::WfPredicates>::normalize
+  11: rustc_trait_selection::traits::wf::obligations
+  12: <rustc_trait_selection::traits::fulfill::FulfillProcessor as rustc_data_structures::obligation_forest::ObligationProcessor>::process_obligation
+  13: <rustc_data_structures::obligation_forest::ObligationForest<rustc_trait_selection::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection::traits::fulfill::FulfillProcessor>
+  14: <rustc_trait_selection::traits::fulfill::FulfillmentContext<rustc_trait_selection::traits::FulfillmentError> as rustc_infer::traits::engine::TraitEngine<rustc_trait_selection::traits::FulfillmentError>>::select_where_possible
+  15: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_vars_with_obligations
+  16: <rustc_hir_typeck::fn_ctxt::FnCtxt>::try_structurally_resolve_type
+  17: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  18: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  19: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  20: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  21: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  22: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  23: rustc_hir_typeck::check::check_fn
+  24: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  25: rustc_hir_typeck::typeck
+  26: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  27: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  28: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  29: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  30: rustc_hir_analysis::check_crate
+  31: rustc_interface::passes::run_required_analyses
+  32: rustc_interface::passes::analysis
+  33: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  34: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  35: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  36: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  37: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  38: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  39: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  40: std::sys::pal::unix::thread::Thread::new::thread_start
+  41: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: <rustc_trait_selection::traits::normalize::AssocTypeNormalizer as rustc_type_ir::fold::TypeFolder<rustc_middle::ty::context::TyCtxt>>::fold_const
+   7: <rustc_type_ir::predicate_kind::PredicateKind<rustc_middle::ty::context::TyCtxt> as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   8: <rustc_middle::ty::predicate::Predicate as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   9: rustc_trait_selection::traits::normalize::normalize_with_depth_to::<rustc_middle::ty::predicate::Predicate>
+  10: <rustc_trait_selection::traits::wf::WfPredicates>::normalize
+  11: rustc_trait_selection::traits::wf::obligations
+  12: <rustc_trait_selection::traits::fulfill::FulfillProcessor as rustc_data_structures::obligation_forest::ObligationProcessor>::process_obligation
+  13: <rustc_data_structures::obligation_forest::ObligationForest<rustc_trait_selection::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection::traits::fulfill::FulfillProcessor>
+  14: <rustc_trait_selection::traits::fulfill::FulfillmentContext<rustc_trait_selection::traits::FulfillmentError> as rustc_infer::traits::engine::TraitEngine<rustc_trait_selection::traits::FulfillmentError>>::select_where_possible
+  15: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_vars_with_obligations
+  16: <rustc_hir_typeck::fn_ctxt::FnCtxt>::try_structurally_resolve_type
+  17: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  18: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  19: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  20: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  21: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  22: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  23: rustc_hir_typeck::check::check_fn
+  24: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  25: rustc_hir_typeck::typeck
+  26: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  27: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  28: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  29: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  30: rustc_hir_analysis::check_crate
+  31: rustc_interface::passes::run_required_analyses
+  32: rustc_interface::passes::analysis
+  33: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  34: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  35: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  36: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  37: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  38: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  39: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  40: std::sys::pal::unix::thread::Thread::new::thread_start
+  41: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: <rustc_trait_selection::traits::normalize::AssocTypeNormalizer as rustc_type_ir::fold::TypeFolder<rustc_middle::ty::context::TyCtxt>>::fold_const
+   7: <rustc_type_ir::predicate_kind::PredicateKind<rustc_middle::ty::context::TyCtxt> as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   8: <rustc_middle::ty::predicate::Predicate as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   9: rustc_trait_selection::traits::normalize::normalize_with_depth_to::<rustc_middle::ty::predicate::Predicate>
+  10: <rustc_trait_selection::traits::fulfill::FulfillProcessor as rustc_data_structures::obligation_forest::ObligationProcessor>::process_obligation
+  11: <rustc_data_structures::obligation_forest::ObligationForest<rustc_trait_selection::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection::traits::fulfill::FulfillProcessor>
+  12: <rustc_trait_selection::traits::fulfill::FulfillmentContext<rustc_trait_selection::traits::FulfillmentError> as rustc_infer::traits::engine::TraitEngine<rustc_trait_selection::traits::FulfillmentError>>::select_where_possible
+  13: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_vars_with_obligations
+  14: <rustc_hir_typeck::fn_ctxt::FnCtxt>::try_structurally_resolve_type
+  15: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  16: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  17: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  18: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  19: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  20: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  21: rustc_hir_typeck::check::check_fn
+  22: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  23: rustc_hir_typeck::typeck
+  24: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  25: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  26: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  27: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  28: rustc_hir_analysis::check_crate
+  29: rustc_interface::passes::run_required_analyses
+  30: rustc_interface::passes::analysis
+  31: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  32: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  33: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  34: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  35: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  36: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  37: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  38: std::sys::pal::unix::thread::Thread::new::thread_start
+  39: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: rustc_trait_selection::traits::const_evaluatable::is_const_evaluatable
+   7: <rustc_trait_selection::traits::fulfill::FulfillProcessor as rustc_data_structures::obligation_forest::ObligationProcessor>::process_obligation
+   8: <rustc_data_structures::obligation_forest::ObligationForest<rustc_trait_selection::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection::traits::fulfill::FulfillProcessor>
+   9: <rustc_trait_selection::traits::fulfill::FulfillmentContext<rustc_trait_selection::traits::FulfillmentError> as rustc_infer::traits::engine::TraitEngine<rustc_trait_selection::traits::FulfillmentError>>::select_where_possible
+  10: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_vars_with_obligations
+  11: <rustc_hir_typeck::fn_ctxt::FnCtxt>::try_structurally_resolve_type
+  12: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  13: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  14: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  15: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  16: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  17: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  18: rustc_hir_typeck::check::check_fn
+  19: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  20: rustc_hir_typeck::typeck
+  21: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  22: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  23: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  24: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  25: rustc_hir_analysis::check_crate
+  26: rustc_interface::passes::run_required_analyses
+  27: rustc_interface::passes::analysis
+  28: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  29: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  30: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  31: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  32: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  33: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  34: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  35: std::sys::pal::unix::thread::Thread::new::thread_start
+  36: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: <rustc_trait_selection::traits::normalize::AssocTypeNormalizer as rustc_type_ir::fold::TypeFolder<rustc_middle::ty::context::TyCtxt>>::fold_const
+   7: <rustc_type_ir::predicate_kind::PredicateKind<rustc_middle::ty::context::TyCtxt> as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   8: <rustc_middle::ty::predicate::Predicate as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   9: rustc_trait_selection::traits::normalize::normalize_with_depth_to::<rustc_middle::ty::predicate::Predicate>
+  10: <rustc_trait_selection::traits::wf::WfPredicates>::normalize
+  11: rustc_trait_selection::traits::wf::obligations
+  12: <rustc_trait_selection::traits::fulfill::FulfillProcessor as rustc_data_structures::obligation_forest::ObligationProcessor>::process_obligation
+  13: <rustc_data_structures::obligation_forest::ObligationForest<rustc_trait_selection::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection::traits::fulfill::FulfillProcessor>
+  14: <rustc_trait_selection::traits::fulfill::FulfillmentContext<rustc_trait_selection::traits::FulfillmentError> as rustc_infer::traits::engine::TraitEngine<rustc_trait_selection::traits::FulfillmentError>>::select_where_possible
+  15: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_vars_with_obligations
+  16: <rustc_hir_typeck::fn_ctxt::FnCtxt>::try_structurally_resolve_type
+  17: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  18: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  19: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  20: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  21: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  22: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  23: rustc_hir_typeck::check::check_fn
+  24: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  25: rustc_hir_typeck::typeck
+  26: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  27: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  28: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  29: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  30: rustc_hir_analysis::check_crate
+  31: rustc_interface::passes::run_required_analyses
+  32: rustc_interface::passes::analysis
+  33: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  34: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  35: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  36: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  37: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  38: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  39: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  40: std::sys::pal::unix::thread::Thread::new::thread_start
+  41: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: <rustc_trait_selection::traits::normalize::AssocTypeNormalizer as rustc_type_ir::fold::TypeFolder<rustc_middle::ty::context::TyCtxt>>::fold_const
+   7: <rustc_type_ir::predicate_kind::PredicateKind<rustc_middle::ty::context::TyCtxt> as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   8: <rustc_middle::ty::predicate::Predicate as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   9: rustc_trait_selection::traits::normalize::normalize_with_depth_to::<rustc_middle::ty::predicate::Predicate>
+  10: <rustc_trait_selection::traits::wf::WfPredicates>::normalize
+  11: rustc_trait_selection::traits::wf::obligations
+  12: <rustc_trait_selection::traits::fulfill::FulfillProcessor as rustc_data_structures::obligation_forest::ObligationProcessor>::process_obligation
+  13: <rustc_data_structures::obligation_forest::ObligationForest<rustc_trait_selection::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection::traits::fulfill::FulfillProcessor>
+  14: <rustc_trait_selection::traits::fulfill::FulfillmentContext<rustc_trait_selection::traits::FulfillmentError> as rustc_infer::traits::engine::TraitEngine<rustc_trait_selection::traits::FulfillmentError>>::select_where_possible
+  15: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_vars_with_obligations
+  16: <rustc_hir_typeck::fn_ctxt::FnCtxt>::try_structurally_resolve_type
+  17: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  18: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  19: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  20: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  21: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  22: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  23: rustc_hir_typeck::check::check_fn
+  24: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  25: rustc_hir_typeck::typeck
+  26: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  27: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  28: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  29: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  30: rustc_hir_analysis::check_crate
+  31: rustc_interface::passes::run_required_analyses
+  32: rustc_interface::passes::analysis
+  33: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  34: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  35: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  36: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  37: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  38: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  39: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  40: std::sys::pal::unix::thread::Thread::new::thread_start
+  41: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: <rustc_trait_selection::traits::normalize::AssocTypeNormalizer as rustc_type_ir::fold::TypeFolder<rustc_middle::ty::context::TyCtxt>>::fold_const
+   7: <rustc_type_ir::predicate_kind::PredicateKind<rustc_middle::ty::context::TyCtxt> as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   8: <rustc_middle::ty::predicate::Predicate as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   9: rustc_trait_selection::traits::normalize::normalize_with_depth_to::<rustc_middle::ty::predicate::Predicate>
+  10: <rustc_trait_selection::traits::wf::WfPredicates>::normalize
+  11: rustc_trait_selection::traits::wf::obligations
+  12: <rustc_trait_selection::traits::fulfill::FulfillProcessor as rustc_data_structures::obligation_forest::ObligationProcessor>::process_obligation
+  13: <rustc_data_structures::obligation_forest::ObligationForest<rustc_trait_selection::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection::traits::fulfill::FulfillProcessor>
+  14: <rustc_trait_selection::traits::fulfill::FulfillmentContext<rustc_trait_selection::traits::FulfillmentError> as rustc_infer::traits::engine::TraitEngine<rustc_trait_selection::traits::FulfillmentError>>::select_where_possible
+  15: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_vars_with_obligations
+  16: <rustc_hir_typeck::fn_ctxt::FnCtxt>::try_structurally_resolve_type
+  17: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  18: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  19: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  20: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  21: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  22: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  23: rustc_hir_typeck::check::check_fn
+  24: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  25: rustc_hir_typeck::typeck
+  26: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  27: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  28: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  29: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  30: rustc_hir_analysis::check_crate
+  31: rustc_interface::passes::run_required_analyses
+  32: rustc_interface::passes::analysis
+  33: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  34: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  35: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  36: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  37: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  38: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  39: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  40: std::sys::pal::unix::thread::Thread::new::thread_start
+  41: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: <rustc_trait_selection::traits::normalize::AssocTypeNormalizer as rustc_type_ir::fold::TypeFolder<rustc_middle::ty::context::TyCtxt>>::fold_const
+   7: <rustc_type_ir::predicate_kind::PredicateKind<rustc_middle::ty::context::TyCtxt> as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   8: <rustc_middle::ty::predicate::Predicate as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   9: rustc_trait_selection::traits::normalize::normalize_with_depth_to::<rustc_middle::ty::predicate::Predicate>
+  10: <rustc_trait_selection::traits::fulfill::FulfillProcessor as rustc_data_structures::obligation_forest::ObligationProcessor>::process_obligation
+  11: <rustc_data_structures::obligation_forest::ObligationForest<rustc_trait_selection::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection::traits::fulfill::FulfillProcessor>
+  12: <rustc_trait_selection::traits::fulfill::FulfillmentContext<rustc_trait_selection::traits::FulfillmentError> as rustc_infer::traits::engine::TraitEngine<rustc_trait_selection::traits::FulfillmentError>>::select_where_possible
+  13: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_vars_with_obligations
+  14: <rustc_hir_typeck::fn_ctxt::FnCtxt>::try_structurally_resolve_type
+  15: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  16: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  17: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  18: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  19: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  20: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  21: rustc_hir_typeck::check::check_fn
+  22: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  23: rustc_hir_typeck::typeck
+  24: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  25: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  26: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  27: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  28: rustc_hir_analysis::check_crate
+  29: rustc_interface::passes::run_required_analyses
+  30: rustc_interface::passes::analysis
+  31: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  32: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  33: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  34: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  35: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  36: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  37: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  38: std::sys::pal::unix::thread::Thread::new::thread_start
+  39: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: rustc_trait_selection::traits::const_evaluatable::is_const_evaluatable
+   7: <rustc_trait_selection::traits::fulfill::FulfillProcessor as rustc_data_structures::obligation_forest::ObligationProcessor>::process_obligation
+   8: <rustc_data_structures::obligation_forest::ObligationForest<rustc_trait_selection::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection::traits::fulfill::FulfillProcessor>
+   9: <rustc_trait_selection::traits::fulfill::FulfillmentContext<rustc_trait_selection::traits::FulfillmentError> as rustc_infer::traits::engine::TraitEngine<rustc_trait_selection::traits::FulfillmentError>>::select_where_possible
+  10: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_vars_with_obligations
+  11: <rustc_hir_typeck::fn_ctxt::FnCtxt>::try_structurally_resolve_type
+  12: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  13: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  14: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  15: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  16: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  17: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  18: rustc_hir_typeck::check::check_fn
+  19: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  20: rustc_hir_typeck::typeck
+  21: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  22: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  23: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  24: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  25: rustc_hir_analysis::check_crate
+  26: rustc_interface::passes::run_required_analyses
+  27: rustc_interface::passes::analysis
+  28: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  29: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  30: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  31: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  32: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  33: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  34: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  35: std::sys::pal::unix::thread::Thread::new::thread_start
+  36: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: <rustc_trait_selection::traits::normalize::AssocTypeNormalizer as rustc_type_ir::fold::TypeFolder<rustc_middle::ty::context::TyCtxt>>::fold_const
+   7: <rustc_type_ir::predicate_kind::PredicateKind<rustc_middle::ty::context::TyCtxt> as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   8: <rustc_middle::ty::predicate::Predicate as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   9: rustc_trait_selection::traits::normalize::normalize_with_depth_to::<rustc_middle::ty::predicate::Predicate>
+  10: <rustc_trait_selection::traits::fulfill::FulfillProcessor as rustc_data_structures::obligation_forest::ObligationProcessor>::process_obligation
+  11: <rustc_data_structures::obligation_forest::ObligationForest<rustc_trait_selection::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection::traits::fulfill::FulfillProcessor>
+  12: <rustc_trait_selection::traits::fulfill::FulfillmentContext<rustc_trait_selection::traits::FulfillmentError> as rustc_infer::traits::engine::TraitEngine<rustc_trait_selection::traits::FulfillmentError>>::select_where_possible
+  13: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_vars_with_obligations
+  14: <rustc_hir_typeck::fn_ctxt::FnCtxt>::try_structurally_resolve_type
+  15: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  16: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  17: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  18: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  19: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  20: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  21: rustc_hir_typeck::check::check_fn
+  22: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  23: rustc_hir_typeck::typeck
+  24: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  25: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  26: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  27: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  28: rustc_hir_analysis::check_crate
+  29: rustc_interface::passes::run_required_analyses
+  30: rustc_interface::passes::analysis
+  31: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  32: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  33: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  34: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  35: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  36: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  37: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  38: std::sys::pal::unix::thread::Thread::new::thread_start
+  39: __pthread_deallocate
+
+delayed bug: Encountered anon const with inference variable args but no error reported
+   0: std::backtrace::Backtrace::create
+   1: <rustc_errors::DiagCtxtInner>::emit_diagnostic
+   2: <rustc_errors::DiagCtxtHandle>::emit_diagnostic
+   3: <rustc_span::ErrorGuaranteed as rustc_errors::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   4: <rustc_errors::DiagCtxtHandle>::delayed_bug::<&str>
+   5: rustc_trait_selection::traits::try_evaluate_const
+   6: <rustc_trait_selection::traits::normalize::AssocTypeNormalizer as rustc_type_ir::fold::TypeFolder<rustc_middle::ty::context::TyCtxt>>::fold_const
+   7: <rustc_type_ir::predicate_kind::PredicateKind<rustc_middle::ty::context::TyCtxt> as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   8: <rustc_middle::ty::predicate::Predicate as rustc_type_ir::fold::TypeFoldable<rustc_middle::ty::context::TyCtxt>>::try_fold_with::<rustc_trait_selection::traits::normalize::AssocTypeNormalizer>
+   9: rustc_trait_selection::traits::normalize::normalize_with_depth_to::<rustc_middle::ty::predicate::Predicate>
+  10: <rustc_trait_selection::traits::fulfill::FulfillProcessor as rustc_data_structures::obligation_forest::ObligationProcessor>::process_obligation
+  11: <rustc_data_structures::obligation_forest::ObligationForest<rustc_trait_selection::traits::fulfill::PendingPredicateObligation>>::process_obligations::<rustc_trait_selection::traits::fulfill::FulfillProcessor>
+  12: <rustc_trait_selection::traits::fulfill::FulfillmentContext<rustc_trait_selection::traits::FulfillmentError> as rustc_infer::traits::engine::TraitEngine<rustc_trait_selection::traits::FulfillmentError>>::select_where_possible
+  13: <rustc_hir_typeck::fn_ctxt::FnCtxt>::resolve_vars_with_obligations
+  14: <rustc_hir_typeck::fn_ctxt::FnCtxt>::try_structurally_resolve_type
+  15: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  16: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_kind
+  17: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  18: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_block
+  19: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  20: <rustc_hir_typeck::fn_ctxt::FnCtxt>::check_return_or_body_tail
+  21: rustc_hir_typeck::check::check_fn
+  22: rustc_hir_typeck::typeck_with_fallback::{closure#0}
+  23: rustc_hir_typeck::typeck
+  24: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::typeck::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 8]>>
+  25: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_data_structures::vec_cache::VecCache<rustc_span::def_id::LocalDefId, rustc_middle::query::erase::Erased<[u8; 8]>, rustc_query_system::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  26: rustc_query_impl::query_impl::typeck::get_query_incr::__rust_end_short_backtrace
+  27: <rustc_middle::hir::map::Map>::par_body_owners::<rustc_hir_analysis::check_crate::{closure#4}>::{closure#0}
+  28: rustc_hir_analysis::check_crate
+  29: rustc_interface::passes::run_required_analyses
+  30: rustc_interface::passes::analysis
+  31: rustc_query_impl::plumbing::__rust_begin_short_backtrace::<rustc_query_impl::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle::query::erase::Erased<[u8; 0]>>
+  32: rustc_query_system::query::plumbing::try_execute_query::<rustc_query_impl::DynamicConfig<rustc_query_system::query::caches::SingleCache<rustc_middle::query::erase::Erased<[u8; 0]>>, false, false, false>, rustc_query_impl::plumbing::QueryCtxt, true>
+  33: rustc_query_impl::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  34: rustc_interface::passes::create_and_enter_global_ctxt::<core::option::Option<rustc_interface::queries::Linker>, rustc_driver_impl::run_compiler::{closure#0}::{closure#2}>
+  35: rustc_interface::interface::run_compiler::<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}
+  36: std::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  37: <<std::thread::Builder>::spawn_unchecked_<rustc_interface::util::run_in_thread_with_globals<rustc_interface::util::run_in_thread_pool_with_globals<rustc_interface::interface::run_compiler<(), rustc_driver_impl::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  38: std::sys::pal::unix::thread::Thread::new::thread_start
+  39: __pthread_deallocate
+
+
+
+rustc version: 1.86.0-nightly (6067b3631 2025-01-17)
+platform: aarch64-apple-darwin

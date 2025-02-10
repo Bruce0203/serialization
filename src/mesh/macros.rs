@@ -129,10 +129,14 @@ pub struct __Variants<$($impl_generics,)*>(core::marker::PhantomData<($($type_ge
 
                          $(
                          #[allow(unused_variables, non_snake_case)]
-                         let $variants = unsafe { core::mem::transmute_copy::<_, [u8; core::mem::size_of::<core::mem::Discriminant<Self>>()]>(&($discriminants)) };
+                             macro_rules! $variants {
+                                 () => {
+unsafe { core::mem::transmute_copy::<_, [u8; core::mem::size_of::<core::mem::Discriminant<Self>>()]>(&($discriminants)) }
+                                 };
+                             }
                          )*
                          match unsafe { core::mem::transmute::<_, [u8; core::mem::size_of::<core::mem::Discriminant<Self>>()]>(id) } {
-                             $(#[allow(unused_variables, non_snake_case)] v if v == $variants => Ok($crate::EnumVariantIndex($variant_indices)),)*
+                             $(#[allow(unused_variables, non_snake_case)] v if v == $variants!() => Ok($crate::EnumVariantIndex($variant_indices)),)*
                                  _ => Err($crate::EnumIdentifierToVariantIndexError::InvalidIdentifier)
 
                          }
